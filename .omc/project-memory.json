@@ -1,0 +1,228 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780661829071,
+  "projectRoot": "/Users/jaehyun/Workspace/한문문헌공부",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vite",
+        "version": "5.4.0",
+        "category": "build"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build 2>&1 | tail -6",
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc --noEmit && vite build",
+      "preview": "vite preview"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase",
+    "importStyle": "ES modules",
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 8,
+      "lastAccessed": 1780661829059,
+      "keyFiles": [
+        "anki.ts",
+        "csv.ts",
+        "docs.ts",
+        "events.ts",
+        "main.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/render.ts",
+      "accessCount": 134,
+      "lastAccessed": 1780735259184,
+      "type": "file"
+    },
+    {
+      "path": "src/events.ts",
+      "accessCount": 25,
+      "lastAccessed": 1780722691138,
+      "type": "file"
+    },
+    {
+      "path": "src/addcard.ts",
+      "accessCount": 22,
+      "lastAccessed": 1780744008168,
+      "type": "file"
+    },
+    {
+      "path": "index.html",
+      "accessCount": 17,
+      "lastAccessed": 1780732642206,
+      "type": "file"
+    },
+    {
+      "path": "server.py",
+      "accessCount": 14,
+      "lastAccessed": 1780724495339,
+      "type": "file"
+    },
+    {
+      "path": "src/state.ts",
+      "accessCount": 10,
+      "lastAccessed": 1780722393453,
+      "type": "file"
+    },
+    {
+      "path": "src/docs.ts",
+      "accessCount": 9,
+      "lastAccessed": 1780706181476,
+      "type": "file"
+    },
+    {
+      "path": "src/editcard.ts",
+      "accessCount": 7,
+      "lastAccessed": 1780718620349,
+      "type": "file"
+    },
+    {
+      "path": "한문공부.command",
+      "accessCount": 6,
+      "lastAccessed": 1780676253033,
+      "type": "file"
+    },
+    {
+      "path": "src/types.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780705601669,
+      "type": "file"
+    },
+    {
+      "path": "src/main.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780717223956,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong.csv",
+      "accessCount": 3,
+      "lastAccessed": 1780664384445,
+      "type": "file"
+    },
+    {
+      "path": "progress.md",
+      "accessCount": 3,
+      "lastAccessed": 1780742522694,
+      "type": "file"
+    },
+    {
+      "path": "vite.config.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780662261300,
+      "type": "file"
+    },
+    {
+      "path": "src/csv.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780705548919,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong/meta.json",
+      "accessCount": 1,
+      "lastAccessed": 1780661880866,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong/chars.csv",
+      "accessCount": 1,
+      "lastAccessed": 1780661884567,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong/words.csv",
+      "accessCount": 1,
+      "lastAccessed": 1780661896134,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong/sentences.csv",
+      "accessCount": 1,
+      "lastAccessed": 1780661903418,
+      "type": "file"
+    },
+    {
+      "path": "src/data/unbiyeong/paragraphs.csv",
+      "accessCount": 1,
+      "lastAccessed": 1780661913328,
+      "type": "file"
+    },
+    {
+      "path": "src/data/original/불치이명치미병.pdf",
+      "accessCount": 1,
+      "lastAccessed": 1780663341666,
+      "type": "file"
+    },
+    {
+      "path": "PROGRESS.md",
+      "accessCount": 1,
+      "lastAccessed": 1780675906801,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780676088449,
+      "type": "file"
+    },
+    {
+      "path": "src/data/불치이병치미병.csv",
+      "accessCount": 1,
+      "lastAccessed": 1780706324199,
+      "type": "file"
+    },
+    {
+      "path": "src/anki.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780716406205,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
