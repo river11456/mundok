@@ -1,7 +1,0 @@
-{
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/jaehyun/Workspace/한문문헌공부/data/original/불치이병치미병.pdf\"}",
-  "error": "File does not exist. Note: your current working directory is /Users/jaehyun/Workspace/한문문헌공부.",
-  "timestamp": "2026-06-05T12:42:14.011Z",
-  "retry_count": 1
-}
