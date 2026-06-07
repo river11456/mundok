@@ -1,4 +1,4 @@
-import { render } from './render';
+import { render, initShortcutHelp, initOnboarding } from './render';
 import { setupClick, setupKeyboard } from './events';
 import { initAddCard } from './addcard';
 import { initEditCard } from './editcard';
@@ -8,6 +8,8 @@ async function init() {
   await initDocs();
   initAddCard();
   initEditCard();
+  initShortcutHelp();
+  initOnboarding();
   setupClick();
   setupKeyboard();
   render();
