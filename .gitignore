@@ -5,3 +5,5 @@ node_modules/
 .omc/
 .claude/
 문독.app/
+userdata.json
+dist/assets/index-*.js.tmp

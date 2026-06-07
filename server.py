@@ -1,10 +1,27 @@
 #!/usr/bin/env python3
 """文讀 dev server — static files from dist/ + POST /api/add-card + live reload"""
-import http.server, socketserver, json, os, subprocess, threading, time, csv, io, shutil
+import http.server, socketserver, json, os, subprocess, threading, time, shutil
 
 PORT = 19234
 BASE = os.path.dirname(os.path.abspath(__file__))
 VITE = os.path.join(BASE, 'node_modules', '.bin', 'vite')
+USERDATA_PATH = os.path.join(BASE, 'userdata.json')
+userdata_lock = threading.Lock()
+
+
+def load_userdata():
+    try:
+        with open(USERDATA_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {'additions': [], 'edits': [], 'deletions': []}
+
+
+def save_userdata(data):
+    tmp = USERDATA_PATH + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, USERDATA_PATH)
 
 build_version = 1
 build_lock = threading.Lock()
@@ -60,6 +77,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 v = build_version
             self._json(200, {'v': v})
             return
+        if self.path == '/userdata.json':
+            with userdata_lock:
+                ud = load_userdata()
+            body = json.dumps(ud, ensure_ascii=False, indent=2).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path in ('/', '/index.html'):
             self._serve_html()
             return
@@ -103,27 +130,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def _add_card(self):
         try:
             body  = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            docId = body['docId']
-            ctype = body['type']
-            front   = body['front'].strip()
-            reading = body.get('reading', '').strip()
-            back    = body.get('back', '').strip()
-            note    = body.get('note', '').strip()
-
+            front = body['front'].strip()
             if not front:
                 raise ValueError('한자가 비어 있습니다')
-
-            csv_path = os.path.join(BASE, 'src', 'data', f'{docId}.csv')
-            if not os.path.exists(csv_path):
-                raise FileNotFoundError(f'{docId}.csv 파일 없음')
-
-            def q(s):
-                s = str(s).replace('"', '""')
-                return f'"{s}"' if any(c in s for c in (',', '"', '\n', '\r')) else s
-
-            with open(csv_path, 'a', encoding='utf-8') as f:
-                f.write(f'\n{q(ctype)},{q(front)},{q(reading)},{q(back)},{q(note)}')
-
+            with userdata_lock:
+                ud = load_userdata()
+                ud['additions'].append({
+                    'docId':   body['docId'],
+                    'type':    body['type'],
+                    'text':    front,
+                    'reading': body.get('reading', '').strip(),
+                    'meaning': body.get('back', '').strip(),
+                    'note':    body.get('note', '').strip(),
+                })
+                save_userdata(ud)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
@@ -134,29 +154,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             docId = body['docId']
             ctype = body['type']
             front = body['front'].strip()
-
-            csv_path = os.path.join(BASE, 'src', 'data', f'{docId}.csv')
-            if not os.path.exists(csv_path):
-                raise FileNotFoundError(f'{docId}.csv 파일 없음')
-
-            with open(csv_path, 'r', encoding='utf-8-sig') as f:
-                rows = list(csv.reader(f))
-
-            new_rows, deleted = [], 0
-            for row in rows:
-                if len(row) >= 2 and row[0].strip() == ctype and row[1].strip() == front:
-                    deleted += 1
-                else:
-                    new_rows.append(row)
-
-            if deleted == 0:
-                raise ValueError(f'카드를 찾을 수 없습니다: {front}')
-
-            buf = io.StringIO()
-            csv.writer(buf, quoting=csv.QUOTE_MINIMAL, lineterminator='\n').writerows(new_rows)
-            with open(csv_path, 'w', encoding='utf-8', newline='') as f:
-                f.write(buf.getvalue().rstrip('\n'))
-
+            with userdata_lock:
+                ud     = load_userdata()
+                before = len(ud['additions'])
+                ud['additions'] = [a for a in ud['additions']
+                                   if not (a['docId'] == docId and a['type'] == ctype and a['text'] == front)]
+                if len(ud['additions']) == before:
+                    # 기본 카드 → deletions에 추가 (중복 제거 후)
+                    ud['deletions'] = [d for d in ud['deletions']
+                                       if not (d['docId'] == docId and d['type'] == ctype and d['text'] == front)]
+                    ud['deletions'].append({'docId': docId, 'type': ctype, 'text': front})
+                save_userdata(ud)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
@@ -171,33 +179,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             reading   = body.get('reading', '').strip()
             back      = body.get('back', '').strip()
             note      = body.get('note', '').strip()
-
             if not text:
                 raise ValueError('한자가 비어 있습니다')
-
-            csv_path = os.path.join(BASE, 'src', 'data', f'{docId}.csv')
-            if not os.path.exists(csv_path):
-                raise FileNotFoundError(f'{docId}.csv 파일 없음')
-
-            with open(csv_path, 'r', encoding='utf-8-sig') as f:
-                rows = list(csv.reader(f))
-
-            new_rows, updated = [], 0
-            for row in rows:
-                if len(row) >= 2 and row[0].strip() == ctype and row[1].strip() == origFront:
-                    new_rows.append([ctype, text, reading, back, note])
-                    updated += 1
-                else:
-                    new_rows.append(row)
-
-            if updated == 0:
-                raise ValueError(f'카드를 찾을 수 없습니다: {origFront}')
-
-            buf = io.StringIO()
-            csv.writer(buf, quoting=csv.QUOTE_MINIMAL, lineterminator='\n').writerows(new_rows)
-            with open(csv_path, 'w', encoding='utf-8', newline='') as f:
-                f.write(buf.getvalue().rstrip('\n'))
-
+            with userdata_lock:
+                ud = load_userdata()
+                in_additions = False
+                for a in ud['additions']:
+                    if a['docId'] == docId and a['type'] == ctype and a['text'] == origFront:
+                        a.update({'text': text, 'reading': reading, 'meaning': back, 'note': note})
+                        in_additions = True
+                        break
+                if not in_additions:
+                    # 기본 카드 → edits에 추가 (중복 제거 후)
+                    ud['edits'] = [e for e in ud['edits']
+                                   if not (e['docId'] == docId and e['type'] == ctype and e['origText'] == origFront)]
+                    ud['edits'].append({
+                        'docId': docId, 'type': ctype, 'origText': origFront,
+                        'text': text, 'reading': reading, 'meaning': back, 'note': note,
+                    })
+                save_userdata(ud)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
@@ -220,8 +220,9 @@ if shutil.which('npm'):
 else:
     print('文讀 (배포 모드) →  dist/ 사용', flush=True)
 
-# CSV 변경 감시 워처 시작
-threading.Thread(target=start_watcher, daemon=True).start()
+# 개발 모드(npm 있음)일 때만 라이브 리로드 워처 시작
+if shutil.which('npm') and os.path.exists(VITE):
+    threading.Thread(target=start_watcher, daemon=True).start()
 
 socketserver.TCPServer.allow_reuse_address = True
 print(f'文讀  →  http://localhost:{PORT}', flush=True)

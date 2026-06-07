@@ -1,4 +1,4 @@
-import type { Doc, Level, LevelKey } from './types';
+import type { Doc, Level, LevelKey, UserData } from './types';
 import { parseCSV } from './csv';
 
 const rawCsvs = import.meta.glob('./data/*.csv', {
@@ -15,7 +15,7 @@ const LEVEL_LABEL: Record<LevelKey, string> = {
   paragraph: '단락 단위',
 };
 
-export const DOCS: Doc[] = Object.entries(rawCsvs)
+export let DOCS: Doc[] = Object.entries(rawCsvs)
   .map(([path, raw]) => {
     const m = path.match(/\.\/data\/([^/]+)\.csv$/);
     if (!m) return null;
@@ -56,3 +56,48 @@ export const DOCS: Doc[] = Object.entries(rawCsvs)
       : null;
   })
   .filter((d): d is Doc => d !== null);
+
+export async function initDocs(): Promise<void> {
+  let ud: UserData;
+  try {
+    const res = await fetch('/userdata.json');
+    if (!res.ok) return;
+    ud = await res.json() as UserData;
+  } catch {
+    return;
+  }
+
+  for (const del of ud.deletions ?? []) {
+    const doc = DOCS.find(d => d.id === del.docId);
+    if (!doc) continue;
+    for (const lvl of doc.levels) {
+      if (lvl.key === del.type) lvl.cards = lvl.cards.filter(c => c.front !== del.text);
+    }
+  }
+
+  for (const edit of ud.edits ?? []) {
+    const doc = DOCS.find(d => d.id === edit.docId);
+    if (!doc) continue;
+    for (const lvl of doc.levels) {
+      if (lvl.key !== edit.type) continue;
+      const card = lvl.cards.find(c => c.front === edit.origText);
+      if (card) Object.assign(card, { front: edit.text, reading: edit.reading, back: edit.meaning, note: edit.note });
+    }
+  }
+
+  for (const add of ud.additions ?? []) {
+    const doc = DOCS.find(d => d.id === add.docId);
+    if (!doc) continue;
+    if (!LEVEL_ORDER.includes(add.type)) continue;
+    let lvl = doc.levels.find(l => l.key === add.type);
+    if (!lvl) {
+      lvl = { key: add.type, label: LEVEL_LABEL[add.type], cards: [] };
+      const idx = LEVEL_ORDER.indexOf(add.type);
+      const at  = doc.levels.findIndex(l => LEVEL_ORDER.indexOf(l.key) > idx);
+      if (at === -1) doc.levels.push(lvl); else doc.levels.splice(at, 0, lvl);
+    }
+    if (!lvl.cards.some(c => c.front === add.text)) {
+      lvl.cards.push({ id: `${add.docId}_${add.type}_${add.text}`, front: add.text, reading: add.reading, back: add.meaning, note: add.note, fail_count: 0 });
+    }
+  }
+}

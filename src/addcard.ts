@@ -61,7 +61,7 @@ async function submitCard(): Promise<void> {
     });
     const data = await res.json() as { ok: boolean; error?: string };
     if (data.ok) {
-      const newCard: Card = { id: `${type}_${Date.now()}`, front, reading, back, note, fail_count: 0 };
+      const newCard: Card = { id: `${docId}_${type}_${front}`, front, reading, back, note, fail_count: 0 };
       const targetLevel = curDoc().levels.find(l => l.key === type);
       if (targetLevel) {
         targetLevel.cards.push(newCard);
