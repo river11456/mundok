@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """文讀 dev server — static files from dist/ + POST /api/add-card + live reload"""
-import http.server, socketserver, json, os, subprocess, threading, time, csv, io
+import http.server, socketserver, json, os, subprocess, threading, time, csv, io, shutil
 
 PORT = 19234
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -211,11 +211,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
-# 초기 빌드 (동기)
-print('文讀 초기 빌드 중...', flush=True)
-r = subprocess.run(['npm', 'run', 'build'], cwd=BASE)
-if r.returncode != 0:
-    print('⚠ 빌드 실패 — 이전 dist/ 파일로 실행', flush=True)
+# 초기 빌드 (npm이 있을 때만)
+if shutil.which('npm'):
+    print('文讀 초기 빌드 중...', flush=True)
+    r = subprocess.run(['npm', 'run', 'build'], cwd=BASE)
+    if r.returncode != 0:
+        print('⚠ 빌드 실패 — 이전 dist/ 파일로 실행', flush=True)
+else:
+    print('文讀 (배포 모드) →  dist/ 사용', flush=True)
 
 # CSV 변경 감시 워처 시작
 threading.Thread(target=start_watcher, daemon=True).start()

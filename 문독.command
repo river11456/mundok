@@ -1,11 +1,22 @@
 #!/bin/sh
 PORT=19234
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# LaunchAgent가 서버를 관리하므로 여기서는 브라우저만 열기
-# 서버가 아직 시작 중이면 최대 6초 대기
-for i in $(seq 1 20); do
+# 포트 사용 중이면 종료
+lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
+sleep 0.3
+
+# 서버 시작 (백그라운드 — 초기 빌드 포함)
+python3 "$SCRIPT_DIR/server.py" &
+
+# 초기 빌드 완료 후 서버가 뜰 때까지 대기 (최대 30초)
+for i in $(seq 1 100); do
   curl -sf "http://localhost:$PORT/api/version" > /dev/null 2>&1 && break
   sleep 0.3
 done
 
+# 브라우저 열기
 open "http://localhost:$PORT"
+
+# 터미널 닫으면 서버 종료
+wait
