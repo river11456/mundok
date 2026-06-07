@@ -53,6 +53,51 @@ export function loadAnki(cards: Card[]): Card[] {
 
 export function persist(): void {
   localStorage.setItem(lsKey(), JSON.stringify(S.allCards));
+  localStorage.setItem(lsKey() + '_ts', Date.now().toString());
+}
+
+// ── Per-doc last-studied date ─────────────────────────────
+export function getDocLastStudied(docId: string): string | null {
+  let latest = 0;
+  for (const key of ['char', 'word', 'sentence', 'paragraph']) {
+    const ts = parseInt(localStorage.getItem(`${LS}/${docId}/${key}_ts`) ?? '0');
+    if (ts > latest) latest = ts;
+  }
+  if (!latest) return null;
+  return new Date(latest).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+// ── Daily streak ──────────────────────────────────────────
+const STREAK_KEY = `${LS}/streak`;
+
+interface StreakData { lastDate: string; count: number; todayCards: number; }
+
+function todayStr(): string { return new Date().toISOString().slice(0, 10); }
+
+export function getStreak(): StreakData {
+  try {
+    const d = JSON.parse(localStorage.getItem(STREAK_KEY) ?? 'null');
+    if (d && typeof d.count === 'number') return d as StreakData;
+  } catch { /* ignore */ }
+  return { lastDate: '', count: 0, todayCards: 0 };
+}
+
+export function recordStudySession(cardsCount: number): StreakData {
+  const today = todayStr();
+  const prev  = getStreak();
+  if (prev.lastDate === today) {
+    const next = { ...prev, todayCards: prev.todayCards + cardsCount };
+    localStorage.setItem(STREAK_KEY, JSON.stringify(next));
+    return next;
+  }
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  const next: StreakData = {
+    lastDate: today,
+    count: prev.lastDate === yest.toISOString().slice(0, 10) ? prev.count + 1 : 1,
+    todayCards: cardsCount,
+  };
+  localStorage.setItem(STREAK_KEY, JSON.stringify(next));
+  return next;
 }
 
 export function pushNav(): void {

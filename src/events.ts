@@ -1,6 +1,6 @@
 import { S, curDoc, lsKey, loadAnki, shuffle, pushNav, popNav, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { DOCS } from './state';
-import { render } from './render';
+import { render, isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp, isOnboardingOpen } from './render';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { showEditModal } from './editcard';
@@ -109,7 +109,7 @@ export function setupKeyboard(): void {
     const modalOpen = ['ac-overlay', 'ec-overlay'].some(
       id => !document.getElementById(id)?.classList.contains('hidden')
     );
-    if (modalOpen) return;
+    if (modalOpen || isOnboardingOpen()) return;
 
     // Hard reset (anki only)
     if (e.ctrlKey && e.shiftKey && e.key === 'R') {
@@ -118,7 +118,16 @@ export function setupKeyboard(): void {
       return;
     }
 
-    if (e.key === 'Escape') { navBack(); return; }
+    if (e.key === '?') {
+      if (isShortcutHelpOpen()) hideShortcutHelp(); else showShortcutHelp();
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      if (isShortcutHelpOpen()) { hideShortcutHelp(); return; }
+      navBack();
+      return;
+    }
 
     if (S.scr === 'home') {
       const i = +e.key - 1;
