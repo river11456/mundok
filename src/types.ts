@@ -25,3 +25,34 @@ export interface Doc {
   sub: string;
   levels: Level[];
 }
+
+export interface UserAddition {
+  docId: string;
+  type: LevelKey;
+  text: string;
+  reading: string;
+  meaning: string;
+  note: string;
+}
+
+export interface UserEdit {
+  docId: string;
+  type: LevelKey;
+  origText: string;
+  text: string;
+  reading: string;
+  meaning: string;
+  note: string;
+}
+
+export interface UserDeletion {
+  docId: string;
+  type: LevelKey;
+  text: string;
+}
+
+export interface UserData {
+  additions: UserAddition[];
+  edits: UserEdit[];
+  deletions: UserDeletion[];
+}
