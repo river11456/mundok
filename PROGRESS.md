@@ -110,8 +110,7 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 - **수정**: 카드 우상단 수정 버튼 → 모달 → CSV 반영
 - **삭제**: 카드 우상단 삭제 버튼 → 확인 → CSV 반영
 
-> ⚠️ 현재 카드 CRUD는 `src/data/*.csv`에 직접 쓰므로 빌드가 필요함.  
-> **다음 작업**: `dist/userdata.json` 방식으로 전환 (빌드 없이 즉시 반영)
+> 카드 CRUD는 `userdata.json`(프로젝트 루트)에 기록 — 빌드 없이 즉시 반영.
 
 ### 라이브 리로드 (관리자 모드)
 - `vite build --watch`로 CSV 변경 감지 → 자동 빌드 → 브라우저 자동 갱신
@@ -146,30 +145,6 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 
 ---
 
-## 다음 작업: userdata.json 아키텍처
+## 향후 작업
 
-카드 CRUD를 `src/data/*.csv` 직접 쓰기 → `dist/userdata.json` 방식으로 전환.
-
-### 목표
-- 일반 사용자도 카드 추가/수정/삭제 가능 (빌드 불필요)
-- 관리자만 새 문헌 추가 시 빌드 필요
-
-### 데이터 레이어
-| | 기본 문헌 데이터 | 사용자 카드 변경 |
-|---|---|---|
-| 저장 위치 | `src/data/*.csv` (빌드 번들) | `dist/userdata.json` (런타임) |
-| 수정 주체 | 관리자 (빌드 필요) | 누구나 (빌드 불필요) |
-
-### userdata.json 구조
-```json
-{
-  "additions": [{ "docId": "식무구포", "type": "char", "text": "順", ... }],
-  "edits":     [{ "docId": "식무구포", "type": "char", "origText": "順", ... }],
-  "deletions": [{ "docId": "식무구포", "type": "char", "text": "順" }]
-}
-```
-
-### 수정 파일
-- `server.py`: CRUD API → `dist/userdata.json` 읽기/쓰기
-- `docs.ts`: 번들 CSV 로드 후 `userdata.json` fetch → 병합
-- `state.ts` 또는 `main.ts`: 초기화 비동기 처리
+- **포트 동적 탐색**: `문독.command`와 `server.py`의 포트가 `19234`로 하드코딩되어 있음. 다른 PC에서 해당 포트가 사용 중이면 기존 프로세스를 강제 종료하는 문제가 있음. `19234`를 우선 시도하되 사용 중이면 OS가 빈 포트를 자동 배정하도록 개선 필요.

@@ -195,7 +195,7 @@ function renderHome(): void {
         ${bgChar}
       </div>
       <div class="relative">
-        <div class="hanja text-lg font-bold text-stone-900">${esc(d.title)}</div>
+        <div class="hanja text-lg text-stone-900">${esc(d.title)}</div>
         <div class="text-sm text-stone-400 mt-0.5">${esc(d.sub)}</div>
         <div class="flex items-center gap-2 mt-3">
           <span class="text-xs text-stone-300">${totalCards}장</span>
@@ -208,7 +208,7 @@ function renderHome(): void {
   $app().innerHTML = `
     <div class="screen-enter w-full max-w-lg flex flex-col gap-8">
       <div class="pt-6 pb-2">
-        <div class="hanja text-5xl font-bold tracking-widest text-stone-900">文讀</div>
+        <div class="hanja text-5xl tracking-widest text-stone-900">文讀</div>
         <div class="text-sm text-stone-400 mt-2 tracking-wide">한의학 한문 학습</div>
       </div>
       <div class="stagger flex flex-col gap-3">${items}</div>
