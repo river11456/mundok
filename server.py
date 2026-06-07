@@ -227,5 +227,5 @@ if shutil.which('npm') and os.path.exists(VITE):
 socketserver.TCPServer.allow_reuse_address = True
 print(f'文讀  →  http://localhost:{PORT}', flush=True)
 print('CSV 수정 시 자동 빌드 + 브라우저 새로고침', flush=True)
-with socketserver.TCPServer(('', PORT), Handler) as srv:
+with socketserver.TCPServer(('127.0.0.1', PORT), Handler) as srv:
     srv.serve_forever()
