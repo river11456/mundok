@@ -4,7 +4,8 @@ import http.server, socketserver, json, os, subprocess, threading, time, shutil
 
 PORT = 19234
 BASE = os.path.dirname(os.path.abspath(__file__))
-VITE = os.path.join(BASE, 'node_modules', '.bin', 'vite')
+VITE_BIN = 'vite.cmd' if os.name == 'nt' else 'vite'
+VITE = os.path.join(BASE, 'node_modules', '.bin', VITE_BIN)
 USERDATA_PATH = os.path.join(BASE, 'userdata.json')
 userdata_lock = threading.Lock()
 

@@ -4,7 +4,7 @@
 
 ---
 
-## 설치 방법 (맥북)
+## 설치 방법 (macOS)
 
 ### 1단계 — Git 설치 확인
 
@@ -37,11 +37,43 @@ Finder에서 홈 폴더 → `문독` 폴더 → `문독.command`를 더블클릭
 
 ---
 
+## 설치 방법 (Windows)
+
+### 1단계 — 필수 프로그램 설치
+
+아래 프로그램을 설치하세요.
+
+- [Git for Windows](https://git-scm.com/download/win)
+- [Python](https://www.python.org/downloads/windows/)
+- [Node.js LTS](https://nodejs.org/)
+
+Python 설치 화면에서는 **Add python.exe to PATH**를 체크하는 것을 권장합니다.
+
+### 2단계 — 앱 다운로드
+
+시작 메뉴에서 `명령 프롬프트`를 열고 아래를 실행하세요.
+
+```
+git clone https://github.com/river11456/mundok.git %USERPROFILE%\문독
+```
+
+Git Bash를 사용하는 경우에는 아래처럼 실행하세요.
+
+```
+git clone https://github.com/river11456/mundok.git ~/문독
+```
+
+### 3단계 — 실행
+
+파일 탐색기에서 사용자 폴더 → `문독` 폴더 → `문독.bat`를 더블클릭하세요.
+
+명령 프롬프트 창이 열리면서 잠시 후 브라우저에 앱이 자동으로 뜹니다.
+
 ## 이후 실행
 
-매번 `문독.command` 더블클릭만 하면 됩니다.
+macOS에서는 `문독.command`, Windows에서는 `문독.bat`를 더블클릭하면 됩니다.
 
-앱을 닫을 때는 터미널 창을 닫으면 서버도 자동으로 종료됩니다.
+앱을 닫을 때는 함께 열린 터미널 또는 명령 프롬프트 창을 닫으면 서버도 자동으로 종료됩니다.
 
 ---
 
@@ -51,4 +83,18 @@ Finder에서 홈 폴더 → `문독` 폴더 → `문독.command`를 더블클릭
 
 ```
 cd ~/문독 && git pull
+```
+
+Windows 명령 프롬프트에서는 아래를 실행하세요.
+
+```
+cd %USERPROFILE%\문독
+git pull
+```
+
+Git Bash에서는 아래를 실행하세요.
+
+```
+cd ~/문독
+git pull
 ```
