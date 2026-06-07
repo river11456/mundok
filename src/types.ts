@@ -11,8 +11,10 @@ export interface Card {
   fail_count: number;
 }
 
+export type LevelKey = 'char' | 'word' | 'sentence' | 'paragraph';
+
 export interface Level {
-  key: string;
+  key: LevelKey;
   label: string;
   cards: Card[];
 }
