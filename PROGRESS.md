@@ -19,7 +19,7 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 ## 파일 구조
 
 ```
-한문문헌공부/
+문독/
 ├── src/
 │   ├── main.ts        # 진입점
 │   ├── types.ts       # Card, Level, Doc, Screen, Mode, Side 타입
