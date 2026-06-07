@@ -10,7 +10,7 @@
 CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 
 **앱 이름**: 文讀  
-**실행**: `한문공부.command` 더블클릭 → `http://localhost:19234`  
+**실행**: `문독.command` 더블클릭 → `http://localhost:19234`  
 **빌드**: `npm run build` (약 1초)  
 **서버**: `server.py` — 정적 파일 서빙 + 카드 CRUD API + 라이브 리로드
 
@@ -22,10 +22,10 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 문독/
 ├── src/
 │   ├── main.ts        # 진입점
-│   ├── types.ts       # Card, Level, Doc, Screen, Mode, Side 타입
+│   ├── types.ts       # Card, Level, LevelKey, Doc, Screen, Mode, Side 타입
 │   ├── state.ts       # 전역 상태 S, DRILL_LEVELS, pushNav/popNav 등
 │   ├── docs.ts        # import.meta.glob으로 CSV 자동 로드 → DOCS 배열
-│   ├── csv.ts         # parseCSV (BOM 제거, quote 처리)
+│   ├── csv.ts         # papaparse 래퍼
 │   ├── render.ts      # 전체 화면 렌더링, tokenizeHighlights, annotatedFront
 │   ├── events.ts      # 클릭 위임, 키보드 단축키
 │   ├── anki.ts        # rate(1|2|3) — 안키 큐 알고리즘
@@ -37,10 +37,12 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 │       ├── 식무구포.csv
 │       ├── 양성편.csv
 │       └── original/   # 원본 PDF (참고용)
+├── dist/              # 빌드 산출물 (git 포함 — 일반 사용자 빌드 불필요)
+├── public/            # favicon.ico, icon.svg
 ├── index.html         # Tailwind CDN, 폰트, 애니메이션 CSS
 ├── vite.config.ts
-├── server.py          # 커스텀 HTTP 서버
-├── 한문공부.command   # 포트 정리 → 브라우저 열기 → server.py 실행
+├── server.py          # 커스텀 HTTP 서버 (npm 없으면 dist/ 그대로 사용)
+├── 문독.command       # 포트 정리 → server.py 실행 → 브라우저 열기
 └── PROGRESS.md
 ```
 
@@ -49,7 +51,7 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 ## CSV 형식
 
 ```
-type,front,reading,back,note
+type,text,reading,meaning,note
 meta,문헌제목,부제,,
 char,治,치,다스리다,
 word,攝養,섭양,섭생하고 양생함,
@@ -57,10 +59,21 @@ sentence,是故로 已病而後治는...,시고로 이병이후치는...,해석,
 paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 ```
 
-- **필드**: `type`, `front`, `reading`, `back`, `note` (5개)
+- **필드**: `type`, `text`, `reading`, `meaning`, `note` (5개)
 - `type` 값: `meta` | `char` | `word` | `sentence` | `paragraph`
 - `reading`: 한자와 글자 수가 같으면 뒷면에서 각 한자 아래 발음 표시
-- 새 문헌 추가: CSV 파일을 `src/data/`에 넣고 `npm run build`
+- 새 문헌 추가: CSV 파일을 `src/data/`에 넣고 `npm run build` → `dist/` 커밋
+
+---
+
+## 배포 구조
+
+| 대상 | 필요한 것 | 방법 |
+|------|----------|------|
+| 관리자 (본인) | Node.js + npm | `npm run build` 후 dist/ 커밋 |
+| 일반 사용자 | Python3 (macOS 기본 설치) | `git clone` → `문독.command` 더블클릭 |
+
+`server.py`는 `npm`이 없으면 빌드를 건너뛰고 기존 `dist/`를 그대로 사용.
 
 ---
 
@@ -91,13 +104,16 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 - `front.length === reading.length`인 경우 뒤집으면 각 한자 아래 발음 표시 (`<ruby>` 태그)
 - 드릴다운 가능한 구간은 발음 아래 밑줄로 표시
 
-### 카드 관리 (웹앱 ↔ CSV 즉시 반영)
-- **추가**: 텍스트 드래그 → 버블 → 모달 → CSV 반영 (페이지 리로드 없이 즉시 반영)
+### 카드 관리
+- **추가**: 텍스트 드래그 → 버블 → 모달 → CSV 반영
   - 한자 입력칸 옆 **검색** 버튼 → 네이버 한자사전 새 탭
 - **수정**: 카드 우상단 수정 버튼 → 모달 → CSV 반영
 - **삭제**: 카드 우상단 삭제 버튼 → 확인 → CSV 반영
 
-### 라이브 리로드
+> ⚠️ 현재 카드 CRUD는 `src/data/*.csv`에 직접 쓰므로 빌드가 필요함.  
+> **다음 작업**: `dist/userdata.json` 방식으로 전환 (빌드 없이 즉시 반영)
+
+### 라이브 리로드 (관리자 모드)
 - `vite build --watch`로 CSV 변경 감지 → 자동 빌드 → 브라우저 자동 갱신
 - 카드 CRUD 후 불필요한 리로드 방지: `window.__hanjaSkipReloads` 카운터
 
@@ -130,37 +146,30 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 
 ---
 
-## 브랜치 구조
+## 다음 작업: userdata.json 아키텍처
 
-```
-main      ← 로컬 버전 (현행 유지)
-electron  ← Electron 데스크탑 앱 개발 (예정)
-```
-
----
-
-## 미래 계획: Electron 데스크탑 앱 (~10명 배포)
+카드 CRUD를 `src/data/*.csv` 직접 쓰기 → `dist/userdata.json` 방식으로 전환.
 
 ### 목표
-일반 사용자(동기 10명)가 각자 PC에 설치해서 완전한 기능(추가/수정/삭제/안키)을 사용.  
-Anki처럼 로컬 데이터, `.dmg` / `.exe` 배포.
+- 일반 사용자도 카드 추가/수정/삭제 가능 (빌드 불필요)
+- 관리자만 새 문헌 추가 시 빌드 필요
 
-### 필요한 변경
-| 항목 | 현재 | 변경 후 |
-|------|------|---------|
-| 서버 | Python `server.py` | Electron main process (Node.js) |
-| 파일 접근 | `server.py` 직접 fs | Electron IPC (`ipcMain.handle`) |
-| API 호출 | `fetch('/api/...')` | `window.electronAPI.*` |
-| 데이터 위치 | `src/data/*.csv` (소스 내) | `app.getPath('userData')` |
-| 카드 로드 | 빌드타임 번들 | 런타임 파일 읽기 |
-| 배포 | 없음 | `electron-builder` → `.dmg` / `.exe` |
+### 데이터 레이어
+| | 기본 문헌 데이터 | 사용자 카드 변경 |
+|---|---|---|
+| 저장 위치 | `src/data/*.csv` (빌드 번들) | `dist/userdata.json` (런타임) |
+| 수정 주체 | 관리자 (빌드 필요) | 누구나 (빌드 불필요) |
 
-### 주요 작업
-- [ ] `electron`, `electron-builder` 설치
-- [ ] `main.js` — 윈도우 생성 + CSV IPC 핸들러
-- [ ] `preload.js` — `window.electronAPI` 노출
-- [ ] 프론트 API 호출 교체 (`fetch` → `electronAPI`)
-- [ ] `import.meta.glob` → 런타임 파일 읽기로 전환
-- [ ] `electron-builder` 설정 (`.dmg` / `.exe` 출력)
+### userdata.json 구조
+```json
+{
+  "additions": [{ "docId": "식무구포", "type": "char", "text": "順", ... }],
+  "edits":     [{ "docId": "식무구포", "type": "char", "origText": "順", ... }],
+  "deletions": [{ "docId": "식무구포", "type": "char", "text": "順" }]
+}
+```
 
-**예상 작업량**: 2~3일
+### 수정 파일
+- `server.py`: CRUD API → `dist/userdata.json` 읽기/쓰기
+- `docs.ts`: 번들 CSV 로드 후 `userdata.json` fetch → 병합
+- `state.ts` 또는 `main.ts`: 초기화 비동기 처리
