@@ -19,6 +19,9 @@ export const S = {
   busy:       false,
 
   navStack:   [] as Array<{lv: Level; mode: Mode; seqIdx: number; seqFlipped: boolean; queue: Card[]; total: number; side: Side}>,
+
+  grammarOn:       false,
+  grammarEditMode: false,
 };
 
 export const DRILL_NEXT: Record<string, string> = {

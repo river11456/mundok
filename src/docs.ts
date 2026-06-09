@@ -1,5 +1,6 @@
 import type { Doc, Level, LevelKey, UserData } from './types';
 import { parseCSV } from './csv';
+import { initGrammar } from './grammar';
 
 const rawCsvs = import.meta.glob('./data/*.csv', {
   query: '?raw',
@@ -100,4 +101,6 @@ export async function initDocs(): Promise<void> {
       lvl.cards.push({ id: `${add.docId}_${add.type}_${add.text}`, front: add.text, reading: add.reading, back: add.meaning, note: add.note, fail_count: 0 });
     }
   }
+
+  initGrammar(ud.grammar ?? []);
 }

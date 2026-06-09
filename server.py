@@ -114,6 +114,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._delete_card()
         elif self.path == '/api/edit-card':
             self._edit_card()
+        elif self.path == '/api/save-grammar':
+            self._save_grammar()
         else:
             self.send_error(404)
 
@@ -197,6 +199,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     ud['edits'].append({
                         'docId': docId, 'type': ctype, 'origText': origFront,
                         'text': text, 'reading': reading, 'meaning': back, 'note': note,
+                    })
+                save_userdata(ud)
+            self._json(200, {'ok': True})
+        except Exception as e:
+            self._json(500, {'ok': False, 'error': str(e)})
+
+    def _save_grammar(self):
+        try:
+            body        = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
+            doc_id      = body['docId']
+            card_front  = body['cardFront']
+            annotations = body.get('annotations', [])
+            with userdata_lock:
+                ud = load_userdata()
+                if 'grammar' not in ud:
+                    ud['grammar'] = []
+                ud['grammar'] = [g for g in ud['grammar']
+                                 if not (g['docId'] == doc_id and g['cardFront'] == card_front)]
+                if annotations:
+                    ud['grammar'].append({
+                        'docId':       doc_id,
+                        'cardFront':   card_front,
+                        'annotations': annotations,
                     })
                 save_userdata(ud)
             self._json(200, {'ok': True})
