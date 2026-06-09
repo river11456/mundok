@@ -7,10 +7,11 @@ import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
-function navHome(): void  { S.navStack = []; S.scr = 'home'; S.mode = null; render(); }
+function navHome(): void  { S.grammarEditMode = false; S.navStack = []; S.scr = 'home'; S.mode = null; render(); }
 function navMode(id: string): void  { S.docId = id; S.scr = 'mode';  render(); }
 function navLevel(m: Mode): void    { S.mode  = m;  S.scr = 'level'; render(); }
 function navBack(): void {
+  S.grammarEditMode = false;
   if (S.scr === 'study' && popNav()) { render(); return; }
   if      (S.scr === 'mode')  navHome();
   else if (S.scr === 'level') navMode(S.docId!);
@@ -80,6 +81,16 @@ export function setupClick(): void {
         deleteCard(S.docId!, S.lv!.key, card.front);
         break;
       }
+      case 'toggle-grammar':
+        S.grammarOn = !S.grammarOn;
+        if (!S.grammarOn) S.grammarEditMode = false;
+        render();
+        break;
+      case 'toggle-grammar-edit':
+        S.grammarEditMode = !S.grammarEditMode;
+        if (S.grammarEditMode) S.grammarOn = true;
+        render();
+        break;
       case 'drill-down': {
         const keys = DRILL_LEVELS[S.lv!.key] ?? [DRILL_NEXT[S.lv!.key]].filter(Boolean);
         let nextLevel = undefined as ReturnType<typeof curDoc>['levels'][number] | undefined;

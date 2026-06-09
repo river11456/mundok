@@ -197,6 +197,7 @@ export function initAddCard(): void {
   // ── Drag-to-select detection ───────────────────────────
   document.addEventListener('mouseup', (e) => {
     if (S.scr !== 'study') { hideBubble(); return; }
+    if (S.grammarEditMode) { hideBubble(); return; }
     if ((e.target as Element).closest('button, [data-action]')) { hideBubble(); return; }
     const sel = window.getSelection();
     // Only Range (drag), not Caret (plain click)

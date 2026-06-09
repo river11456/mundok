@@ -55,4 +55,19 @@ export interface UserData {
   additions: UserAddition[];
   edits: UserEdit[];
   deletions: UserDeletion[];
+  grammar?: GrammarEntry[];
+}
+
+export type GrammarType = 'S' | 'V' | 'O' | 'phrase';
+
+export interface GrammarAnnotation {
+  type: GrammarType;
+  start: number;  // front 문자열 내 시작 인덱스 (포함)
+  end: number;    // 끝 인덱스 (미포함)
+}
+
+export interface GrammarEntry {
+  docId: string;
+  cardFront: string;
+  annotations: GrammarAnnotation[];
 }

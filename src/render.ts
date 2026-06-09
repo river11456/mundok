@@ -1,5 +1,7 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, recordStudySession } from './state';
 import { hideBubble } from './addcard';
+import { getAnnotations } from './grammar';
+import type { GrammarAnnotation } from './types';
 
 const $app = (): HTMLElement => document.getElementById('app')!;
 
@@ -22,6 +24,235 @@ function cardStyle(key: string): CardStyle {
     default:
       return { wrap: 'max-w-2xl',  front: 'hanja text-5xl tracking-wide text-center',   backAlign: 'text-center' };
   }
+}
+
+// ── Grammar annotation rendering ─────────────────────────
+
+type SlotAnno = {
+  svoType?: 'S' | 'V' | 'O';
+  svoBg?: string;
+  isFirstSvo?: boolean;
+  phraseTop?: boolean;
+  phraseLeft?: boolean;
+  phraseRight?: boolean;
+  phraseColor?: string;
+};
+
+function buildSlotMap(annotations: GrammarAnnotation[]): Map<number, SlotAnno> {
+  const map    = new Map<number, SlotAnno>();
+  const get    = (i: number) => { if (!map.has(i)) map.set(i, {}); return map.get(i)!; };
+  const svoBg  : Record<string, string> = { S: 'bg-red-50', V: 'bg-blue-50', O: 'bg-green-50' };
+  const phrases = ['border-indigo-400', 'border-purple-400', 'border-teal-400'];
+  let phraseIdx = 0;
+
+  for (const ann of annotations) {
+    if (ann.type === 'S' || ann.type === 'V' || ann.type === 'O') {
+      const midIdx = ann.start + Math.floor((ann.end - ann.start - 1) / 2);
+      for (let i = ann.start; i < ann.end; i++) {
+        const s = get(i);
+        s.svoType = ann.type;
+        s.svoBg   = svoBg[ann.type];
+        if (i === midIdx) s.isFirstSvo = true;
+      }
+    } else if (ann.type === 'phrase') {
+      const col = phrases[phraseIdx++ % phrases.length];
+      for (let i = ann.start; i < ann.end; i++) {
+        const s = get(i);
+        s.phraseTop   = true;
+        s.phraseColor = col;
+        if (i === ann.start)     s.phraseLeft  = true;
+        if (i === ann.end - 1)   s.phraseRight = true;
+      }
+    }
+  }
+  return map;
+}
+
+type DrillMatch = { id: string; back: string };
+
+function buildDrillMap(front: string): Map<number, DrillMatch> {
+  const charMap  = new Map<number, DrillMatch>();
+  const nextKeys = S.lv ? DRILL_LEVELS[S.lv.key] : null;
+  if (!nextKeys) return charMap;
+
+  const doc        = curDoc();
+  const candidates = nextKeys
+    .flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => front.includes(c.front)));
+  candidates.sort((a, b) => b.front.length - a.front.length);
+
+  const covered = new Set<number>();
+  for (const card of candidates) {
+    let p = 0;
+    while (p < front.length) {
+      const idx = front.indexOf(card.front, p);
+      if (idx === -1) break;
+      const end = idx + card.front.length;
+      if (![...card.front].some((_, k) => covered.has(idx + k))) {
+        for (let k = idx; k < end; k++) {
+          charMap.set(k, { id: card.id, back: card.back });
+          covered.add(k);
+        }
+      }
+      p = idx + 1;
+    }
+  }
+  return charMap;
+}
+
+function renderGrammarSentence(
+  front: string,
+  reading: string,
+  annotations: GrammarAnnotation[],
+  isFlipped: boolean,
+  editMode: boolean,
+): string {
+  // 어노테이션도 없고 표시 모드면 → 일반 렌더링과 완전히 동일
+  if (!editMode && annotations.length === 0) {
+    return isFlipped && front.length === reading.length && reading
+      ? annotatedFront(front, reading)
+      : tokenizeHighlights(front);
+  }
+
+  const chars       = [...front];
+  const perCharRead = isFlipped && reading.length === chars.length && reading;
+  const slotMap     = buildSlotMap(annotations);
+  const hasAnyLabel = annotations.some(a => a.type !== 'phrase');
+  const svoTailwind: Record<string, string> = {
+    S: 'text-red-500', V: 'text-blue-500', O: 'text-green-600',
+  };
+
+  // ── 편집 모드: flex 그리드, 글자별 드래그 가능 셀 ─────────
+  if (editMode) {
+    const cells = chars.map((ch, i) => {
+      const s  = slotMap.get(i) ?? {};
+      const bg = s.svoBg ?? '';
+      let phraseCls = '';
+      if (s.phraseTop) {
+        phraseCls = `border-t-2 ${s.phraseColor}`;
+        if (s.phraseLeft)  phraseCls += ' border-l-2 rounded-tl-sm';
+        if (s.phraseRight) phraseCls += ' border-r-2 rounded-tr-sm';
+      }
+      const badge = s.svoType && s.isFirstSvo
+        ? `<span class="text-[10px] font-bold leading-none select-none ${svoTailwind[s.svoType]}">${s.svoType}</span>`
+        : hasAnyLabel
+          ? `<span class="text-[10px] leading-none select-none invisible">_</span>`
+          : '';
+      const rdChar = perCharRead
+        ? `<span class="text-[11px] text-stone-400 leading-none mt-0.5 select-none">${esc(reading[i])}</span>`
+        : '';
+      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none ${bg} ${phraseCls} cursor-pointer hover:bg-stone-100" data-char-idx="${i}">
+        ${badge}
+        <span class="hanja text-2xl leading-none pointer-events-none">${esc(ch)}</span>
+        ${rdChar}
+      </span>`;
+    }).join('');
+    return `<div class="grammar-edit-grid flex flex-wrap" style="gap:6px 2px">${cells}</div>`;
+  }
+
+  // ── 표시 모드 ──────────────────────────────────────────────
+  const drillMap = buildDrillMap(front);
+
+  const READ_RT = `font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e`;
+  const SVO_BG: Record<string, string> = {
+    S: '#fef2f2', V: '#eff6ff', O: '#f0fdf4',
+  };
+  const SVO_COLOR: Record<string, string> = {
+    S: '#ef4444', V: '#3b82f6', O: '#16a34a',
+  };
+  const PHRASE_CLS: Record<string, string> = {
+    'border-indigo-400': 'border-t-2 border-indigo-400',
+    'border-purple-400': 'border-t-2 border-purple-400',
+    'border-teal-400':   'border-t-2 border-teal-400',
+  };
+
+  // SVO 어노테이션별 고유 키 맵 (char index → {key, ann})
+  type SvoEntry = { key: string; ann: GrammarAnnotation };
+  const svoSpanMap = new Map<number, SvoEntry>();
+  for (const ann of annotations.filter(a => a.type !== 'phrase')) {
+    const key = `${ann.start}-${ann.end}-${ann.type}`;
+    for (let k = ann.start; k < ann.end; k++) svoSpanMap.set(k, { key, ann });
+  }
+
+  // 글자별 읽기(독음) — SVO 배경/레이블은 wrapper span에서 처리
+  const charContent = (i: number): string => {
+    const ch = esc(chars[i]);
+    return perCharRead
+      ? `<ruby>${ch}<rt style="${READ_RT}">${esc((reading as string)[i])}</rt></ruby>`
+      : ch;
+  };
+
+  // 글자별 구절 클래스 매핑
+  const charPhraseCls = new Map<number, string>();
+  for (const ann of annotations.filter(a => a.type === 'phrase')) {
+    const col = slotMap.get(ann.start)?.phraseColor ?? 'border-indigo-400';
+    const cls = PHRASE_CLS[col] ?? PHRASE_CLS['border-indigo-400'];
+    for (let k = ann.start; k < ann.end; k++) charPhraseCls.set(k, cls);
+  }
+
+  // 상태 기계: phrase > SVO > drill 순으로 중첩
+  let html = '';
+  let curPhraseCls: string | null = null;
+  let curSvoKey:    string | null = null;
+  let curDrillId:   string | null = null;
+
+  const closeDrill  = () => { if (curDrillId   !== null) { html += '</span>'; curDrillId   = null; } };
+  const closeSvo    = () => { if (curSvoKey    !== null) { html += '</span>'; curSvoKey    = null; } };
+  const closePhrase = () => { if (curPhraseCls !== null) { html += '</span>'; curPhraseCls = null; } };
+
+  let i = 0;
+  while (i < chars.length) {
+    const phraseCls = charPhraseCls.get(i) ?? null;
+    const svoEntry  = svoSpanMap.get(i) ?? null;
+    const svoKey    = svoEntry?.key ?? null;
+    const drill     = drillMap.get(i) ?? null;
+    const drillId   = drill?.id ?? null;
+
+    if (phraseCls !== curPhraseCls) {
+      closeDrill(); closeSvo(); closePhrase();
+      curPhraseCls = phraseCls;
+      if (phraseCls) html += `<span class="${phraseCls}">`;
+    }
+    if (svoKey !== curSvoKey) {
+      closeDrill(); closeSvo();
+      curSvoKey = svoKey;
+      if (svoEntry) {
+        const { ann } = svoEntry;
+        const lbl = `<span style="position:absolute;bottom:100%;left:0;right:0;text-align:center;font-size:10px;font-weight:700;color:${SVO_COLOR[ann.type]};line-height:1;padding-bottom:2px;pointer-events:none">${ann.type}</span>`;
+        html += `<span style="position:relative;display:inline-block;vertical-align:baseline;background:${SVO_BG[ann.type]}">${lbl}`;
+      }
+    }
+    if (drillId !== curDrillId) {
+      closeDrill();
+      curDrillId = drillId;
+      if (drill) {
+        html += `<span data-action="drill-down" data-arg="${esc(drill.id)}" title="${esc(drill.back)}"
+          class="border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">`;
+      }
+    }
+
+    html += charContent(i++);
+  }
+  closeDrill(); closeSvo(); closePhrase();
+
+  return html;
+}
+
+function grammarButtons(): string {
+  const viewCls = S.grammarOn
+    ? 'bg-indigo-500 text-white'
+    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50';
+  const editCls = S.grammarEditMode
+    ? 'bg-amber-500 text-white'
+    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50';
+  return `
+    <span class="inline-flex items-center rounded-lg border border-stone-200 overflow-hidden text-[11px] font-medium">
+      <span class="px-2.5 py-1 text-stone-400 bg-stone-50 border-r border-stone-200 hanja select-none">文法</span>
+      <button data-action="toggle-grammar" title="문법 표시"
+        class="px-2.5 py-1 transition-colors ${viewCls}">보기</button>
+      <span class="w-px bg-stone-200 self-stretch"></span>
+      <button data-action="toggle-grammar-edit" title="문법 편집"
+        class="px-2.5 py-1 transition-colors ${editCls}">편집</button>
+    </span>`;
 }
 
 let _prevScr = '';
@@ -160,9 +391,10 @@ function cardBack(card: { reading: string; back: string; note: string }, cs: Car
     </div>`;
 }
 
-function cardActions(): string {
+function cardActions(lvKey?: string): string {
   return `
-  <div class="absolute top-4 right-4 flex gap-1">
+  <div class="absolute top-4 right-4 flex gap-1 items-center">
+    ${lvKey === 'sentence' ? grammarButtons() : ''}
     <button data-action="edit-card"
       class="p-2 text-stone-200 hover:text-blue-400 hover:bg-blue-50 transition-colors rounded-lg"
       title="카드 수정">
@@ -290,6 +522,14 @@ function renderSeq(entering = false): void {
   const prevEntry = S.navStack.length > 0 ? S.navStack[S.navStack.length - 1] : null;
   const backLabel = prevEntry ? prevEntry.lv.label : `${d.title} / ${S.lv!.label}`;
 
+  const isSentGrammar = S.lv?.key === 'sentence' && S.grammarOn;
+  const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
+  const frontHtml = isSentGrammar
+    ? renderGrammarSentence(card.front, card.reading, sentAnnotations, S.seqFlipped, S.grammarEditMode)
+    : (S.seqFlipped && card.front.length === card.reading.length && card.reading
+        ? annotatedFront(card.front, card.reading)
+        : tokenizeHighlights(card.front));
+
   $app().innerHTML = `
     <div class="${entering ? 'screen-enter ' : ''}w-full ${cs.wrap} flex flex-col gap-6">
       <div class="flex items-center justify-between">
@@ -305,14 +545,13 @@ function renderSeq(entering = false): void {
       </div>
 
       <div class="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col gap-6 py-14 px-16 min-h-[380px] justify-center">
-        ${cardActions()}
+        ${cardActions(S.lv?.key)}
         <div id="card-front" class="${cs.front} text-stone-900">
-          ${S.seqFlipped && card.front.length === card.reading.length && card.reading
-            ? annotatedFront(card.front, card.reading)
-            : tokenizeHighlights(card.front)}
+          ${frontHtml}
         </div>
         ${S.seqFlipped ? cardBack(card, cs, !(card.front.length === card.reading.length && card.reading)) : `
           <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
+        ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex justify-between items-center">
@@ -355,6 +594,15 @@ function renderAnki(entering = false): void {
 
   const cs = cardStyle(S.lv!.key);
 
+  const isSentGrammar   = S.lv?.key === 'sentence' && S.grammarOn;
+  const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
+  const isFlipped       = S.side === 'back';
+  const frontHtml = isSentGrammar
+    ? renderGrammarSentence(card.front, card.reading, sentAnnotations, isFlipped, S.grammarEditMode)
+    : (isFlipped && card.front.length === card.reading.length && card.reading
+        ? annotatedFront(card.front, card.reading)
+        : tokenizeHighlights(card.front));
+
   $app().innerHTML = `
     <div class="${entering ? 'screen-enter ' : ''}w-full ${cs.wrap} flex flex-col gap-6">
       <div class="flex items-center justify-between">
@@ -370,14 +618,13 @@ function renderAnki(entering = false): void {
       </div>
 
       <div class="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col gap-6 py-14 px-16 min-h-[380px] justify-center">
-        ${cardActions()}
+        ${cardActions(S.lv?.key)}
         <div id="card-front" class="${cs.front} text-stone-900">
-          ${S.side === 'back' && card.front.length === card.reading.length && card.reading
-            ? annotatedFront(card.front, card.reading)
-            : tokenizeHighlights(card.front)}
+          ${frontHtml}
         </div>
-        ${S.side === 'back' ? cardBack(card, cs, !(card.front.length === card.reading.length && card.reading)) : `
+        ${isFlipped ? cardBack(card, cs, !(card.front.length === card.reading.length && card.reading)) : `
           <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
+        ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex flex-col items-center gap-3">
