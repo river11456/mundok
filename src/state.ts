@@ -22,6 +22,8 @@ export const S = {
 
   grammarOn:       false,
   grammarEditMode: false,
+
+  expandedRefGroups: new Set<string>(),
 };
 
 export const DRILL_NEXT: Record<string, string> = {
