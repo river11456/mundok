@@ -58,6 +58,10 @@ export let DOCS: Doc[] = Object.entries(rawCsvs)
   })
   .filter((d): d is Doc => d !== null);
 
+export const DOC_GROUPS: { parentId: string; childIds: string[] }[] = [
+  { parentId: '불치이병치미병', childIds: ['상고천진론', '편작육불치', '사기조신대론'] },
+];
+
 export async function initDocs(): Promise<void> {
   let ud: UserData;
   try {

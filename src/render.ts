@@ -1,7 +1,8 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, recordStudySession } from './state';
+import { DOC_GROUPS } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
-import type { GrammarAnnotation } from './types';
+import type { Doc, GrammarAnnotation } from './types';
 
 const $app = (): HTMLElement => document.getElementById('app')!;
 
@@ -415,7 +416,10 @@ function cardActions(lvKey?: string): string {
 }
 
 function renderHome(): void {
-  const items = DOCS.map((d) => {
+  const childSet = new Set(DOC_GROUPS.flatMap(g => g.childIds));
+  const groupMap = new Map(DOC_GROUPS.map(g => [g.parentId, g.childIds]));
+
+  const mainBtn = (d: Doc): string => {
     const totalCards  = d.levels.reduce((s, l) => s + l.cards.length, 0);
     const lastStudied = getDocLastStudied(d.id);
     const bgChar      = esc(d.title[0] ?? '');
@@ -435,7 +439,46 @@ function renderHome(): void {
         </div>
       </div>
     </button>`;
-  }).join('');
+  };
+
+  const refBtn = (d: Doc): string => {
+    const totalCards = d.levels.reduce((s, l) => s + l.cards.length, 0);
+    return `
+    <button data-action="nav-mode" data-arg="${d.id}"
+      class="w-full text-left px-4 py-3 bg-stone-50 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-white hover:shadow-sm transition-all">
+      <div class="flex items-center gap-2">
+        <div class="hanja text-base text-stone-700">${esc(d.title)}</div>
+        <div class="text-xs text-stone-400 truncate flex-1">${esc(d.sub)}</div>
+        <div class="text-xs text-stone-300 shrink-0">${totalCards}장</div>
+      </div>
+    </button>`;
+  };
+
+  const items = DOCS
+    .filter(d => !childSet.has(d.id))
+    .map(d => {
+      const childIds = groupMap.get(d.id);
+      if (!childIds) return mainBtn(d);
+      const childDocs = childIds
+        .map(id => DOCS.find(doc => doc.id === id))
+        .filter((doc): doc is Doc => doc !== undefined);
+      const expanded = S.expandedRefGroups.has(d.id);
+      return `
+      <div class="flex flex-col gap-1.5">
+        ${mainBtn(d)}
+        <div class="ml-3 pl-3 border-l-2 border-stone-100 flex flex-col gap-1">
+          <button data-action="toggle-refs" data-arg="${d.id}"
+            class="flex items-center gap-1.5 px-1 pt-0.5 w-fit text-xs text-stone-300 hover:text-stone-500 transition-colors">
+            <span style="display:inline-block;transition:transform 0.2s;transform:rotate(${expanded ? 90 : 0}deg)">▶</span>
+            참고문헌 ${childDocs.length}
+          </button>
+          <div id="ref-group-${d.id}" class="${expanded ? '' : 'hidden'} flex flex-col gap-1">
+            ${childDocs.map(refBtn).join('')}
+          </div>
+        </div>
+      </div>`;
+    })
+    .join('');
 
   $app().innerHTML = `
     <div class="screen-enter w-full max-w-lg flex flex-col gap-8">

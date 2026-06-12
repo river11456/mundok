@@ -81,6 +81,16 @@ export function setupClick(): void {
         deleteCard(S.docId!, S.lv!.key, card.front);
         break;
       }
+      case 'toggle-refs': {
+        const isExpanded = S.expandedRefGroups.has(arg!);
+        if (isExpanded) S.expandedRefGroups.delete(arg!);
+        else S.expandedRefGroups.add(arg!);
+        const container = document.getElementById(`ref-group-${arg!}`);
+        const chevron   = btn.querySelector<HTMLElement>('span');
+        if (container) container.classList.toggle('hidden');
+        if (chevron)   chevron.style.transform = `rotate(${isExpanded ? 0 : 90}deg)`;
+        break;
+      }
       case 'toggle-grammar':
         S.grammarOn = !S.grammarOn;
         if (!S.grammarOn) S.grammarEditMode = false;
