@@ -1,6 +1,9 @@
-import type { Doc, Level, LevelKey, UserData } from './types';
+import type { Doc, Level, LevelKey, UserData, GrammarEntry } from './types';
 import { parseCSV } from './csv';
 import { initGrammar } from './grammar';
+import { initStore, store } from './storage';
+// 빌드 타임에 번들로 베이킹되는 관리자 콘텐츠(서버 없이도 표시)
+import bakedUserData from '../userdata.json';
 
 const rawCsvs = import.meta.glob('./data/*.csv', {
   query: '?raw',
@@ -62,16 +65,8 @@ export const DOC_GROUPS: { parentId: string; childIds: string[] }[] = [
   { parentId: '불치이병치미병', childIds: ['상고천진론', '편작육불치', '사기조신대론'] },
 ];
 
-export async function initDocs(): Promise<void> {
-  let ud: UserData;
-  try {
-    const res = await fetch('/userdata.json');
-    if (!res.ok) return;
-    ud = await res.json() as UserData;
-  } catch {
-    return;
-  }
-
+/** 한 겹의 UserData 오버레이(추가/수정/삭제)를 DOCS에 적용. 문법은 별도 병합. */
+function applyUserData(ud: UserData): void {
   for (const del of ud.deletions ?? []) {
     const doc = DOCS.find(d => d.id === del.docId);
     if (!doc) continue;
@@ -105,6 +100,28 @@ export async function initDocs(): Promise<void> {
       lvl.cards.push({ id: `${add.docId}_${add.type}_${add.text}`, front: add.text, reading: add.reading, back: add.meaning, note: add.note, fail_count: 0 });
     }
   }
+}
 
-  initGrammar(ud.grammar ?? []);
+/** 베이킹 문법 위에 사용자 델타 문법을 (docId, cardFront) 키로 덮어쓴다. */
+function mergeGrammar(base: GrammarEntry[], delta: GrammarEntry[]): GrammarEntry[] {
+  const merged = [...base];
+  for (const g of delta) {
+    const i = merged.findIndex(e => e.docId === g.docId && e.cardFront === g.cardFront);
+    if (i >= 0) merged[i] = g; else merged.push(g);
+  }
+  return merged;
+}
+
+export async function initDocs(): Promise<void> {
+  await initStore();
+
+  // 1) 빌드에 베이킹된 관리자 콘텐츠
+  const baked = bakedUserData as unknown as UserData;
+  applyUserData(baked);
+
+  // 2) 사용자 로컬 편집 델타(정적 모드). 서버 모드면 null.
+  const delta = await store().loadDelta();
+  if (delta) applyUserData(delta);
+
+  initGrammar(mergeGrammar(baked.grammar ?? [], delta?.grammar ?? []));
 }

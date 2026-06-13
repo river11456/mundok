@@ -1,6 +1,7 @@
 import { S } from './state';
 import { render } from './render';
-import type { Card } from './types';
+import { store } from './storage';
+import type { Card, LevelKey } from './types';
 
 function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -44,30 +45,18 @@ async function submitEdit(): Promise<void> {
   $('ec-error').classList.add('hidden');
 
   try {
-    (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
-    const res  = await fetch('/api/edit-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docId, type, origFront, text, reading, back, note }),
-    });
-    const data = await res.json() as { ok: boolean; error?: string };
-    if (data.ok) {
-      const patch = (c: Card) => {
-        if (c.front === origFront) {
-          c.front = text; c.reading = reading; c.back = back; c.note = note;
-        }
-      };
-      S.lv!.cards.forEach(patch);
-      S.allCards.forEach(patch);
-      hideModal();
-      render();
-    } else {
-      showError(data.error ?? '저장 실패');
-      btn.textContent = '저장';
-      btn.removeAttribute('disabled');
-    }
-  } catch {
-    showError('서버 연결 실패. 한문공부.command가 실행 중인지 확인해 주세요.');
+    await store().editCard({ docId, type: type as LevelKey, origText: origFront, text, reading, meaning: back, note });
+    const patch = (c: Card) => {
+      if (c.front === origFront) {
+        c.front = text; c.reading = reading; c.back = back; c.note = note;
+      }
+    };
+    S.lv!.cards.forEach(patch);
+    S.allCards.forEach(patch);
+    hideModal();
+    render();
+  } catch (e) {
+    showError(e instanceof Error ? e.message : '저장에 실패했습니다.');
     btn.textContent = '저장';
     btn.removeAttribute('disabled');
   }

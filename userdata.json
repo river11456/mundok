@@ -1,0 +1,1804 @@
+{
+  "additions": [
+    {
+      "docId": "불치이병치미병",
+      "type": "char",
+      "text": "攝",
+      "reading": "잡을 섭",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "text": "頤養",
+      "reading": "이양",
+      "meaning": "보양의 뜻",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "頤",
+      "reading": "턱 이",
+      "meaning": "보양하다는 뜻도 있다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "淤",
+      "reading": "진흙 어",
+      "meaning": "실컷 먹다는 뜻도 있음",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "積",
+      "reading": "쌓을 적",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "暗",
+      "reading": "어두울 암",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "傷",
+      "reading": "상할 상",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "召",
+      "reading": "부를 소",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "勝",
+      "reading": "이길 승",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "唯",
+      "reading": "오직 유",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "量",
+      "reading": "헤아릴 량",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "及",
+      "reading": "미칠 급",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "貪",
+      "reading": "탐낼 탐",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "飽",
+      "reading": "배부를 포",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "沽",
+      "reading": "팔 고",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "撤",
+      "reading": "거둘 철",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "敏",
+      "reading": "민첩할 민",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "慎",
+      "reading": "삼갈 신",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "焉",
+      "reading": "어조사 언",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "就",
+      "reading": "나아갈 취",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "甚",
+      "reading": "심할 심",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "涌",
+      "reading": "물 솟을 용",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "靈",
+      "reading": "신령 령",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "飲",
+      "reading": "마실 음",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "唾",
+      "reading": "침 타",
+      "meaning": "토하다는 뜻도 있음",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "咯",
+      "reading": "울 각, 토할 객",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "頻",
+      "reading": "자주 빈",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "數",
+      "reading": "셈 수, 자주 삭",
+      "meaning": "여기선 \"자주 삭\"으로 사용",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "化",
+      "reading": "될 화",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "濁",
+      "reading": "흐릴 탁",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "溲",
+      "reading": "적실 수",
+      "meaning": "오줌이란 뜻도 있다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "浸",
+      "reading": "잠길 침",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "潤",
+      "reading": "젖을 윤",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "text": "至於",
+      "reading": "지어",
+      "meaning": "~에 이르러서도",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "淋",
+      "reading": "물뿌릴 림",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "漓",
+      "reading": "스며들 리",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "text": "莫不由",
+      "reading": "막불유",
+      "meaning": "~로 말미암지 않은 경우가 없다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "滋",
+      "reading": "불을 자",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "厚",
+      "reading": "두터울 후",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "省",
+      "reading": "살필 성, 덜 생",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "爽",
+      "reading": "시원할 상",
+      "meaning": "상쾌하다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "卽",
+      "reading": "곧 즉",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "頓",
+      "reading": "조아릴 돈",
+      "meaning": "끼니 라는 뜻도 있음",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "益",
+      "reading": "더할 익",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "晩",
+      "reading": "늦을 만",
+      "meaning": "저물다라는 뜻 -> 저녁",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "華",
+      "reading": "빛날 화",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "和",
+      "reading": "화할 화",
+      "meaning": "화하다, 화목하다, 조화롭다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "蓄",
+      "reading": "모을 축",
+      "meaning": "모으다, 쌓다",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "守",
+      "reading": "지킬 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "邪",
+      "reading": "간사할 사",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "毒",
+      "reading": "독 독",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "犯",
+      "reading": "범할 범",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "垂",
+      "reading": "드리울 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "教",
+      "reading": "가르칠 교",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "足",
+      "reading": "발 족",
+      "meaning": "충분하다는 뜻도 있음",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "沖",
+      "reading": "빌 충",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "雖",
+      "reading": "비록 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "按",
+      "reading": "누를 안",
+      "meaning": "여기선 맞출 안으로 해석?",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "text": "變化",
+      "reading": "변화",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "char",
+      "text": "貴",
+      "reading": "귀할 귀",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "述",
+      "reading": "펼 술",
+      "meaning": "서술하다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "述",
+      "reading": "펼 술",
+      "meaning": "서술하다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "粗",
+      "reading": "거칠 조",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "聊因暇日",
+      "reading": "료인가일",
+      "meaning": "한가로운 날",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "暇",
+      "reading": "틈 가, 겨를 가",
+      "meaning": "한가하다는 뜻",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "因",
+      "reading": "인할 인",
+      "meaning": "~로 인하여",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "禍",
+      "reading": "재앙 화",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "害",
+      "reading": "해할 해",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "災",
+      "reading": "재앙 재",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "義",
+      "reading": "옳을 의",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "餌",
+      "reading": "떡 이, 먹이 이",
+      "meaning": "먹다는 뜻도 있다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "餐",
+      "reading": "밥 찬, 물말이할 손",
+      "meaning": "飡와 동자\n여기선 손 발음으로 먹는다라는 뜻",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "霞",
+      "reading": "노을 하",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "周",
+      "reading": "두루 주",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "絶",
+      "reading": "끊을 절",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "遐",
+      "reading": "멀 하",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "克",
+      "reading": "이길 극",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "縱",
+      "reading": "세로 종",
+      "meaning": "늘어지다, 연달아",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "服",
+      "reading": "옷 복",
+      "meaning": "약을 먹다는 뜻으로도 사용\n복용하다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "延",
+      "reading": "늘일 연",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "陸",
+      "reading": "뭍 륙",
+      "meaning": "육지할 때 육\n길이라는 뜻도 있다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "祈",
+      "reading": "빌 기",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "制",
+      "reading": "지을 제",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "歷",
+      "reading": "지날 력",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "修",
+      "reading": "닦을 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "纏",
+      "reading": "얽을 전",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "痾",
+      "reading": "숙병 아",
+      "meaning": "병이름 중 하나",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "沒",
+      "reading": "빠질 몰",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "所以",
+      "reading": "소이",
+      "meaning": "~한 까닭이다",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "逝",
+      "reading": "갈 서",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "永",
+      "reading": "길 영",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "歸",
+      "reading": "돌아갈 귀",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "良",
+      "reading": "어질 량",
+      "meaning": "문장 앞에서 \"진실로\"로 해석",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "息",
+      "reading": "쉴 식",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "數",
+      "reading": "셈 수",
+      "meaning": "여기선 \"여러\" 로 해석",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "昔",
+      "reading": "예 석",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "噫",
+      "reading": "한 숨 쉴 희",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "只",
+      "reading": "다만 지",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "斯須之間",
+      "reading": "사수지간",
+      "meaning": "눈 깜짝할 사이",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "斯",
+      "reading": "이 사",
+      "meaning": "이것, 잠시",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "須",
+      "reading": "모름지기 수",
+      "meaning": "잠깐이란 뜻도 있음",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "喩",
+      "reading": "깨우칠 유",
+      "meaning": "비유하단 뜻도 있음\n비유의 유자임",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "焉",
+      "reading": "어찌 언",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "追名逐利",
+      "reading": "추명축리",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "追",
+      "reading": "쫓을 추",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "逐",
+      "reading": "쫓을 축",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "詐",
+      "reading": "속일 사",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "巧",
+      "reading": "공고할 교",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "譽",
+      "reading": "명예 예",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "厭",
+      "reading": "싫어할 염",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "乎",
+      "reading": "어조사 호",
+      "meaning": "의문형 어조사",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "殆",
+      "reading": "위태할 태",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "余",
+      "reading": "나 여",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "慨",
+      "reading": "분개할 개",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "僻",
+      "reading": "궁벽할 벽",
+      "meaning": "치우치다라는 뜻",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "放逸",
+      "reading": "방일",
+      "meaning": "제멋대로 거리낌 없이 방탕(放蕩)하게 놂\n풀어지다로 해석",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "殞",
+      "reading": "죽을 운",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "逸",
+      "reading": "달아날 일",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "獎",
+      "reading": "권면할 장",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "習",
+      "reading": "익힐 습",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "但",
+      "reading": "다만 단",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "雖",
+      "reading": "비록 수",
+      "meaning": "數 (셀 수) 랑 구분 잘하기",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "壽",
+      "reading": "목숨 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "假",
+      "reading": "거짓 가, 빌릴 가",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "哉",
+      "reading": "어조사 재",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "愚",
+      "reading": "어리석을 우",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "悔",
+      "reading": "뉘우칠 회",
+      "meaning": "어머니에 대한 후회하는 마음",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "char",
+      "text": "邪",
+      "reading": "간사할 사, 어조사 야",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "대의정성",
+      "type": "char",
+      "text": "反",
+      "reading": "돌이킬 반",
+      "meaning": "돌이키다, 반대하다",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "烹飪",
+      "reading": "팽임",
+      "meaning": "삶은 것",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "調和",
+      "reading": "조화",
+      "meaning": "양념한 것",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "偏厚",
+      "reading": "편후",
+      "meaning": "자극적인 것",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "烹",
+      "reading": "삶을 팽",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "調",
+      "reading": "고를 조",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "偏",
+      "reading": "치우칠 편",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "厚",
+      "reading": "두터울 후",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "致",
+      "reading": "이를  치",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "伐",
+      "reading": "칠 벌",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "疑",
+      "reading": "의심할 의",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "淡",
+      "reading": "맑을 담",
+      "meaning": "담백하다",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "類",
+      "reading": "무리 류",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "收",
+      "reading": "거둘 수",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "降",
+      "reading": "내릴 강, 항복할 항",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "勝",
+      "reading": "이길 승",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "屬",
+      "reading": "무리 속",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "最",
+      "reading": "가장 최",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "惟",
+      "reading": "생각할 유, 오직 유",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "充",
+      "reading": "채울 충",
+      "meaning": "",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "char",
+      "text": "助",
+      "reading": "도울 조",
+      "meaning": "",
+      "note": ""
+    }
+  ],
+  "edits": [
+    {
+      "docId": "식무구포",
+      "type": "sentence",
+      "origText": "謂食物은 無務於多요 貴在能節이니 所以保沖和而順頤養也라",
+      "text": "謂食物은 無務於多요 貴在能節이니 所以保沖和而順頤養也라",
+      "reading": "위식물은 무무어다요 귀재능절이니 소이보충화이순이양야라",
+      "meaning": "음식물을 먹는 것은 많이 먹는 데에 힘쓰지 말아야 하고 그 귀함이 능히 절제할 수 있음에 있음을 말하였으니, 조화로운 기운을 보존하고 섭양을 따르는 방법이다.",
+      "note": "沖和: 조화로운 기운"
+    },
+    {
+      "docId": "식무구포",
+      "type": "sentence",
+      "origText": "(或)溲便利滑而濁하야 耗源泉之浸潤하며",
+      "text": "(或)溲便利滑而濁하야 耗源泉之浸潤하며",
+      "reading": "(혹)수변리활이탁하야 모원천지침윤하며",
+      "meaning": "소변이 원활하면서도 탁해서 원천(근원적 수기)이 전신을 적시는 것을 소모시킨다.",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "sentence",
+      "origText": "(或)大便頻數而泄하야 耗穀氣之化生하고",
+      "text": "(或)大便頻數而泄하야 耗穀氣之化生하고",
+      "reading": "(혹)대변빈삭이설하야 모곡기지화생하고",
+      "meaning": "대변을 자주 보고 설사해서 곡기가 변화해 생겨나는 것을 소모하고",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "origText": "大便頻數",
+      "text": "大便頻數",
+      "reading": "대변빈삭",
+      "meaning": "대변을 자주 봄",
+      "note": ""
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "origText": "汗淋漓而外泄",
+      "text": "汗淋漓而外泄",
+      "reading": "한림리이외설",
+      "meaning": "땀이 흠뻑 젖을 정도로 밖으로 샘",
+      "note": "림리 : 흠뻑 젖다"
+    },
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "origText": "滋味太厚",
+      "text": "滋味太厚",
+      "reading": "자미태후",
+      "meaning": "맛이 지나치게 두터움",
+      "note": "너무 기름지다는 뜻"
+    },
+    {
+      "docId": "식무구포",
+      "type": "sentence",
+      "origText": "津液蓄神하야 含藏內守하고 榮衛外護하야 邪毒不能犯이니",
+      "text": "津液蓄神하야 含藏內守하고 榮衛外護하야 邪毒不能犯이니",
+      "reading": "진액축신하야 함장내수하고 영위외호하야 사독불능범이니",
+      "meaning": "진액이 신을 쌓아서 정신을 갈무리해 오장에 잘 깃들어 안을 지키고 영위가 밖에서 지켜 나쁜 독기가 침범할 수 없으니",
+      "note": "榮衛 : 바로 쓰이는 에너지원"
+    },
+    {
+      "docId": "양성편",
+      "type": "sentence",
+      "origText": "余慨 時俗之多僻하야 皆放逸以殞亡 하여",
+      "text": "余慨 時俗之多僻하야 皆放逸以殞亡 하여",
+      "reading": "여개 시속지다벽하야 개방일이운망 하여",
+      "meaning": "내(화자)가 세속에 많이 치우친 것들이 모두 풀어져서 이로써 죽게 된 것을 안타까워하여",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "sentence",
+      "origText": "聊因暇日에 粗述養性篇하여 用獎 人倫之道 하니",
+      "text": "聊因暇日에 粗述養性篇하여 用獎 人倫之道 하니",
+      "reading": "료인가일에 조술양성편하여 용장 인륜지도 하니",
+      "meaning": "한가로운 날에 힘입어 양성편을 거칠게 써 이로써 인륜의 도를 권장하니",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "sentence",
+      "origText": "好事君子는 與我同志焉이라",
+      "text": "好事君子는 與我同志焉이라",
+      "reading": "호사군자는 여아동지언이라",
+      "meaning": "일을 삼기를 좋아하는 군자는 나와 함께 뜻을 같이 한다.",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "paragraph",
+      "origText": "故로 夫子曰 善攝生者는 陸行에 不過虎兕라하니 此則道德之祐也라 豈假服餌而祈遐年哉아 聖人이 所以制藥餌者는 以救過行之人也라",
+      "text": "故로 夫子曰 善攝生者는 陸行에 不過虎兕라하니 此則道德之祜也라 豈假服餌而祈遐年哉아 聖人이 所以制藥餌者는 以救過行之人也라",
+      "reading": "고로 부자왈 선섭생자는 육행에 불과호시라하니 차즉도덕지우야라 기가복이이기하년재아 성인이 소이제약이자는 이구과행지인야라",
+      "meaning": "고로 노자 왈 섭생을 잘하는 사람은 길을 가는 데에 호랑이와 외뿔소를 만나지 않는다 하니 이것이 도와 덕을 닦아 얻게 되는 복이다. 어찌 약을 복용하는 것에 힘입어 장수하기를 빌겠는가. 성인이 약이를 만든 까닭은 잘못된 행동을 하는 사람을 구제하기 위해서이다.",
+      "note": "약이의 의미"
+    },
+    {
+      "docId": "양성편",
+      "type": "sentence",
+      "origText": "此則道德之祐也라",
+      "text": "此則道德之祜也라",
+      "reading": "차즉도덕지호야라",
+      "meaning": "이것이 도와 덕을 닦아 얻게 되는 복이다.",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "origText": "道德之祐",
+      "text": "道德之祜",
+      "reading": "도덕지호",
+      "meaning": "도와 덕을 닦아 얻게 되는 복",
+      "note": ""
+    },
+    {
+      "docId": "양성편",
+      "type": "paragraph",
+      "origText": "數時之活과 朝菌蟪蛄를 不足爲喩어늘 焉可不自攝養而馳騁六情하며 汲汲沒沒追名逐利하며 千詐萬巧以求虛譽하여 沒齒而無厭乎아",
+      "text": "數時之活과 朝菌蟪蛄를 不足爲喩어늘 焉可不自攝養而馳騁六情하며 孜孜汲汲追名逐利하며 千詐萬巧以求虛譽하여 沒齒而無厭乎아",
+      "reading": "수시지활과 조균혜고를 부족위유어늘 언가불자섭양이치빙육정하며 자자급급추명축리하며 천사만교이구허예하여 몰치이무염호아",
+      "meaning": "여러 시진 동안 삶과 조균, 혜고를 족히 비유하기에 충분하지 않거늘 어찌 스스로 섭양하지 않고 육정으로 치달리며 분주하게 명예와 이익을 좇으며 천 가지 속임과 만 가지 기교로써 헛된 명예를 구하여 죽을 때까지 싫어하지 않는가.",
+      "note": "명리 추구 경계"
+    },
+    {
+      "docId": "양성편",
+      "type": "sentence",
+      "origText": "焉可不自攝養而馳騁六情하며 汲汲沒沒追名逐利하며",
+      "text": "焉可不自攝養而馳騁六情하며 孜孜汲汲追名逐利하며",
+      "reading": "언가불자섭양이치빙육정하며 자자급급추명축리하며",
+      "meaning": "어찌 스스로 섭양하지 않고 육정으로 치달리며 분주하게 명(이름·명예)을 좇고 리(이익)를 좇으며",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "sentence",
+      "origText": "又曰 地食人以五味라하고 古者 年五十食肉이라하여늘",
+      "text": "又曰 地食人以五味라하고 古者 年五十食肉이라하여늘",
+      "reading": "우왈 지사인이오미라하고 고자 년오십식육이라하여늘",
+      "meaning": "또 말하기를 땅이 사람을 먹이는 데 오미로써 한다고 하고 옛날에 나이 오십이 되어서 고기를 먹는다 하거늘",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "sentence",
+      "origText": "經에 以菜爲充者는 恐於饑時頓食커나 或思慮過多하야 因致胃損이라",
+      "text": "經에 以菜爲充者는 恐於饑時頓食커나 或思慮過多하야 因致胃損이라",
+      "reading": "경에 이채위충자는 공어기시돈식커나 혹사려과다하야 인치위손이라",
+      "meaning": "내경에 나물로 그 충족을 돕는다는 것은 배고플 때 한 번에 먹거나 생각이 지나치게 많아서 그로 인해 위가 손상되는 데에 이르게 될까 걱정돼서이다.",
+      "note": ""
+    },
+    {
+      "docId": "여담론",
+      "type": "sentence",
+      "origText": "故로 以菜助其充은 取其疏通而易化니 此天地生物之仁也라",
+      "text": "故로 以菜助其充足은 取其疏通而易化니 此天地生物之仁也라",
+      "reading": "고로 이채조기충족은 취기소통이이화니 차천지생물지인야라",
+      "meaning": "그러므로 나물로써 그 충족을 도와준다는 것은 잘 통하고 쉽게 소화시키는 성질을 취하였으니 이것이 천지가 사물을 생겨나게 한 인이다.",
+      "note": ""
+    }
+  ],
+  "deletions": [
+    {
+      "docId": "식무구포",
+      "type": "word",
+      "text": "保沖和而順頤養"
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "百三十五息"
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "人之居世數息之間"
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "爲善以自補"
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "十二時"
+    },
+    {
+      "docId": "양성편",
+      "type": "word",
+      "text": "皆放逸以殞亡"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "烹飪調和偏厚之味"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "偏厚之味"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "致疾伐命之毒"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "疑味"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "屬陰而最補"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "與菜同進"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "以菜爲充"
+    },
+    {
+      "docId": "여담론",
+      "type": "word",
+      "text": "以菜助其充"
+    }
+  ],
+  "grammar": [
+    {
+      "docId": "식무구포",
+      "cardFront": "謂食物은 無務於多요 貴在能節이니 所以保沖和而順頤養也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 20,
+          "end": 21
+        },
+        {
+          "type": "O",
+          "start": 21,
+          "end": 23
+        },
+        {
+          "type": "V",
+          "start": 24,
+          "end": 25
+        },
+        {
+          "type": "O",
+          "start": 25,
+          "end": 27
+        }
+      ]
+    },
+    {
+      "docId": "식무구포",
+      "cardFront": "(或)大便頻數而泄하야 耗穀氣之化生하고",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 12,
+          "end": 13
+        }
+      ]
+    },
+    {
+      "docId": "식무구포",
+      "cardFront": "(或)溲便利滑而濁하야 耗源泉之浸潤하며",
+      "annotations": [
+        {
+          "type": "S",
+          "start": 12,
+          "end": 13
+        },
+        {
+          "type": "V",
+          "start": 12,
+          "end": 13
+        }
+      ]
+    },
+    {
+      "docId": "식무구포",
+      "cardFront": "糟粕變化하야 早晩溲便하고 按時華精하야 和一上下하면",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 14,
+          "end": 15
+        },
+        {
+          "type": "O",
+          "start": 15,
+          "end": 16
+        }
+      ]
+    },
+    {
+      "docId": "식무구포",
+      "cardFront": "故로 知古人之立言垂教가 足以爲養生之大經也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 7,
+          "end": 8
+        },
+        {
+          "type": "O",
+          "start": 8,
+          "end": 9
+        },
+        {
+          "type": "V",
+          "start": 9,
+          "end": 10
+        },
+        {
+          "type": "O",
+          "start": 10,
+          "end": 11
+        }
+      ]
+    },
+    {
+      "docId": "식무구포",
+      "cardFront": "如能節滿意之食하고 省爽口之味하야 長不至於飽甚者는",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 2,
+          "end": 3
+        },
+        {
+          "type": "O",
+          "start": 3,
+          "end": 7
+        },
+        {
+          "type": "V",
+          "start": 10,
+          "end": 11
+        },
+        {
+          "type": "O",
+          "start": 11,
+          "end": 15
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "聊因暇日에 粗述養性篇하여 用獎 人倫之道 하니",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 15,
+          "end": 16
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "夫養性者는 欲所習以成性하나 性自爲善하니 不習無不利也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 6,
+          "end": 7
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "百行이 周備하면 雖絶藥餌라도 足以遐年이나",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 18,
+          "end": 19
+        },
+        {
+          "type": "V",
+          "start": 10,
+          "end": 11
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "人之居世數息之間이라하니 信哉라",
+      "annotations": [
+        {
+          "type": "S",
+          "start": 0,
+          "end": 1
+        },
+        {
+          "type": "V",
+          "start": 2,
+          "end": 3
+        },
+        {
+          "type": "O",
+          "start": 3,
+          "end": 4
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "鳴呼라 昔人이 噫逝어늘 何可不爲善以自補邪리오",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 16,
+          "end": 17
+        },
+        {
+          "type": "O",
+          "start": 17,
+          "end": 18
+        },
+        {
+          "type": "V",
+          "start": 20,
+          "end": 21
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "余慨 時俗之多僻하야 皆放逸以殞亡 하여",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 1,
+          "end": 2
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "故로 養性者는 不但餌藥餐霞요 其在兼於百行이니",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 10,
+          "end": 11
+        },
+        {
+          "type": "O",
+          "start": 11,
+          "end": 12
+        },
+        {
+          "type": "V",
+          "start": 12,
+          "end": 13
+        },
+        {
+          "type": "O",
+          "start": 13,
+          "end": 14
+        }
+      ]
+    },
+    {
+      "docId": "양성편",
+      "cardFront": "聖人이 所以制藥餌者는 以救過行之人也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 13,
+          "end": 14
+        },
+        {
+          "type": "O",
+          "start": 14,
+          "end": 18
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "子今年邁七十矣에 盡却鹽醯가 豈中道乎리오마는",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 16,
+          "end": 17
+        },
+        {
+          "type": "O",
+          "start": 17,
+          "end": 18
+        },
+        {
+          "type": "V",
+          "start": 3,
+          "end": 4
+        },
+        {
+          "type": "O",
+          "start": 4,
+          "end": 5
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "有 致疾伐命之毒하니 此吾所疑味也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 2,
+          "end": 3
+        },
+        {
+          "type": "O",
+          "start": 3,
+          "end": 4
+        },
+        {
+          "type": "V",
+          "start": 4,
+          "end": 5
+        },
+        {
+          "type": "O",
+          "start": 5,
+          "end": 6
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "安於沖和之味者는 心之收요 火之降也며",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 0,
+          "end": 1
+        },
+        {
+          "type": "O",
+          "start": 2,
+          "end": 6
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "經에 以菜爲充者는 恐於饑時頓食커나 或思慮過多하야 因致胃損이라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 10,
+          "end": 11
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "故로 以菜助其充은 取其疏通而易化니 此天地生物之仁也라",
+      "annotations": [
+        {
+          "type": "V",
+          "start": 5,
+          "end": 6
+        }
+      ]
+    },
+    {
+      "docId": "여담론",
+      "cardFront": "何子之神茂而色澤也오",
+      "annotations": [
+        {
+          "type": "S",
+          "start": 3,
+          "end": 4
+        },
+        {
+          "type": "V",
+          "start": 4,
+          "end": 5
+        },
+        {
+          "type": "S",
+          "start": 6,
+          "end": 7
+        },
+        {
+          "type": "V",
+          "start": 7,
+          "end": 8
+        }
+      ]
+    }
+  ]
+}

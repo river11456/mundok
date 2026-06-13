@@ -1,3 +1,4 @@
+import { store } from './storage';
 import type { GrammarAnnotation, GrammarEntry } from './types';
 
 let _data: GrammarEntry[] = [];
@@ -24,10 +25,5 @@ export async function saveAnnotations(
     _data.push({ docId, cardFront, annotations });
   }
 
-  (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
-  await fetch('/api/save-grammar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ docId, cardFront, annotations }),
-  });
+  await store().saveGrammar(docId, cardFront, annotations);
 }
