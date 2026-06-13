@@ -5,5 +5,9 @@ node_modules/
 .omc/
 .claude/
 문독.app/
-userdata.json
-dist/assets/index-*.js.tmp
+
+# 빌드 산출물 — CI(GitHub Actions)가 빌드하므로 커밋하지 않음
+dist/
+
+# userdata.json 은 더 이상 무시하지 않음:
+#   관리자가 만든 공유 콘텐츠의 정본이며, 빌드 시 번들에 베이킹된다.

@@ -4,97 +4,73 @@
 
 ---
 
-## 설치 방법 (macOS)
+## 사용 방법 (일반 사용자)
 
-### 1단계 — Git 설치 확인
+설치할 것이 없습니다. 아래 주소를 브라우저에서 열기만 하면 됩니다.
 
-터미널을 열고 아래를 입력하세요.
+> **https://river11456.github.io/mundok/**
 
-```
-git --version
-```
+휴대폰·태블릿·PC 어디서든 동작합니다. 홈 화면에 추가해 두면 앱처럼 쓸 수 있습니다.
 
-버전이 표시되면 이미 설치된 것입니다. 없다면 [git-scm.com](https://git-scm.com/download/mac)에서 다운로드하거나, 터미널에 `xcode-select --install` 을 입력하면 설치됩니다.
+### 내가 추가·수정한 카드는 어디 저장되나요?
 
-### 2단계 — 앱 다운로드
+학습 진도와 직접 추가·수정한 카드는 **그 브라우저 안에** 저장됩니다. 따라서:
 
-터미널에 아래를 붙여넣고 실행하세요.
+- 다른 기기·다른 브라우저로 접속하면 보이지 않습니다.
+- 브라우저 기록을 지우거나, (아이폰 사파리의 경우) 한동안 접속하지 않으면 사라질 수 있습니다.
 
-```
-git clone https://github.com/river11456/mundok.git ~/문독
-```
+소중한 내용은 화면 **왼쪽 아래 ⤓ 버튼 → "내 데이터 내보내기"** 로 백업해 두세요.
+기기를 바꿀 때는 같은 메뉴의 "가져오기"로 복원할 수 있습니다.
 
-홈 폴더에 `문독` 폴더가 생깁니다.
-
-### 3단계 — 실행
-
-Finder에서 홈 폴더 → `문독` 폴더 → `문독.command`를 더블클릭하세요.
-
-터미널 창이 열리면서 잠시 후 브라우저에 앱이 자동으로 뜹니다.
-
-> **처음 실행 시 보안 경고가 뜨는 경우**
-> 시스템 설정 → 개인 정보 보호 및 보안 → 하단 "확인 없이 열기" 클릭
+> 관리자가 배포하는 기본 콘텐츠(문헌·카드)는 항상 최신 상태로 자동 제공되며 사라지지 않습니다.
 
 ---
 
-## 설치 방법 (Windows)
+## 콘텐츠 저작 (관리자 전용)
 
-### 1단계 — 필수 프로그램 설치
+새 문헌·카드를 추가하거나 기존 콘텐츠를 수정하려면 로컬에서 저작 도구를 실행합니다.
+저작 결과는 `userdata.json`(또는 `src/data/*.csv`)에 기록되고, `git push` 하면 자동으로 배포됩니다.
 
-아래 프로그램을 설치하세요.
+### 준비물
 
-- [Git for Windows](https://git-scm.com/download/win)
-- [Python](https://www.python.org/downloads/windows/)
-- [Node.js LTS](https://nodejs.org/)
+- Git, Python 3, Node.js (LTS)
 
-Python 설치 화면에서는 **Add python.exe to PATH**를 체크하는 것을 권장합니다.
-
-### 2단계 — 앱 다운로드
-
-시작 메뉴에서 `명령 프롬프트`를 열고 아래를 실행하세요.
-
-```
-git clone https://github.com/river11456/mundok.git %USERPROFILE%\문독
-```
-
-Git Bash를 사용하는 경우에는 아래처럼 실행하세요.
+### 1. 내려받기
 
 ```
 git clone https://github.com/river11456/mundok.git ~/문독
-```
-
-### 3단계 — 실행
-
-파일 탐색기에서 사용자 폴더 → `문독` 폴더 → `문독.bat`를 더블클릭하세요.
-
-명령 프롬프트 창이 열리면서 잠시 후 브라우저에 앱이 자동으로 뜹니다.
-
-## 이후 실행
-
-macOS에서는 `문독.command`, Windows에서는 `문독.bat`를 더블클릭하면 됩니다.
-
-앱을 닫을 때는 함께 열린 터미널 또는 명령 프롬프트 창을 닫으면 서버도 자동으로 종료됩니다.
-
----
-
-## 업데이트
-
-앱이 업데이트되었을 때, 터미널에서 아래를 실행하세요.
-
-```
-cd ~/문독 && git pull
-```
-
-Windows 명령 프롬프트에서는 아래를 실행하세요.
-
-```
-cd %USERPROFILE%\문독
-git pull
-```
-
-Git Bash에서는 아래를 실행하세요.
-
-```
 cd ~/문독
-git pull
+npm install
 ```
+
+### 2. 저작 도구 실행
+
+- macOS: `문독.command` 더블클릭 (또는 터미널에서 `python3 server.py`)
+- Windows: `문독.bat` 더블클릭
+
+브라우저가 열리고, 서버가 떠 있는 동안에는 카드 추가/수정/삭제·문법 표시가 **파일에 저장**됩니다.
+(서버 없이 그냥 위 URL로 접속하면 편집 내용은 브라우저에만 저장됩니다.)
+
+### 3. 배포
+
+편집을 마치면 변경분을 커밋·푸시합니다.
+
+```
+git add userdata.json src/data
+git commit -m "콘텐츠 업데이트"
+git push
+```
+
+푸시하면 GitHub Actions가 자동으로 빌드하여 GitHub Pages에 배포합니다 (약 1~2분 후 반영).
+
+> **새 문헌 추가**: CSV 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. CSV 형식은 `PROGRESS.md` 참고.
+
+---
+
+## 배포 구조 (개발자 참고)
+
+- **호스팅**: GitHub Pages (`.github/workflows/deploy.yml` 가 `main` push마다 빌드·배포)
+- **콘텐츠**: `src/data/*.csv` + `userdata.json` → 빌드 시 번들에 베이킹 (서버 불필요)
+- **사용자 편집**: 브라우저 `localStorage` (`src/storage/local.ts`)
+- **저장 추상화**: `src/storage/` — 정적(`LocalStore`) / 관리자 저작(`ServerStore`) 을 인터페이스 뒤로 분리.
+  향후 백엔드 동기화가 필요하면 `BackendStore` 하나만 추가하면 됩니다.

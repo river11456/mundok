@@ -31,6 +31,8 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 │   ├── anki.ts        # rate(1|2|3) — 안키 큐 알고리즘
 │   ├── addcard.ts     # 카드 추가 모달 + 드래그 버블 + 네이버 한자사전 검색
 │   ├── editcard.ts    # 카드 수정 모달
+│   ├── backup.ts      # 정적 모드 데이터 내보내기/가져오기 FAB
+│   ├── storage/       # 저장 계층 추상화 (Store / LocalStore / ServerStore)
 │   └── data/
 │       ├── 불치이병치미병.csv
 │       ├── 대의정성.csv
@@ -41,7 +43,8 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 │       ├── 편작육불치.csv
 │       ├── 사기조신대론.csv # 황제내경 소문
 │       └── original/   # 원본 PDF (참고용)
-├── dist/              # 빌드 산출물 (git 포함 — 일반 사용자 빌드 불필요)
+├── dist/              # 빌드 산출물 (git 제외 — CI가 빌드)
+├── .github/workflows/ # deploy.yml — GitHub Pages 자동 배포
 ├── public/            # favicon.ico, icon.svg
 ├── index.html         # Tailwind CDN, 폰트, 애니메이션 CSS
 ├── vite.config.ts
@@ -70,14 +73,30 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 
 ---
 
-## 배포 구조
+## 배포 구조 (정적 웹)
 
 | 대상 | 필요한 것 | 방법 |
 |------|----------|------|
-| 관리자 (본인) | Node.js + npm | `npm run build` 후 dist/ 커밋 |
-| 일반 사용자 | Python3 (macOS 기본 설치) | `git clone` → `문독.command` 더블클릭 |
+| 일반 사용자 | (없음) | 브라우저로 `https://river11456.github.io/mundok/` 접속 |
+| 관리자 (저작) | Git + Python3 + Node.js | 로컬에서 `server.py` 실행 → 편집 → `git push` |
 
-`server.py`는 `npm`이 없으면 빌드를 건너뛰고 기존 `dist/`를 그대로 사용.
+- **호스팅**: GitHub Pages. `.github/workflows/deploy.yml` 이 `main` push마다 `npm ci && npm run build` 후 `dist/` 를 배포.
+- **콘텐츠 베이킹**: `src/data/*.csv` + `userdata.json` 을 빌드 시 번들에 포함 → 서버 없이 표시.
+- **dist/ 는 커밋하지 않음** (CI가 빌드). `userdata.json` 은 공유 콘텐츠 정본이라 **커밋함**.
+
+### 저장 계층 추상화 (`src/storage/`)
+
+모든 영속화는 `Store` 인터페이스 뒤로 모임. 흩어진 `fetch('/api/...')` 제거됨.
+
+| 구현 | 환경 | 저장 위치 |
+|------|------|----------|
+| `LocalStore`  | 정적 배포 | 브라우저 `localStorage` (키 `hanja-v2/userdata`) |
+| `ServerStore` | 관리자 저작 (server.py 감지) | 파일 `userdata.json` |
+| *(미래)* `BackendStore` | 계정 동기화 | 서버 API — 이 파일 하나만 추가 |
+
+- 환경 감지: 시작 시 `/api/version` 프로브 → 응답하면 `ServerStore`, 아니면 `LocalStore`.
+- 콘텐츠 병합 순서(`docs.ts`): CSV → 베이킹된 `userdata.json` → 사용자 로컬 델타.
+- **백업**: 정적 모드 좌하단 ⤓ FAB → 내보내기/가져오기 (`src/backup.ts`).
 
 ---
 

@@ -1,6 +1,7 @@
 import { S, DRILL_NEXT, curDoc } from './state';
 import { render } from './render';
-import type { Card } from './types';
+import { store } from './storage';
+import type { Card, LevelKey } from './types';
 
 const TYPE_LABELS: [string, string][] = [
   ['char',      '개별 글자'],
@@ -53,29 +54,17 @@ async function submitCard(): Promise<void> {
   $('ac-error').classList.add('hidden');
 
   try {
-    (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
-    const res  = await fetch('/api/add-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docId, type, front, reading, back, note }),
-    });
-    const data = await res.json() as { ok: boolean; error?: string };
-    if (data.ok) {
-      const newCard: Card = { id: `${docId}_${type}_${front}`, front, reading, back, note, fail_count: 0 };
-      const targetLevel = curDoc().levels.find(l => l.key === type);
-      if (targetLevel) {
-        targetLevel.cards.push(newCard);
-        if (S.lv?.key === type) S.allCards.push({ ...newCard });
-      }
-      hideModal();
-      render();
-    } else {
-      showError(data.error ?? '저장 실패');
-      btn.textContent = '저장';
-      btn.removeAttribute('disabled');
+    await store().addCard({ docId, type: type as LevelKey, text: front, reading, meaning: back, note });
+    const newCard: Card = { id: `${docId}_${type}_${front}`, front, reading, back, note, fail_count: 0 };
+    const targetLevel = curDoc().levels.find(l => l.key === type);
+    if (targetLevel) {
+      targetLevel.cards.push(newCard);
+      if (S.lv?.key === type) S.allCards.push({ ...newCard });
     }
-  } catch {
-    showError('server.py가 실행 중인지 확인해 주세요 (한문공부.command 재시작)');
+    hideModal();
+    render();
+  } catch (e) {
+    showError(e instanceof Error ? e.message : '저장에 실패했습니다.');
     btn.textContent = '저장';
     btn.removeAttribute('disabled');
   }
@@ -90,31 +79,21 @@ function showError(msg: string): void {
 export async function deleteCard(docId: string, type: string, front: string): Promise<void> {
   if (!confirm(`'${front}' 카드를 삭제합니다.\n\n삭제 후 복구가 불가능합니다. 계속하시겠습니까?`)) return;
   try {
-    (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
-    const res  = await fetch('/api/delete-card', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ docId, type, front }),
-    });
-    const data = await res.json() as { ok: boolean; error?: string };
-    if (data.ok) {
-      const targetLevel = curDoc().levels.find(l => l.key === type);
-      if (targetLevel) targetLevel.cards = targetLevel.cards.filter(c => c.front !== front);
-      S.allCards = S.allCards.filter(c => c.front !== front);
-      S.queue    = S.queue.filter(c => c.front !== front);
-      S.total    = S.allCards.length;
-      if (S.mode === 'seq' && S.lv) {
-        if (S.lv.cards.length === 0) { S.scr = 'level'; }
-        else { S.seqIdx = Math.min(S.seqIdx, S.lv.cards.length - 1); S.seqFlipped = false; }
-      } else if (S.mode === 'anki' && S.queue.length === 0) {
-        S.side = 'result';
-      }
-      render();
-    } else {
-      alert(data.error ?? '삭제 실패');
+    await store().deleteCard({ docId, type: type as LevelKey, text: front });
+    const targetLevel = curDoc().levels.find(l => l.key === type);
+    if (targetLevel) targetLevel.cards = targetLevel.cards.filter(c => c.front !== front);
+    S.allCards = S.allCards.filter(c => c.front !== front);
+    S.queue    = S.queue.filter(c => c.front !== front);
+    S.total    = S.allCards.length;
+    if (S.mode === 'seq' && S.lv) {
+      if (S.lv.cards.length === 0) { S.scr = 'level'; }
+      else { S.seqIdx = Math.min(S.seqIdx, S.lv.cards.length - 1); S.seqFlipped = false; }
+    } else if (S.mode === 'anki' && S.queue.length === 0) {
+      S.side = 'result';
     }
-  } catch {
-    alert('서버 연결 실패. 한문공부.command가 실행 중인지 확인해 주세요.');
+    render();
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '삭제에 실패했습니다.');
   }
 }
 
