@@ -1,7 +1,7 @@
-import { S } from './state';
+import { S, curDoc } from './state';
 import { render } from './render';
 import { store } from './storage';
-import type { Card, LevelKey } from './types';
+import type { Card, Level, LevelKey } from './types';
 
 function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -45,6 +45,10 @@ async function submitEdit(): Promise<void> {
   $('ec-error').classList.add('hidden');
 
   try {
+    // 텍스트가 실제로 바뀌면, 옛 텍스트를 품은 다른 카드(연결 카드) 후보를 미리 수집
+    const textChanged = text !== origFront;
+    const coTargets   = textChanged ? findCoEditTargets(origFront, type) : [];
+
     await store().editCard({ docId, type: type as LevelKey, origText: origFront, text, reading, meaning: back, note });
     const patch = (c: Card) => {
       if (c.front === origFront) {
@@ -55,6 +59,9 @@ async function submitEdit(): Promise<void> {
     S.allCards.forEach(patch);
     hideModal();
     render();
+
+    // 연결 카드 일괄 수정 프롬프트 (후보가 있을 때만)
+    if (coTargets.length > 0) showCoEditModal(origFront, text, coTargets);
   } catch (e) {
     showError(e instanceof Error ? e.message : '저장에 실패했습니다.');
     btn.textContent = '저장';
@@ -66,6 +73,113 @@ function showError(msg: string): void {
   const el = $('ec-error');
   el.textContent = msg;
   el.classList.remove('hidden');
+}
+
+// ── 연결 카드 일괄 수정 (텍스트 변경 전파) ─────────────────────────
+const CE_LEVEL_LABEL: Record<string, string> = {
+  char: '글자', word: '단어', sentence: '문장', paragraph: '단락',
+};
+
+interface CoTarget { level: Level; card: Card; }
+
+let coEdit: { origText: string; newText: string; targets: CoTarget[] } | null = null;
+
+/** 같은 문헌에서 origText를 부분문자열로 품은 카드(편집한 카드 자신·동일레벨 동일텍스트 제외). */
+function findCoEditTargets(origText: string, editedType: string): CoTarget[] {
+  const out: CoTarget[] = [];
+  for (const level of curDoc().levels) {
+    for (const card of level.cards) {
+      if (level.key === editedType && card.front === origText) continue; // 자신/중복
+      if (card.front.includes(origText)) out.push({ level, card });
+    }
+  }
+  return out;
+}
+
+function ecEsc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** text 안의 needle 출현부를 강조 span으로 감싸 HTML 반환. (split/join — 정규식 아님) */
+function ceHighlight(text: string, needle: string, cls: string): string {
+  if (!needle) return ecEsc(text);
+  return text.split(needle).map(ecEsc).join(`<span class="${cls}">${ecEsc(needle)}</span>`);
+}
+
+function ceOccur(haystack: string, needle: string): number {
+  return needle ? haystack.split(needle).length - 1 : 0;
+}
+
+function ceCheckedCount(): number {
+  if (!coEdit) return 0;
+  return coEdit.targets.filter((_, i) => $<HTMLInputElement>(`ce-chk-${i}`)?.checked).length;
+}
+
+function hideCoEditModal(): void {
+  coEdit = null;
+  $('ce-overlay').classList.add('hidden');
+}
+
+function showCoEditModal(origText: string, newText: string, targets: CoTarget[]): void {
+  coEdit = { origText, newText, targets };
+
+  $('ce-sub').innerHTML =
+    `'<span class="hanja">${ecEsc(origText)}</span>' → '<span class="hanja">${ecEsc(newText)}</span>' 치환을 아래 카드에도 적용할까요?`;
+
+  $('ce-list').innerHTML = targets.map((t, i) => {
+    const after = t.card.front.split(origText).join(newText);
+    const n     = ceOccur(t.card.front, origText);
+    return `
+      <label class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 cursor-pointer">
+        <input type="checkbox" id="ce-chk-${i}" checked class="mt-1 accent-stone-900" />
+        <div class="flex flex-col gap-1 min-w-0 flex-1">
+          <div class="text-[11px] text-stone-400">${CE_LEVEL_LABEL[t.level.key] ?? t.level.key} · ${ecEsc(t.card.id)} · ${n}곳</div>
+          <div class="hanja text-sm text-stone-800 leading-relaxed break-words">${ceHighlight(after, newText, 'bg-green-100 text-green-700 rounded px-0.5')}</div>
+        </div>
+      </label>`;
+  }).join('');
+
+  const btn = $('ce-apply');
+  btn.textContent = `적용 ${targets.length}개`;
+  btn.removeAttribute('disabled');
+  $('ce-error').classList.add('hidden');
+  $('ce-overlay').classList.remove('hidden');
+}
+
+async function applyCoEdit(): Promise<void> {
+  if (!coEdit) { hideCoEditModal(); return; }
+  const { origText, newText, targets } = coEdit;
+  const docId  = S.docId!;
+  const chosen = targets.filter((_, i) => $<HTMLInputElement>(`ce-chk-${i}`)?.checked);
+  if (chosen.length === 0) { hideCoEditModal(); return; }
+
+  const btn = $('ce-apply');
+  btn.textContent = '적용 중…';
+  btn.setAttribute('disabled', 'true');
+  $('ce-error').classList.add('hidden');
+
+  try {
+    for (const t of chosen) {
+      const origFront = t.card.front;
+      const newFront  = origFront.split(origText).join(newText);
+      if (newFront === origFront) continue;
+      await store().editCard({
+        docId, type: t.level.key, origText: origFront, text: newFront,
+        reading: t.card.reading, meaning: t.card.back, note: t.card.note,
+      });
+      t.card.front = newFront;                                                  // DOCS(및 동일레벨 S.lv.cards) 갱신
+      const inAll = S.allCards.find(c => c.id === t.card.id); if (inAll) inAll.front = newFront;
+      const inQ   = S.queue.find(c => c.id === t.card.id);    if (inQ)   inQ.front   = newFront;
+    }
+    hideCoEditModal();
+    render();
+  } catch (e) {
+    const el = $('ce-error');
+    el.textContent = e instanceof Error ? e.message : '일괄 수정에 실패했습니다.';
+    el.classList.remove('hidden');
+    btn.textContent = `적용 ${chosen.length}개`;
+    btn.removeAttribute('disabled');
+  }
 }
 
 export function initEditCard(): void {
@@ -112,10 +226,42 @@ export function initEditCard(): void {
   document.getElementById('ec-cancel')!.addEventListener('click', hideModal);
   document.getElementById('ec-submit')!.addEventListener('click', submitEdit);
 
+  // ── 연결 카드 일괄 수정 모달 ──────────────────────────────
+  const ce = document.createElement('div');
+  ce.id = 'ce-overlay';
+  ce.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-[60] hidden';
+  ce.innerHTML = `
+    <div id="ce-modal" class="bg-white rounded-2xl shadow-xl px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]">
+      <div class="text-sm font-bold text-stone-900">연결된 카드도 함께 수정</div>
+      <div id="ce-sub" class="text-xs text-stone-500 leading-relaxed"></div>
+      <div class="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2 leading-relaxed">
+        ⚠ 독음은 자동으로 맞춰지지 않으니 적용 후 확인하세요. 길이가 다른 치환은 문법 주석 위치가 밀릴 수 있습니다.
+      </div>
+      <div id="ce-list" class="flex flex-col gap-0.5 overflow-y-auto -mx-1 px-1" style="max-height:42vh"></div>
+      <div id="ce-error" class="text-xs text-red-500 hidden"></div>
+      <div class="flex gap-3 justify-end pt-1">
+        <button id="ce-skip"
+          class="px-4 py-2 text-xs text-stone-500 border border-stone-200 rounded-lg hover:border-stone-400 transition-colors">건너뛰기</button>
+        <button id="ce-apply"
+          class="px-4 py-2 text-xs font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors">적용</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ce);
+
+  document.getElementById('ce-modal')!.addEventListener('click', e => e.stopPropagation());
+  ce.addEventListener('click', hideCoEditModal);
+  document.getElementById('ce-skip')!.addEventListener('click', hideCoEditModal);
+  document.getElementById('ce-apply')!.addEventListener('click', applyCoEdit);
+  document.getElementById('ce-list')!.addEventListener('change', () => {
+    const n   = ceCheckedCount();
+    const btn = $('ce-apply');
+    btn.textContent = `적용 ${n}개`;
+    if (n === 0) btn.setAttribute('disabled', 'true'); else btn.removeAttribute('disabled');
+  });
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !$('ec-overlay').classList.contains('hidden')) {
-      e.stopPropagation();
-      hideModal();
-    }
+    if (e.key !== 'Escape') return;
+    if (!$('ce-overlay').classList.contains('hidden')) { e.stopPropagation(); hideCoEditModal(); return; }
+    if (!$('ec-overlay').classList.contains('hidden')) { e.stopPropagation(); hideModal(); }
   }, true);
 }

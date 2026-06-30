@@ -127,7 +127,7 @@ export function setupClick(): void {
 // ── Keyboard ──────────────────────────────────────────────
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
-    const modalOpen = ['ac-overlay', 'ec-overlay'].some(
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay'].some(
       id => !document.getElementById(id)?.classList.contains('hidden')
     );
     if (modalOpen || isOnboardingOpen()) return;
