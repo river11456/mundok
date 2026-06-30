@@ -1,4 +1,4 @@
-import { S, curDoc, lsKey, loadAnki, shuffle, pushNav, popNav, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { DOCS } from './state';
 import { render, isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp, isOnboardingOpen } from './render';
 import { rate } from './anki';
@@ -38,7 +38,7 @@ function startStudy(lvIdx: number): void {
 }
 
 function hardReset(): void {
-  localStorage.removeItem(lsKey());
+  resetAnki();
   startStudy(curDoc().levels.indexOf(S.lv!));
 }
 

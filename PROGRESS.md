@@ -244,9 +244,14 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
   - **검증**: 실서버 통합 테스트 11/11 통과(add→c38 채번·edit·save-grammar·delete→복귀), JSON 출력 포맷 원본과 100% 일치(diff 깔끔), 원본 자동 복원
   - 서버 모드 저작 복구 + *"편집 = JSON = 화면 = git diff"* 일치 달성
   - ✨ **부수 개선**: 카드 edit 시 grammar가 카드 내장이라 텍스트를 바꿔도 주석이 끊기지 않음 (여담론 같은 고아화 방지)
-- [ ] **Phase 4 — 안키기록·로컬델타 id 기반** (구 ④) ← *지금 여기*
-  - `state.ts` 안키 키를 카드 id별 `fail_count` 맵으로, `LocalStore` 델타도 id 참조
-  - ⚠ 기존 사용자 localStorage(안키 기록·편집 델타) 마이그레이션 호환 주의
+- [x] **Phase 4a — 안키 기록 id 기반** ✅ (2026-06-30)
+  - `state.ts`: `개수 일치`(`saved.length===cards.length`) → 카드 id별 `fail_count` 맵(`.../fails` 키)
+  - 구 포맷(Card[] 배열) → front 매칭으로 1회 자동 마이그레이션(`migrateOldAnki`), 구 키 정리
+  - `resetAnki()` 추가, `events.ts` hardReset 교체
+  - **검증**: 빌드 통과, 안키 로직 시뮬레이션 7/7 — 카드 추가/삭제에도 학습기록 유지·구 기록 보존·초기화 정상
+- [~] **Phase 4b — LocalStore 편집 델타 id 기반** (보류)
+  - 정적 사용자 edit/delete를 텍스트 대신 카드 id로 참조 (`docs.ts applyUserData`, `events.ts`, `storage/local.ts`)
+  - **보류 사유**: 정적 사용자 편집은 소규모이고 관리자 편집은 이미 JSON 직접(Phase 3). 호환 마이그레이션(text→id) 비용 대비 효용이 낮음. 정적 편집이 실사용에서 늘면 재개.
 - [ ] **Phase 5 — 드릴다운 명시 링크(구 ②) + 빌드 lint(구 ⑤)**
   - `drill[]` 명시 링크 우선, 없으면 자동매칭. 중복 텍스트·깨진 링크·문법 인덱스 범위 빌드 시 경고
 - [ ] **고아 문법 복구(선택)** — 여담론 `"故로 以菜助其充은…"` 문법 주석 1건. 새 텍스트(`充足`)에 맞춰 cardFront·인덱스 보정해 살릴지 결정. Phase 4(id 기반 전환) 이후엔 이런 고아화가 구조적으로 차단됨.

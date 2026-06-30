@@ -44,21 +44,60 @@ export function curDoc(): Doc {
   return DOCS.find(d => d.id === S.docId)!;
 }
 
+/** 안키 진행 상태의 베이스 키. 접미사를 붙여 파생 키를 만든다. */
 export function lsKey(): string {
   return `${LS}/${S.docId}/${S.lv!.key}`;
 }
 
-export function loadAnki(cards: Card[]): Card[] {
+/** 카드 id → fail_count 맵 저장 키. 카드 수·순서 변화에 견고. */
+function failKey(): string {
+  return `${lsKey()}/fails`;
+}
+
+type FailMap = Record<string, number>;
+
+function readFails(): FailMap | null {
   try {
-    const saved = JSON.parse(localStorage.getItem(lsKey()) ?? 'null') as unknown;
-    if (Array.isArray(saved) && saved.length === cards.length) return saved as Card[];
-  } catch (_) { /* ignore */ }
-  return cards.map(c => ({ ...c, fail_count: 0 }));
+    const raw = JSON.parse(localStorage.getItem(failKey()) ?? 'null') as unknown;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw as FailMap;
+  } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * 구 포맷(Card[] 배열, `개수 일치` 방식)을 1회 마이그레이션.
+ * front 매칭으로 fail_count 를 카드 id 맵으로 옮긴 뒤 구 키를 제거한다.
+ */
+function migrateOldAnki(cards: Card[]): FailMap {
+  const fails: FailMap = {};
+  try {
+    const old = JSON.parse(localStorage.getItem(lsKey()) ?? 'null') as unknown;
+    if (Array.isArray(old)) {
+      const byFront = new Map<string, number>();
+      for (const c of old as Card[]) if (c?.front && c.fail_count > 0) byFront.set(c.front, c.fail_count);
+      for (const c of cards) { const f = byFront.get(c.front); if (f) fails[c.id] = f; }
+    }
+  } catch { /* ignore */ }
+  localStorage.removeItem(lsKey());                       // 구 배열 키 정리
+  localStorage.setItem(failKey(), JSON.stringify(fails)); // 이후엔 readFails 가 성공 → 1회만 실행
+  return fails;
+}
+
+export function loadAnki(cards: Card[]): Card[] {
+  const fails = readFails() ?? migrateOldAnki(cards);
+  return cards.map(c => ({ ...c, fail_count: fails[c.id] ?? 0 }));
 }
 
 export function persist(): void {
-  localStorage.setItem(lsKey(), JSON.stringify(S.allCards));
+  const fails: FailMap = {};
+  for (const c of S.allCards) if (c.fail_count > 0) fails[c.id] = c.fail_count;
+  localStorage.setItem(failKey(), JSON.stringify(fails));
   localStorage.setItem(lsKey() + '_ts', Date.now().toString());
+}
+
+/** 안키 기록 초기화 (Ctrl+Shift+R). */
+export function resetAnki(): void {
+  localStorage.removeItem(failKey());
 }
 
 // ── Per-doc last-studied date ─────────────────────────────
