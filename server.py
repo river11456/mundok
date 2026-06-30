@@ -259,7 +259,36 @@ if shutil.which('npm') and os.path.exists(VITE):
     threading.Thread(target=start_watcher, daemon=True).start()
 
 socketserver.TCPServer.allow_reuse_address = True
-print(f'文讀  →  http://localhost:{PORT}', flush=True)
+
+
+def make_server():
+    """19234를 우선 시도하고, 사용 중이면 OS가 빈 포트(0)를 배정한다."""
+    try:
+        return socketserver.TCPServer(('127.0.0.1', PORT), Handler)
+    except OSError:
+        srv = socketserver.TCPServer(('127.0.0.1', 0), Handler)
+        print(f'⚠ 포트 {PORT} 사용 중 — 빈 포트 {srv.server_address[1]}로 실행', flush=True)
+        return srv
+
+
+srv = make_server()
+actual_port = srv.server_address[1]
+
+# 런처(문독.command)가 실제 포트를 알 수 있도록 파일로 남긴다
+port_file = os.path.join(BASE, '.runport')
+try:
+    with open(port_file, 'w') as f:
+        f.write(str(actual_port))
+except OSError:
+    pass
+
+print(f'文讀  →  http://localhost:{actual_port}', flush=True)
 print('JSON(src/data) 수정 시 자동 빌드 + 브라우저 새로고침', flush=True)
-with socketserver.TCPServer(('127.0.0.1', PORT), Handler) as srv:
-    srv.serve_forever()
+try:
+    with srv:
+        srv.serve_forever()
+finally:
+    try:
+        os.remove(port_file)
+    except OSError:
+        pass
