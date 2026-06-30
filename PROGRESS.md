@@ -176,4 +176,82 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 
 ## 향후 작업
 
+### 🔴 데이터 아키텍처 개선 — CSV → 문헌별 JSON 전환 (진행 중)
+
+#### 결정 (2026-06-30)
+
+데이터 포맷을 **CSV → 문헌별 JSON**으로 통합한다. CSV는 평면 표만 표현 가능해, 한자 학습 데이터의 실제 형태(트리·그래프: 카드 간 드릴다운 관계, 카드 내 문법주석 배열)를 담지 못한다. 그 결과 표현 불가한 것들이 전부 `userdata.json` + 코드 휴리스틱으로 새어나가 **진실이 분열**됐다.
+
+**실측 근거** — 이미 201개 콘텐츠가 CSV 바깥(`userdata.json`)에 산다:
+
+| 종류 | 수 | 의미 |
+|------|----|----|
+| additions | 149 | CSV에 아예 없는 카드 (식무구포 59·양성편 68 → 사실상 통째로 JSON에 있음) |
+| edits | 18 | CSV를 덮어쓴 것 |
+| deletions | 14 | CSV에 있지만 안 보이는 것 |
+| grammar | 20 | CSV가 담지 못하는 문법 주석 |
+
+#### 문제 진단 — "텍스트 = 식별자"
+
+안정적 카드 ID가 없어 모든 연결이 한자 텍스트 문자열을 키(PK)로 쓴다.
+
+| 연결 | 키 | 위치 | 증상 |
+|------|----|----|----|
+| 수정 | `origText` | `docs.ts:83` | 텍스트 수정 시 연결 끊김 |
+| 삭제 | `text` | `docs.ts:74` | 중복 텍스트는 양쪽 적용 |
+| 문법 | `cardFront`(문장 전체) | `grammar.ts:11` | 문장 한 글자 수정 → 주석 통째 소실 |
+| 드릴다운 | `front.includes(card.front)` | `render.ts:81` | 저장된 관계가 아닌 렌더링 시점의 추측 |
+| 안키 | 카드 **개수** 일치 | `state.ts:54` | 카드 1장 추가/삭제 → 학습기록 리셋 |
+
+#### 확정 스키마 (`src/data/<문헌>.json`)
+
+```jsonc
+{
+  "id": "편작육불치",          // = 파일명 (기존 docId·localStorage 키 호환 위해 한글 유지)
+  "title": "扁鵲六不治",
+  "sub": "편작의 6가지...",
+  "levels": {
+    "char": [ { "id": "c1", "text": "驕", "reading": "교만할 교", "meaning": "", "note": "" } ],
+    "sentence": [
+      { "id": "s1", "text": "驕恣不論於理 一不治也", "reading": "...", "meaning": "...", "note": "",
+        "grammar": [{ "type": "S", "start": 0, "end": 2 }],   // 카드 안으로 내장
+        "drill":   [] }                                        // 명시 링크 (비면 자동매칭)
+    ]
+  }
+}
+```
+
+- 카드 id: 문헌 내 `c1/w1/s1/p1` 순번, 한 번 부여하면 텍스트 무관 영구 불변.
+- `DOC_GROUPS`(참고문헌 그룹)는 Phase 1에선 유지, 후속에 `parent` 필드로 흡수 검토.
+
+#### 실행 단계 (작은 단위, 각 단계 독립 검증)
+
+- [x] **Phase 1 — 무손실 변환** ✅ (2026-06-30)
+  - `types.ts`에 `DocJSON`/`CardJSON` 스키마 추가 완료 (기존 타입 유지)
+  - 변환 스크립트 `scripts/migrate-to-json.mjs` — PapaParse + applyUserData 재사용
+  - **결과**: `src/data/*.json` 8개 생성. 카드 946장·문법 19건 **무손실 검증 통과**(왕복 동등성 100%)
+  - CSV·userdata.json은 그대로 보존 (Phase 2에서 로더 교체 후 정리)
+  - ⚠ **발견**: 여담론 문법 1건이 이미 고아(텍스트 `充→充足` 수정으로 cardFront 불일치) — 현재 앱에서도 표시 안 되는 죽은 데이터라 변환에서 제외. *이게 바로 "텍스트=식별자" 버그의 실제 사례.* → 복구는 아래 별도 항목
+- [x] **Phase 2 — 로더 교체** ✅ (2026-06-30)
+  - `docs.ts`가 `import.meta.glob('./data/*.json')`로 JSON 로드, 베이스 카드에 안정 id 부여
+  - 베이킹 델타 계층(`bakedUserData` import) 제거, CSV import 제거, 카드 내장 grammar → `collectGrammar()`로 펼침
+  - 사용자 localStorage 델타 적용 경로 유지 (id 전환은 Phase 4)
+  - **검증**: `npm run build` 통과(타입 OK), 로더 출력 946장·19건 = Phase 1 canonical 일치, 카드 id 문헌 내 유니크, 홈 순서 보존
+  - ⚠ **부수효과**: 서버 모드(관리자) 저작이 일시 무력화 — `docs.ts`가 `userdata.json`을 안 읽으므로 `server.py` 편집이 화면에 반영 안 됨. **Phase 3에서 복구.** 일반 사용자(정적)는 정상.
+- [x] **Phase 3 — server.py JSON 직접 편집** (단일 진실) ✅ (2026-06-30)
+  - `server.py`의 add/edit/delete/grammar API가 `src/data/<문헌>.json`을 직접 수정 (id 자동채번 `next_id`, grammar는 sentence 카드 내장)
+  - 구 `userdata.json` 델타 계층 폐기, `/userdata.json` GET 핸들러 제거
+  - **검증**: 실서버 통합 테스트 11/11 통과(add→c38 채번·edit·save-grammar·delete→복귀), JSON 출력 포맷 원본과 100% 일치(diff 깔끔), 원본 자동 복원
+  - 서버 모드 저작 복구 + *"편집 = JSON = 화면 = git diff"* 일치 달성
+  - ✨ **부수 개선**: 카드 edit 시 grammar가 카드 내장이라 텍스트를 바꿔도 주석이 끊기지 않음 (여담론 같은 고아화 방지)
+- [ ] **Phase 4 — 안키기록·로컬델타 id 기반** (구 ④) ← *지금 여기*
+  - `state.ts` 안키 키를 카드 id별 `fail_count` 맵으로, `LocalStore` 델타도 id 참조
+  - ⚠ 기존 사용자 localStorage(안키 기록·편집 델타) 마이그레이션 호환 주의
+- [ ] **Phase 5 — 드릴다운 명시 링크(구 ②) + 빌드 lint(구 ⑤)**
+  - `drill[]` 명시 링크 우선, 없으면 자동매칭. 중복 텍스트·깨진 링크·문법 인덱스 범위 빌드 시 경고
+- [ ] **고아 문법 복구(선택)** — 여담론 `"故로 以菜助其充은…"` 문법 주석 1건. 새 텍스트(`充足`)에 맞춰 cardFront·인덱스 보정해 살릴지 결정. Phase 4(id 기반 전환) 이후엔 이런 고아화가 구조적으로 차단됨.
+- [ ] **정리** — 구 `CSV`/`userdata.json`을 백업 후 제거
+
+### 🟡 기타
+
 - **포트 동적 탐색**: `문독.command`와 `server.py`의 포트가 `19234`로 하드코딩되어 있음. 다른 PC에서 해당 포트가 사용 중이면 기존 프로세스를 강제 종료하는 문제가 있음. `19234`를 우선 시도하되 사용 중이면 OS가 빈 포트를 자동 배정하도록 개선 필요.
