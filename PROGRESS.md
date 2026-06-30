@@ -7,7 +7,7 @@
 ## 프로젝트 개요
 
 한의학 한문 학습 웹앱. **Vite + TypeScript + Tailwind CSS (CDN)**.  
-CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
+문헌별 JSON 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 
 **앱 이름**: 文讀  
 **실행**: `문독.command` 더블클릭 → `http://localhost:19234`  
@@ -24,8 +24,7 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 │   ├── main.ts        # 진입점
 │   ├── types.ts       # Card, Level, LevelKey, Doc, Screen, Mode, Side 타입
 │   ├── state.ts       # 전역 상태 S, DRILL_LEVELS, pushNav/popNav 등
-│   ├── docs.ts        # import.meta.glob으로 CSV 자동 로드 → DOCS 배열
-│   ├── csv.ts         # papaparse 래퍼
+│   ├── docs.ts        # import.meta.glob으로 JSON 자동 로드 → DOCS 배열
 │   ├── render.ts      # 전체 화면 렌더링, tokenizeHighlights, annotatedFront
 │   ├── events.ts      # 클릭 위임, 키보드 단축키
 │   ├── anki.ts        # rate(1|2|3) — 안키 큐 알고리즘
@@ -34,15 +33,16 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 │   ├── backup.ts      # 정적 모드 데이터 내보내기/가져오기 FAB
 │   ├── storage/       # 저장 계층 추상화 (Store / LocalStore / ServerStore)
 │   └── data/
-│       ├── 불치이병치미병.csv
-│       ├── 대의정성.csv
-│       ├── 식무구포.csv
-│       ├── 양성편.csv
-│       ├── 여담론.csv       # 格致餘論 朱震亨
-│       ├── 상고천진론.csv   # 황제내경 소문
-│       ├── 편작육불치.csv
-│       ├── 사기조신대론.csv # 황제내경 소문
+│       ├── 불치이병치미병.json
+│       ├── 대의정성.json
+│       ├── 식무구포.json
+│       ├── 양성편.json
+│       ├── 여담론.json       # 格致餘論 朱震亨
+│       ├── 상고천진론.json   # 황제내경 소문
+│       ├── 편작육불치.json
+│       ├── 사기조신대론.json # 황제내경 소문
 │       └── original/   # 원본 PDF (참고용)
+├── scripts/           # lint-data.mjs — 콘텐츠 무결성 검사 (빌드 전 실행)
 ├── dist/              # 빌드 산출물 (git 제외 — CI가 빌드)
 ├── .github/workflows/ # deploy.yml — GitHub Pages 자동 배포
 ├── public/            # favicon.ico, icon.svg
@@ -55,21 +55,34 @@ CSV 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 
 ---
 
-## CSV 형식
+## JSON 콘텐츠 스키마
 
-```
-type,text,reading,meaning,note
-meta,문헌제목,부제,,
-char,治,치,다스리다,
-word,攝養,섭양,섭생하고 양생함,
-sentence,是故로 已病而後治는...,시고로 이병이후치는...,해석,문법 설명
-paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
+문헌 1개 = 파일 1개 (`src/data/<문헌>.json`). 타입 정의는 `src/types.ts`의 `DocJSON`/`CardJSON`.
+
+```jsonc
+{
+  "id": "편작육불치",          // = 파일명 (docId·localStorage 키 호환 위해 한글 유지)
+  "title": "扁鵲六不治",        // 표시 제목
+  "sub": "편작육불치",          // 부제
+  "levels": {
+    "char": [ { "id": "c1", "text": "驕", "reading": "교만할 교", "meaning": "", "note": "" } ],
+    "word": [ … ],
+    "sentence": [
+      { "id": "s1", "text": "驕恣不論於理 一不治也", "reading": "교자불론어리 일불치야",
+        "meaning": "교만하고 …", "note": "",
+        "grammar": [{ "type": "S", "start": 0, "end": 2 }],   // 카드 내장 문법 주석(sentence 전용)
+        "drill":   [] }                                        // 명시 드릴 링크(옵션, 비면 자동매칭)
+    ],
+    "paragraph": [ … ]
+  }
+}
 ```
 
-- **필드**: `type`, `text`, `reading`, `meaning`, `note` (5개)
-- `type` 값: `meta` | `char` | `word` | `sentence` | `paragraph`
+- **카드 필드**: `id`(문헌 내 안정·불변), `text`(앞면), `reading`, `meaning`(뒷면), `note`, `grammar?`, `drill?`
+- `levels` 키: `char` | `word` | `sentence` | `paragraph`
 - `reading`: 한자와 글자 수가 같으면 뒷면에서 각 한자 아래 발음 표시
-- 새 문헌 추가: CSV 파일을 `src/data/`에 넣고 `npm run build` → `dist/` 커밋
+- `grammar`: `type`(S/V/O/phrase) + `start`/`end`(text 코드포인트 인덱스). sentence 카드에만.
+- 새 문헌 추가: JSON 파일을 `src/data/`에 넣고 `npm run build`. 무결성은 `scripts/lint-data.mjs`가 검사.
 
 ---
 
@@ -81,8 +94,9 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 | 관리자 (저작) | Git + Python3 + Node.js | 로컬에서 `server.py` 실행 → 편집 → `git push` |
 
 - **호스팅**: GitHub Pages. `.github/workflows/deploy.yml` 이 `main` push마다 `npm ci && npm run build` 후 `dist/` 를 배포.
-- **콘텐츠 베이킹**: `src/data/*.csv` + `userdata.json` 을 빌드 시 번들에 포함 → 서버 없이 표시.
-- **dist/ 는 커밋하지 않음** (CI가 빌드). `userdata.json` 은 공유 콘텐츠 정본이라 **커밋함**.
+- **콘텐츠 베이킹**: `src/data/*.json` (문헌별 단일 진실) 을 빌드 시 번들에 포함 → 서버 없이 표시.
+- **dist/ 는 커밋하지 않음** (CI가 빌드). `src/data/*.json` 이 콘텐츠 정본이라 **커밋함**.
+- **빌드 전 lint**: `npm run build` 가 `scripts/lint-data.mjs` 로 무결성 검사 (ERROR 시 빌드 차단).
 
 ### 저장 계층 추상화 (`src/storage/`)
 
@@ -91,11 +105,11 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 | 구현 | 환경 | 저장 위치 |
 |------|------|----------|
 | `LocalStore`  | 정적 배포 | 브라우저 `localStorage` (키 `hanja-v2/userdata`) |
-| `ServerStore` | 관리자 저작 (server.py 감지) | 파일 `userdata.json` |
+| `ServerStore` | 관리자 저작 (server.py 감지) | 파일 `src/data/*.json` 직접 편집 |
 | *(미래)* `BackendStore` | 계정 동기화 | 서버 API — 이 파일 하나만 추가 |
 
 - 환경 감지: 시작 시 `/api/version` 프로브 → 응답하면 `ServerStore`, 아니면 `LocalStore`.
-- 콘텐츠 병합 순서(`docs.ts`): CSV → 베이킹된 `userdata.json` → 사용자 로컬 델타.
+- 콘텐츠 병합 순서(`docs.ts`): 베이킹된 `src/data/*.json` → 사용자 로컬 델타(정적 모드).
 - **백업**: 정적 모드 좌하단 ⤓ FAB → 내보내기/가져오기 (`src/backup.ts`).
 
 ---
@@ -128,12 +142,12 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 - 드릴다운 가능한 구간은 발음 아래 밑줄로 표시
 
 ### 카드 관리
-- **추가**: 텍스트 드래그 → 버블 → 모달 → CSV 반영
+- **추가**: 텍스트 드래그 → 버블 → 모달 → JSON 반영
   - 한자 입력칸 옆 **검색** 버튼 → 네이버 한자사전 새 탭
-- **수정**: 카드 우상단 수정 버튼 → 모달 → CSV 반영
-- **삭제**: 카드 우상단 삭제 버튼 → 확인 → CSV 반영
+- **수정**: 카드 우상단 수정 버튼 → 모달 → JSON 반영
+- **삭제**: 카드 우상단 삭제 버튼 → 확인 → JSON 반영
 
-> 카드 CRUD는 `userdata.json`(프로젝트 루트)에 기록 — 빌드 없이 즉시 반영.
+> 카드 CRUD는 해당 문헌 `src/data/*.json`에 직접 기록 — 빌드 없이 즉시 반영(server.py가 id 자동채번).
 
 ### 참고문헌 그룹핑 (홈 화면)
 - `src/docs.ts`의 `DOC_GROUPS` 배열로 부모-자식 문헌 관계 선언
@@ -142,7 +156,7 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 - 새 그룹 추가: `DOC_GROUPS`에 `{ parentId, childIds }` 한 줄 추가
 
 ### 라이브 리로드 (관리자 모드)
-- `vite build --watch`로 CSV 변경 감지 → 자동 빌드 → 브라우저 자동 갱신
+- `vite build --watch`로 JSON 변경 감지 → 자동 빌드 → 브라우저 자동 갱신
 - 카드 CRUD 후 불필요한 리로드 방지: `window.__hanjaSkipReloads` 카운터
 
 ### 디자인
@@ -261,11 +275,11 @@ paragraph,與其救療於...,여기구료어...,전체 해석,단락 설명
 
 #### 남은 정리 작업
 
-- [ ] **데이터 정리(선택)** — lint 가 발견한 항목
-  - 양성편 `百刻` 중복(w6 완전 / w10 빈약) → w10 제거 검토
-  - 여담론 `"故로 以菜助其充은…"` 고아 문법 1건 → 새 텍스트(`充足`)에 맞춰 복구 또는 폐기
-  - 양성편 s7·s8·s21 드릴다운 0건(숫자/시간 표현) → 데이터 완성도 이슈, 필수 아님
-- [ ] **구 파일 정리** — 단일 진실 확정 후 `src/data/*.csv`·`userdata.json` 제거 + README/PROGRESS 문서 갱신 (git 히스토리에 남아 복원 가능)
+- [x] **데이터 정리** ✅ (2026-06-30) — lint 발견 항목
+  - 양성편 `百刻` 중복 w10 제거 (w6 완전판 유지)
+  - 여담론 `"故로 以菜助其充은…"` 고아 문법 → userdata.json 제거로 폐기됨. 복구 원하면 새 텍스트(`充足`)에 맞춰 별도 진행
+  - 양성편 s7·s8·s21 드릴다운 0건(숫자/시간 표현) → 데이터 완성도 이슈, 필수 아님(미해결)
+- [x] **구 파일 정리** ✅ (2026-06-30) — `src/data/*.csv`·`userdata.json` 제거, 죽은 코드 `csv.ts`·일회성 `migrate-to-json.mjs`·미사용 `papaparse` 의존성 제거, README/PROGRESS JSON 기준 갱신 (git 히스토리에 남아 복원 가능)
 
 ### 🟡 기타
 

@@ -29,7 +29,7 @@
 ## 콘텐츠 저작 (관리자 전용)
 
 새 문헌·카드를 추가하거나 기존 콘텐츠를 수정하려면 로컬에서 저작 도구를 실행합니다.
-저작 결과는 `userdata.json`(또는 `src/data/*.csv`)에 기록되고, `git push` 하면 자동으로 배포됩니다.
+저작 결과는 `src/data/*.json`(문헌별 단일 진실)에 직접 기록되고, `git push` 하면 자동으로 배포됩니다.
 
 ### 준비물
 
@@ -56,21 +56,21 @@ npm install
 편집을 마치면 변경분을 커밋·푸시합니다.
 
 ```
-git add userdata.json src/data
+git add src/data
 git commit -m "콘텐츠 업데이트"
 git push
 ```
 
 푸시하면 GitHub Actions가 자동으로 빌드하여 GitHub Pages에 배포합니다 (약 1~2분 후 반영).
 
-> **새 문헌 추가**: CSV 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. CSV 형식은 `PROGRESS.md` 참고.
+> **새 문헌 추가**: JSON 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. JSON 스키마는 `PROGRESS.md` 참고.
 
 ---
 
 ## 배포 구조 (개발자 참고)
 
 - **호스팅**: GitHub Pages (`.github/workflows/deploy.yml` 가 `main` push마다 빌드·배포)
-- **콘텐츠**: `src/data/*.csv` + `userdata.json` → 빌드 시 번들에 베이킹 (서버 불필요)
+- **콘텐츠**: `src/data/*.json` (문헌별 단일 진실) → 빌드 시 번들에 베이킹 (서버 불필요)
 - **사용자 편집**: 브라우저 `localStorage` (`src/storage/local.ts`)
 - **저장 추상화**: `src/storage/` — 정적(`LocalStore`) / 관리자 저작(`ServerStore`) 을 인터페이스 뒤로 분리.
   향후 백엔드 동기화가 필요하면 `BackendStore` 하나만 추가하면 됩니다.
