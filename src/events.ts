@@ -1,5 +1,5 @@
 import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, DRILL_NEXT, DRILL_LEVELS } from './state';
-import { DOCS } from './state';
+import { homeDocs } from './docs';
 import { render, isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp, isOnboardingOpen } from './render';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
@@ -152,7 +152,7 @@ export function setupKeyboard(): void {
 
     if (S.scr === 'home') {
       const i = +e.key - 1;
-      const doc = DOCS[i];
+      const doc = homeDocs()[i];   // 화면 표시 순서(참고문헌 제외)와 일치
       if (doc) navMode(doc.id);
 
     } else if (S.scr === 'mode') {

@@ -1,5 +1,5 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, recordStudySession } from './state';
-import { DOC_GROUPS } from './docs';
+import { DOC_GROUPS, homeDocs } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
 import type { Doc, GrammarAnnotation } from './types';
@@ -416,7 +416,6 @@ function cardActions(lvKey?: string): string {
 }
 
 function renderHome(): void {
-  const childSet = new Set(DOC_GROUPS.flatMap(g => g.childIds));
   const groupMap = new Map(DOC_GROUPS.map(g => [g.parentId, g.childIds]));
 
   const mainBtn = (d: Doc): string => {
@@ -454,8 +453,7 @@ function renderHome(): void {
     </button>`;
   };
 
-  const items = DOCS
-    .filter(d => !childSet.has(d.id))
+  const items = homeDocs()
     .map(d => {
       const childIds = groupMap.get(d.id);
       if (!childIds) return mainBtn(d);

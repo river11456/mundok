@@ -41,6 +41,15 @@ export const DOC_GROUPS: { parentId: string; childIds: string[] }[] = [
   { parentId: '불치이병치미병', childIds: ['상고천진론', '편작육불치', '사기조신대론'] },
 ];
 
+/**
+ * 홈 화면에 최상위로 노출되는 문헌 목록(참고문헌 자식 제외), 표시 순서 유지.
+ * 홈 렌더(renderHome)와 키보드 단축키(1~9)가 같은 출처를 쓰도록 한다.
+ */
+export function homeDocs(): Doc[] {
+  const childIds = new Set(DOC_GROUPS.flatMap(g => g.childIds));
+  return DOCS.filter(d => !childIds.has(d.id));
+}
+
 /** 카드 내장 문법 주석을 grammar.ts 가 쓰는 GrammarEntry[] 형태로 펼친다. */
 function collectGrammar(): GrammarEntry[] {
   const out: GrammarEntry[] = [];
