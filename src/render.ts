@@ -1,4 +1,4 @@
-import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, recordStudySession } from './state';
+import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak } from './state';
 import { DOC_GROUPS, homeDocs } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
@@ -899,7 +899,7 @@ export function initOnboarding(): void {
 }
 
 function renderResult(): void {
-  const streak = recordStudySession(S.total);
+  const streak = getStreak();   // 집계는 학습 완료 시점(anki.ts rate)에서 이미 1회 수행됨
   const failed = [...S.allCards]
     .filter(c => c.fail_count > 0)
     .sort((a, b) => b.fail_count - a.fail_count);

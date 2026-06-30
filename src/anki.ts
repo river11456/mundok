@@ -1,4 +1,4 @@
-import { S, persist } from './state';
+import { S, persist, recordStudySession } from './state';
 import { render } from './render';
 
 export function rate(d: 1 | 2 | 3): void {
@@ -18,6 +18,7 @@ export function rate(d: 1 | 2 | 3): void {
 
   persist();
   S.side = S.queue.length === 0 ? 'result' : 'front';
+  if (S.side === 'result') recordStudySession(S.total);   // 학습 완료 시점에 1회만 집계
   S.busy = false;
   render();
 }
