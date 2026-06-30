@@ -1,0 +1,407 @@
+{
+  "id": "상고천진론",
+  "title": "上古天眞論",
+  "sub": "상고천진론",
+  "levels": {
+    "char": [
+      {
+        "id": "c1",
+        "text": "上",
+        "reading": "위 상",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c2",
+        "text": "古",
+        "reading": "예 고",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c3",
+        "text": "之",
+        "reading": "어조사 지",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c4",
+        "text": "人",
+        "reading": "사람 인",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c5",
+        "text": "其",
+        "reading": "그 기",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c6",
+        "text": "知",
+        "reading": "알 지",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c7",
+        "text": "道",
+        "reading": "길 도",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c8",
+        "text": "者",
+        "reading": "사람 자",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c9",
+        "text": "法",
+        "reading": "법 법",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c10",
+        "text": "於",
+        "reading": "어조사 어",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c11",
+        "text": "陰",
+        "reading": "그늘 음",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c12",
+        "text": "陽",
+        "reading": "볕 양",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c13",
+        "text": "和",
+        "reading": "고를 화",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c14",
+        "text": "術",
+        "reading": "꾀 술",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c15",
+        "text": "數",
+        "reading": "셀 수",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c16",
+        "text": "食",
+        "reading": "먹을 식",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c17",
+        "text": "飮",
+        "reading": "마실 음",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c18",
+        "text": "有",
+        "reading": "있을 유",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c19",
+        "text": "節",
+        "reading": "마디 절",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c20",
+        "text": "起",
+        "reading": "일어날 기",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c21",
+        "text": "居",
+        "reading": "있을 거",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c22",
+        "text": "常",
+        "reading": "항상 상",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c23",
+        "text": "不",
+        "reading": "아니 불",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c24",
+        "text": "妄",
+        "reading": "망령될 망",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c25",
+        "text": "作",
+        "reading": "지을 작",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c26",
+        "text": "勞",
+        "reading": "일할 로",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c27",
+        "text": "故",
+        "reading": "연고 고",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c28",
+        "text": "能",
+        "reading": "능할 능",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c29",
+        "text": "形",
+        "reading": "모양 형",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c30",
+        "text": "與",
+        "reading": "더불 여",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c31",
+        "text": "神",
+        "reading": "신 신",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c32",
+        "text": "俱",
+        "reading": "함께 구",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c33",
+        "text": "而",
+        "reading": "말이을 이",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c34",
+        "text": "盡",
+        "reading": "다할 진",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c35",
+        "text": "終",
+        "reading": "끝날 종",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c36",
+        "text": "天",
+        "reading": "하늘 천",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c37",
+        "text": "年",
+        "reading": "해 년",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c38",
+        "text": "度",
+        "reading": "법도 도",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c39",
+        "text": "百",
+        "reading": "일백 백",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c40",
+        "text": "歲",
+        "reading": "해 세",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c41",
+        "text": "乃",
+        "reading": "이에 내",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c42",
+        "text": "去",
+        "reading": "갈 거",
+        "meaning": "",
+        "note": ""
+      }
+    ],
+    "word": [
+      {
+        "id": "w1",
+        "text": "上古之人",
+        "reading": "상고지인",
+        "meaning": "상고(고대)의 사람",
+        "note": ""
+      },
+      {
+        "id": "w2",
+        "text": "知道者",
+        "reading": "지도자",
+        "meaning": "도를 아는 사람",
+        "note": ""
+      },
+      {
+        "id": "w3",
+        "text": "法於陰陽",
+        "reading": "법어음양",
+        "meaning": "음양을 법칙으로 삼다",
+        "note": "=자연에 순응하다"
+      },
+      {
+        "id": "w4",
+        "text": "和於術數",
+        "reading": "화어술수",
+        "meaning": "술수에 조화롭다",
+        "note": "=사계절에 맞춰 행동하는 것"
+      },
+      {
+        "id": "w5",
+        "text": "食飮有節",
+        "reading": "식음유절",
+        "meaning": "식음에 절제가 있다",
+        "note": ""
+      },
+      {
+        "id": "w6",
+        "text": "起居有常",
+        "reading": "기거유상",
+        "meaning": "기거에 항상됨이 있다",
+        "note": "=계절에 맞춰 일정하게 변화함"
+      },
+      {
+        "id": "w7",
+        "text": "不妄作勞",
+        "reading": "불망작로",
+        "meaning": "함부로 수고로움을 만들지 않다",
+        "note": "=정신적·육체적 피로 통칭"
+      },
+      {
+        "id": "w8",
+        "text": "形與神俱",
+        "reading": "형여신구",
+        "meaning": "형체와 정신이 모두 갖춰지다",
+        "note": ""
+      },
+      {
+        "id": "w9",
+        "text": "盡終其天年",
+        "reading": "진종기천년",
+        "meaning": "타고난 수명을 다 마치다",
+        "note": "타고난 수명"
+      },
+      {
+        "id": "w10",
+        "text": "度百歲乃去",
+        "reading": "도백세내거",
+        "meaning": "백 세를 넘어서 떠나다",
+        "note": ""
+      }
+    ],
+    "sentence": [
+      {
+        "id": "s1",
+        "text": "上古之人은 其知道者라",
+        "reading": "상고지인은 기지도자라",
+        "meaning": "상고(고대)의 사람들은 도를 아는 사람들이다",
+        "note": ""
+      },
+      {
+        "id": "s2",
+        "text": "法於陰陽하야 和於術數하며 食飮有節하며 起居有常하야 不妄作勞하니",
+        "reading": "법어음양하야 화어술수하며 식음유절하며 기거유상하야 불망작로하니",
+        "meaning": "음양을 법칙으로 삼아 술수에 조화로우며 식음에 있어 절제가 있으며 기거에 항상됨이 있어 함부로 수고로움을 만들지 않는다",
+        "note": ""
+      },
+      {
+        "id": "s3",
+        "text": "故로 能形與神俱하야 而盡終其天年하야 度百歲乃去니이다",
+        "reading": "고로 능형여신구하야 이진종기천년하야 도백세내거니이다",
+        "meaning": "고로 형체와 정신이 모두 잘 갖춰질 수 있어 그 타고난 수명을 다 끝내서 백 세가 넘어서 이에 거한다(죽는다)",
+        "note": ""
+      }
+    ],
+    "paragraph": [
+      {
+        "id": "p1",
+        "text": "上古之人은 其知道者라 法於陰陽하야 和於術數하며 食飮有節하며 起居有常하야 不妄作勞하니 故로 能形與神俱하야 而盡終其天年하야 度百歲乃去니이다",
+        "reading": "상고지인은 기지도자라 법어음양하야 화어술수하며 식음유절하며 기거유상하야 불망작로하니 고로 능형여신구하야 이진종기천년하야 도백세내거니이다",
+        "meaning": "상고(고대)의 사람들은 도를 아는 사람들이다. 음양을 법칙으로 삼아 술수에 조화로우며 식음에 있어 절제가 있으며 기거에 항상됨이 있어 함부로 수고로움을 만들지 않는다. 고로 형체와 정신이 모두 잘 갖춰질 수 있어 그 타고난 수명을 다 끝내서 백 세가 넘어서 이에 거한다(죽는다).",
+        "note": ""
+      }
+    ]
+  }
+}

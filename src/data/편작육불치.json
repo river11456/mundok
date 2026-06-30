@@ -1,0 +1,393 @@
+{
+  "id": "편작육불치",
+  "title": "扁鵲六不治",
+  "sub": "편작육불치",
+  "levels": {
+    "char": [
+      {
+        "id": "c1",
+        "text": "扁",
+        "reading": "넓적할 편",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c2",
+        "text": "鵲",
+        "reading": "까치 작",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c3",
+        "text": "六",
+        "reading": "여섯 육",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c4",
+        "text": "不",
+        "reading": "아니 불",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c5",
+        "text": "治",
+        "reading": "다스릴 치",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c6",
+        "text": "驕",
+        "reading": "교만할 교",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c7",
+        "text": "恣",
+        "reading": "방자할 자",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c8",
+        "text": "論",
+        "reading": "의논할 논",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c9",
+        "text": "於",
+        "reading": "어조사 어",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c10",
+        "text": "理",
+        "reading": "다스릴 리",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c11",
+        "text": "一",
+        "reading": "한 일",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c12",
+        "text": "也",
+        "reading": "어조사 야",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c13",
+        "text": "輕",
+        "reading": "가벼울 경",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c14",
+        "text": "身",
+        "reading": "몸 신",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c15",
+        "text": "重",
+        "reading": "무거울 중",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c16",
+        "text": "財",
+        "reading": "재물 재",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c17",
+        "text": "二",
+        "reading": "두 이",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c18",
+        "text": "衣",
+        "reading": "옷 의",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c19",
+        "text": "食",
+        "reading": "밥 식",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c20",
+        "text": "能",
+        "reading": "능할 능",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c21",
+        "text": "適",
+        "reading": "맞을 적",
+        "meaning": "알맞다",
+        "note": ""
+      },
+      {
+        "id": "c22",
+        "text": "三",
+        "reading": "석 삼",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c23",
+        "text": "陰",
+        "reading": "그늘 음",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c24",
+        "text": "陽",
+        "reading": "볕 양",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c25",
+        "text": "幷",
+        "reading": "어우를 병",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c26",
+        "text": "藏",
+        "reading": "감출 장",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c27",
+        "text": "氣",
+        "reading": "기운 기",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c28",
+        "text": "定",
+        "reading": "정할 정",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c29",
+        "text": "四",
+        "reading": "넉 사",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c30",
+        "text": "形",
+        "reading": "모양 형",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c31",
+        "text": "羸",
+        "reading": "파리할 리",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c32",
+        "text": "服",
+        "reading": "옷 복",
+        "meaning": "이 문맥에서는 복용하다의 뜻",
+        "note": ""
+      },
+      {
+        "id": "c33",
+        "text": "藥",
+        "reading": "약 약",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c34",
+        "text": "五",
+        "reading": "다섯 오",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c35",
+        "text": "信",
+        "reading": "믿을 신",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c36",
+        "text": "巫",
+        "reading": "무당 무",
+        "meaning": "",
+        "note": ""
+      },
+      {
+        "id": "c37",
+        "text": "醫",
+        "reading": "의원 의",
+        "meaning": "",
+        "note": ""
+      }
+    ],
+    "word": [
+      {
+        "id": "w1",
+        "text": "六不治",
+        "reading": "육불치",
+        "meaning": "여섯 가지 치료 못하는 상황",
+        "note": ""
+      },
+      {
+        "id": "w2",
+        "text": "驕恣",
+        "reading": "교자",
+        "meaning": "교만하고 방자함",
+        "note": ""
+      },
+      {
+        "id": "w3",
+        "text": "不論於理",
+        "reading": "불론어리",
+        "meaning": "이치를 논하지 못함",
+        "note": ""
+      },
+      {
+        "id": "w4",
+        "text": "輕身重財",
+        "reading": "경신중재",
+        "meaning": "몸을 가볍게 여기고 재물을 중하게 여김",
+        "note": ""
+      },
+      {
+        "id": "w5",
+        "text": "衣食不能適",
+        "reading": "의식불능적",
+        "meaning": "옷 입고 먹는 것이 알맞지 못함",
+        "note": ""
+      },
+      {
+        "id": "w6",
+        "text": "陰陽幷藏",
+        "reading": "음양병장",
+        "meaning": "음양이 오장과 아울러지다",
+        "note": ""
+      },
+      {
+        "id": "w7",
+        "text": "氣不定",
+        "reading": "기불정",
+        "meaning": "기가 안정되지 않다",
+        "note": ""
+      },
+      {
+        "id": "w8",
+        "text": "形羸",
+        "reading": "형리",
+        "meaning": "형체가 초췌함",
+        "note": ""
+      },
+      {
+        "id": "w9",
+        "text": "不能服藥",
+        "reading": "불능복약",
+        "meaning": "약을 복용하지 못함",
+        "note": ""
+      },
+      {
+        "id": "w10",
+        "text": "信巫不信醫",
+        "reading": "신무불신의",
+        "meaning": "무속을 믿고 의사를 믿지 않음",
+        "note": ""
+      }
+    ],
+    "sentence": [
+      {
+        "id": "s1",
+        "text": "驕恣不論於理 一不治也",
+        "reading": "교자불론어리 일불치야",
+        "meaning": "교만하고 방자한 태도로 하여금 (의학의) 이치를 논하지 못하는 경우를 첫번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      },
+      {
+        "id": "s2",
+        "text": "輕身重財 二不治也",
+        "reading": "경신중재 이불치야",
+        "meaning": "몸을 가볍게(소홀히) 여기고 재물을 중요하게 여기는 경우를 두번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      },
+      {
+        "id": "s3",
+        "text": "衣食不能適 三不治也",
+        "reading": "의식불능적 삼불치야",
+        "meaning": "옷 입고 먹는 것들이 알맞지 못한 경우를 세번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      },
+      {
+        "id": "s4",
+        "text": "陰陽幷藏 氣不定 四不治也",
+        "reading": "음양병장 기불정 사불치야",
+        "meaning": "음양이 오장과 아울러져(엉켜) 기가 안정되지 않는 경우를 네번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      },
+      {
+        "id": "s5",
+        "text": "形羸不能服藥 五不治也",
+        "reading": "형리불능복약 오불치야",
+        "meaning": "형체가 초췌해져 약을 복용하지 못하는 경우를 다섯번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      },
+      {
+        "id": "s6",
+        "text": "信巫不信醫 六不治也",
+        "reading": "신무불신의 육불치야",
+        "meaning": "무속을 믿고 의사를 믿지 않는 것을 여섯번째 치료할 수 없는 상황이라 한다",
+        "note": ""
+      }
+    ],
+    "paragraph": [
+      {
+        "id": "p1",
+        "text": "驕恣不論於理 一不治也 輕身重財 二不治也 衣食不能適 三不治也 陰陽幷藏 氣不定 四不治也 形羸不能服藥 五不治也 信巫不信醫 六不治也",
+        "reading": "교자불론어리 일불치야 경신중재 이불치야 의식불능적 삼불치야 음양병장 기불정 사불치야 형리불능복약 오불치야 신무불신의 육불치야",
+        "meaning": "교만하고 방자하여 이치를 논하지 못하는 경우가 첫째, 몸을 가볍게 여기고 재물을 중시하는 경우가 둘째, 옷 입고 먹는 것이 알맞지 못한 경우가 셋째, 음양이 오장과 엉켜 기가 안정되지 않는 경우가 넷째, 형체가 초췌해져 약을 복용하지 못하는 경우가 다섯째, 무속을 믿고 의사를 믿지 않는 경우가 여섯째 치료할 수 없는 상황이다.",
+        "note": ""
+      }
+    ]
+  }
+}

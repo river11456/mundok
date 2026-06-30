@@ -1,15 +1,13 @@
-import type { Doc, Level, LevelKey, UserData, GrammarEntry } from './types';
-import { parseCSV } from './csv';
+import type { Doc, Level, LevelKey, UserData, GrammarEntry, DocJSON } from './types';
 import { initGrammar } from './grammar';
 import { initStore, store } from './storage';
-// 빌드 타임에 번들로 베이킹되는 관리자 콘텐츠(서버 없이도 표시)
-import bakedUserData from '../userdata.json';
 
-const rawCsvs = import.meta.glob('./data/*.csv', {
-  query: '?raw',
+// 빌드 타임에 번들로 베이킹되는 문헌별 JSON 콘텐츠 (서버 없이도 표시)
+//   각 파일은 DocJSON: 안정적 카드 id + 카드 내장 grammar 를 갖는다.
+const rawJsons = import.meta.glob('./data/*.json', {
   import: 'default',
   eager: true,
-}) as Record<string, string>;
+}) as Record<string, DocJSON>;
 
 const LEVEL_ORDER: readonly LevelKey[] = ['char', 'word', 'sentence', 'paragraph'];
 const LEVEL_LABEL: Record<LevelKey, string> = {
@@ -19,53 +17,48 @@ const LEVEL_LABEL: Record<LevelKey, string> = {
   paragraph: '단락 단위',
 };
 
-export let DOCS: Doc[] = Object.entries(rawCsvs)
-  .map(([path, raw]) => {
-    const m = path.match(/\.\/data\/([^/]+)\.csv$/);
-    if (!m) return null;
-    const docId = m[1];
-    const rows  = parseCSV(raw);
-
-    const metaRow = rows.find(r => r['type'] === 'meta');
-    if (!metaRow) {
-      console.warn(`[docs] meta 행 없음: ${path}`);
-      return null;
-    }
-
-    const byType = new Map<string, typeof rows>();
-    for (const row of rows.filter(r => r['type'] !== 'meta')) {
-      if (!byType.has(row['type'])) byType.set(row['type'], []);
-      byType.get(row['type'])!.push(row);
-    }
-
+export let DOCS: Doc[] = Object.entries(rawJsons)
+  .sort(([a], [b]) => a.localeCompare(b))   // 파일명 정렬 → 홈 화면 순서 고정
+  .map(([, dj]) => {
     const levels: Level[] = LEVEL_ORDER
-      .filter(t => byType.has(t))
-      .map(t => ({
-        key:   t,
-        label: LEVEL_LABEL[t],
-        cards: byType.get(t)!
-          .filter(r => r['text']?.trim())
-          .map((r, i) => ({
-            id:         `${t}_${i + 1}`,
-            front:      r['text']    ?? '',
-            reading:    r['reading'] ?? '',
-            back:       r['meaning'] ?? '',
-            note:       r['note']    ?? '',
-            fail_count: 0,
-          })),
+      .filter(k => dj.levels[k]?.length)
+      .map(k => ({
+        key:   k,
+        label: LEVEL_LABEL[k],
+        cards: dj.levels[k]!.map(c => ({
+          id:         c.id,
+          front:      c.text,
+          reading:    c.reading,
+          back:       c.meaning,
+          note:       c.note,
+          fail_count: 0,
+        })),
       }));
-
-    return levels.length > 0
-      ? { id: docId, title: metaRow['text'], sub: metaRow['reading'], levels }
-      : null;
-  })
-  .filter((d): d is Doc => d !== null);
+    return { id: dj.id, title: dj.title, sub: dj.sub, levels };
+  });
 
 export const DOC_GROUPS: { parentId: string; childIds: string[] }[] = [
   { parentId: '불치이병치미병', childIds: ['상고천진론', '편작육불치', '사기조신대론'] },
 ];
 
-/** 한 겹의 UserData 오버레이(추가/수정/삭제)를 DOCS에 적용. 문법은 별도 병합. */
+/** 카드 내장 문법 주석을 grammar.ts 가 쓰는 GrammarEntry[] 형태로 펼친다. */
+function collectGrammar(): GrammarEntry[] {
+  const out: GrammarEntry[] = [];
+  for (const dj of Object.values(rawJsons)) {
+    for (const k of LEVEL_ORDER) {
+      for (const c of dj.levels[k] ?? []) {
+        if (c.grammar?.length) out.push({ docId: dj.id, cardFront: c.text, annotations: c.grammar });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * 사용자 로컬 편집 델타(정적 모드)를 DOCS에 적용한다.
+ * 관리자 콘텐츠는 이미 JSON에 베이킹되어 있으므로 여기서는 사용자 델타만 다룬다.
+ * (텍스트 기반 매칭 — Phase 4에서 카드 id 기반으로 전환 예정)
+ */
 function applyUserData(ud: UserData): void {
   for (const del of ud.deletions ?? []) {
     const doc = DOCS.find(d => d.id === del.docId);
@@ -115,13 +108,9 @@ function mergeGrammar(base: GrammarEntry[], delta: GrammarEntry[]): GrammarEntry
 export async function initDocs(): Promise<void> {
   await initStore();
 
-  // 1) 빌드에 베이킹된 관리자 콘텐츠
-  const baked = bakedUserData as unknown as UserData;
-  applyUserData(baked);
-
-  // 2) 사용자 로컬 편집 델타(정적 모드). 서버 모드면 null.
+  // 사용자 로컬 편집 델타(정적 모드). 서버 모드면 null.
   const delta = await store().loadDelta();
   if (delta) applyUserData(delta);
 
-  initGrammar(mergeGrammar(baked.grammar ?? [], delta?.grammar ?? []));
+  initGrammar(mergeGrammar(collectGrammar(), delta?.grammar ?? []));
 }

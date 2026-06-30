@@ -1,28 +1,63 @@
 #!/usr/bin/env python3
-"""文讀 dev server — static files from dist/ + POST /api/add-card + live reload"""
+"""文讀 dev server — static files from dist/ + 문헌 JSON CRUD API + live reload
+
+콘텐츠 단일 진실: src/data/<문헌>.json (DocJSON).
+저작 API는 이 JSON 파일을 직접 수정한다. vite build --watch 가 변경을 감지해
+재빌드 → 브라우저 자동 리로드. (구 userdata.json 델타 계층은 폐기됨)
+"""
 import http.server, socketserver, json, os, subprocess, threading, time, shutil
 
 PORT = 19234
 BASE = os.path.dirname(os.path.abspath(__file__))
 VITE_BIN = 'vite.cmd' if os.name == 'nt' else 'vite'
 VITE = os.path.join(BASE, 'node_modules', '.bin', VITE_BIN)
-USERDATA_PATH = os.path.join(BASE, 'userdata.json')
-userdata_lock = threading.Lock()
+DATA_DIR = os.path.join(BASE, 'src', 'data')
+doc_lock = threading.Lock()
+
+LEVEL_ORDER = ['char', 'word', 'sentence', 'paragraph']
+ID_PREFIX   = {'char': 'c', 'word': 'w', 'sentence': 's', 'paragraph': 'p'}
 
 
-def load_userdata():
-    try:
-        with open(USERDATA_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {'additions': [], 'edits': [], 'deletions': []}
+def doc_path(doc_id):
+    return os.path.join(DATA_DIR, doc_id + '.json')
 
 
-def save_userdata(data):
-    tmp = USERDATA_PATH + '.tmp'
+def load_doc(doc_id):
+    with open(doc_path(doc_id), 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def save_doc(doc_id, data):
+    """원자적 기록. migrate 스크립트와 동일하게 2-space indent + trailing newline."""
+    tmp = doc_path(doc_id) + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, USERDATA_PATH)
+        f.write('\n')
+    os.replace(tmp, doc_path(doc_id))
+
+
+def next_id(cards, ctype):
+    """해당 레벨에서 사용되지 않은 다음 안정 id (예: 마지막 s12 → s13)."""
+    prefix = ID_PREFIX[ctype]
+    mx = 0
+    for c in cards:
+        cid = c.get('id', '')
+        if cid.startswith(prefix):
+            try:
+                mx = max(mx, int(cid[len(prefix):]))
+            except ValueError:
+                pass
+    return f'{prefix}{mx + 1}'
+
+
+def ensure_level(doc, ctype):
+    """levels 에 ctype 배열을 보장하고, LEVEL_ORDER 순서를 유지한다."""
+    levels = doc['levels']
+    if ctype not in levels:
+        levels[ctype] = []
+        doc['levels'] = {k: levels[k] for k in LEVEL_ORDER if k in levels}
+    return doc['levels'][ctype]
+
 
 build_version = 1
 build_lock = threading.Lock()
@@ -78,16 +113,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 v = build_version
             self._json(200, {'v': v})
             return
-        if self.path == '/userdata.json':
-            with userdata_lock:
-                ud = load_userdata()
-            body = json.dumps(ud, ensure_ascii=False, indent=2).encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json; charset=utf-8')
-            self.send_header('Content-Length', str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
         if self.path in ('/', '/index.html'):
             self._serve_html()
             return
@@ -119,111 +144,94 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def _wait_rebuild(self):
-        with build_lock:
-            old_v = build_version
-        deadline = time.time() + 30
-        while time.time() < deadline:
-            with build_lock:
-                if build_version > old_v:
-                    return
-            time.sleep(0.2)
-        raise TimeoutError('빌드 시간 초과 (30초)')
+    def _body(self):
+        return json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
 
     def _add_card(self):
         try:
-            body  = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            front = body['front'].strip()
+            body  = self._body()
+            doc_id = body['docId']
+            ctype  = body['type']
+            front  = body['front'].strip()
             if not front:
                 raise ValueError('한자가 비어 있습니다')
-            with userdata_lock:
-                ud = load_userdata()
-                ud['additions'].append({
-                    'docId':   body['docId'],
-                    'type':    body['type'],
-                    'text':    front,
-                    'reading': body.get('reading', '').strip(),
-                    'meaning': body.get('back', '').strip(),
-                    'note':    body.get('note', '').strip(),
-                })
-                save_userdata(ud)
+            if ctype not in LEVEL_ORDER:
+                raise ValueError(f'알 수 없는 레벨: {ctype}')
+            with doc_lock:
+                doc   = load_doc(doc_id)
+                cards = ensure_level(doc, ctype)
+                if not any(c['text'] == front for c in cards):
+                    cards.append({
+                        'id':      next_id(cards, ctype),
+                        'text':    front,
+                        'reading': body.get('reading', '').strip(),
+                        'meaning': body.get('back', '').strip(),
+                        'note':    body.get('note', '').strip(),
+                    })
+                    save_doc(doc_id, doc)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
     def _delete_card(self):
         try:
-            body  = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            docId = body['docId']
-            ctype = body['type']
-            front = body['front'].strip()
-            with userdata_lock:
-                ud     = load_userdata()
-                before = len(ud['additions'])
-                ud['additions'] = [a for a in ud['additions']
-                                   if not (a['docId'] == docId and a['type'] == ctype and a['text'] == front)]
-                if len(ud['additions']) == before:
-                    # 기본 카드 → deletions에 추가 (중복 제거 후)
-                    ud['deletions'] = [d for d in ud['deletions']
-                                       if not (d['docId'] == docId and d['type'] == ctype and d['text'] == front)]
-                    ud['deletions'].append({'docId': docId, 'type': ctype, 'text': front})
-                save_userdata(ud)
+            body  = self._body()
+            doc_id = body['docId']
+            ctype  = body['type']
+            front  = body['front'].strip()
+            with doc_lock:
+                doc    = load_doc(doc_id)
+                cards  = doc['levels'].get(ctype, [])
+                kept   = [c for c in cards if c['text'] != front]
+                if len(kept) != len(cards):
+                    doc['levels'][ctype] = kept
+                    save_doc(doc_id, doc)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
     def _edit_card(self):
         try:
-            body      = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            docId     = body['docId']
+            body      = self._body()
+            doc_id    = body['docId']
             ctype     = body['type']
-            origFront = body['origFront'].strip()
+            orig      = body['origFront'].strip()
             text      = body['text'].strip()
-            reading   = body.get('reading', '').strip()
-            back      = body.get('back', '').strip()
-            note      = body.get('note', '').strip()
             if not text:
                 raise ValueError('한자가 비어 있습니다')
-            with userdata_lock:
-                ud = load_userdata()
-                in_additions = False
-                for a in ud['additions']:
-                    if a['docId'] == docId and a['type'] == ctype and a['text'] == origFront:
-                        a.update({'text': text, 'reading': reading, 'meaning': back, 'note': note})
-                        in_additions = True
+            with doc_lock:
+                doc   = load_doc(doc_id)
+                found = False
+                for c in doc['levels'].get(ctype, []):
+                    if c['text'] == orig:
+                        # 카드 내장 grammar 는 보존된다(텍스트 변경에도 끊기지 않음)
+                        c['text']    = text
+                        c['reading'] = body.get('reading', '').strip()
+                        c['meaning'] = body.get('back', '').strip()
+                        c['note']    = body.get('note', '').strip()
+                        found = True
                         break
-                if not in_additions:
-                    # 기본 카드 → edits에 추가 (중복 제거 후)
-                    ud['edits'] = [e for e in ud['edits']
-                                   if not (e['docId'] == docId and e['type'] == ctype and e['origText'] == origFront)]
-                    ud['edits'].append({
-                        'docId': docId, 'type': ctype, 'origText': origFront,
-                        'text': text, 'reading': reading, 'meaning': back, 'note': note,
-                    })
-                save_userdata(ud)
+                if found:
+                    save_doc(doc_id, doc)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
     def _save_grammar(self):
         try:
-            body        = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
+            body        = self._body()
             doc_id      = body['docId']
             card_front  = body['cardFront']
             annotations = body.get('annotations', [])
-            with userdata_lock:
-                ud = load_userdata()
-                if 'grammar' not in ud:
-                    ud['grammar'] = []
-                ud['grammar'] = [g for g in ud['grammar']
-                                 if not (g['docId'] == doc_id and g['cardFront'] == card_front)]
-                if annotations:
-                    ud['grammar'].append({
-                        'docId':       doc_id,
-                        'cardFront':   card_front,
-                        'annotations': annotations,
-                    })
-                save_userdata(ud)
+            with doc_lock:
+                doc    = load_doc(doc_id)
+                target = next((c for c in doc['levels'].get('sentence', []) if c['text'] == card_front), None)
+                if target is not None:
+                    if annotations:
+                        target['grammar'] = annotations
+                    else:
+                        target.pop('grammar', None)
+                    save_doc(doc_id, doc)
             self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
@@ -252,6 +260,6 @@ if shutil.which('npm') and os.path.exists(VITE):
 
 socketserver.TCPServer.allow_reuse_address = True
 print(f'文讀  →  http://localhost:{PORT}', flush=True)
-print('CSV 수정 시 자동 빌드 + 브라우저 새로고침', flush=True)
+print('JSON(src/data) 수정 시 자동 빌드 + 브라우저 새로고침', flush=True)
 with socketserver.TCPServer(('127.0.0.1', PORT), Handler) as srv:
     srv.serve_forever()
