@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+/**
+ * 콘텐츠 무결성 lint — src/data/*.json 을 검사한다.
+ *
+ *  ERROR (빌드 차단): 데이터가 잘못된 것
+ *   - 카드 id 중복 (문헌 내)
+ *   - drill 링크가 존재하지 않는 카드 id 를 가리킴
+ *   - 문법 주석 인덱스가 범위를 벗어남 (start<end, 0..len)
+ *  WARN (정보): 잠재적 모호성
+ *   - 같은 레벨 내 중복 텍스트 (edit/delete 가 양쪽에 적용될 수 있음)
+ *   - 드릴다운 자동매칭 후보가 0인 문장/단락 (밑줄이 안 생김)
+ *
+ * 사용:  node scripts/lint-data.mjs
+ */
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const DATA_DIR  = join(__dirname, '..', 'src', 'data');
+const LEVEL_ORDER = ['char', 'word', 'sentence', 'paragraph'];
+// render.ts 의 드릴 경로와 일치
+const DRILL_LEVELS = { paragraph: ['sentence'], sentence: ['word', 'char'], word: ['char'] };
+
+const errors = [];
+const warns  = [];
+
+const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort();
+for (const file of files) {
+  const dj    = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
+  const docId = dj.id;
+
+  // 문헌 내 전체 카드 id 집합 (drill 무결성용)
+  const allIds = new Set();
+  for (const k of LEVEL_ORDER) for (const c of dj.levels[k] ?? []) allIds.add(c.id);
+
+  for (const k of LEVEL_ORDER) {
+    const cards = dj.levels[k] ?? [];
+    const seenId   = new Map();
+    const seenText = new Map();
+
+    for (const c of cards) {
+      // id 중복
+      if (seenId.has(c.id)) errors.push(`${docId}/${k}: 카드 id 중복 "${c.id}"`);
+      else seenId.set(c.id, c.text);
+
+      // 같은 레벨 텍스트 중복
+      if (seenText.has(c.text)) warns.push(`${docId}/${k}: 중복 텍스트 "${trunc(c.text)}" (${seenText.get(c.text)} = ${c.id})`);
+      else seenText.set(c.text, c.id);
+
+      // 문법 인덱스 범위
+      if (c.grammar) {
+        const len = [...c.text].length;
+        for (const g of c.grammar) {
+          const ok = Number.isInteger(g.start) && Number.isInteger(g.end)
+            && g.start >= 0 && g.start < g.end && g.end <= len;
+          if (!ok) errors.push(`${docId}/${k} "${c.id}": 문법 인덱스 범위 이상 start=${g.start} end=${g.end} (len=${len})`);
+        }
+      }
+
+      // drill 링크 무결성
+      if (c.drill) for (const d of c.drill) if (!allIds.has(d)) errors.push(`${docId}/${k} "${c.id}": drill 링크 깨짐 → "${d}" 없음`);
+    }
+
+    // 드릴다운 자동매칭 0건 — sentence/paragraph 만 검사.
+    //   (word→char 드릴은 선택적이라 0건이 정상 → 노이즈로 제외)
+    const nextKeys = (k === 'sentence' || k === 'paragraph') ? DRILL_LEVELS[k] : null;
+    if (nextKeys) {
+      const candidates = nextKeys.flatMap(nk => (dj.levels[nk] ?? []));
+      for (const c of cards) {
+        const hit = candidates.some(cand => cand.text && c.text.includes(cand.text));
+        if (!hit) warns.push(`${docId}/${k} "${c.id}": 드릴다운 매칭 0건 "${trunc(c.text)}"`);
+      }
+    }
+  }
+}
+
+function trunc(s) { return s.length > 28 ? s.slice(0, 28) + '…' : s; }
+
+// 출력
+const group = (arr) => {
+  const m = new Map();
+  for (const x of arr) { const tag = x.split(':')[0]; if (!m.has(tag)) m.set(tag, []); m.get(tag).push(x); }
+  return m;
+};
+
+console.log(`\n콘텐츠 lint — 문헌 ${files.length}개\n`);
+if (errors.length) {
+  console.log(`❌ ERROR ${errors.length}건:`);
+  errors.forEach(e => console.log(`   ${e}`));
+} else {
+  console.log(`✅ ERROR 0건 (id 중복·drill 깨짐·문법 범위 모두 정상)`);
+}
+
+console.log('');
+if (warns.length) {
+  // 종류별 카운트 요약
+  const dup  = warns.filter(w => w.includes('중복 텍스트')).length;
+  const miss = warns.filter(w => w.includes('드릴다운 매칭 0건')).length;
+  console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss})`);
+  warns.forEach(w => console.log(`   ${w}`));
+} else {
+  console.log(`✅ WARN 0건`);
+}
+
+console.log('');
+process.exit(errors.length > 0 ? 1 : 0);
