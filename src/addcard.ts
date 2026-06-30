@@ -59,7 +59,16 @@ async function submitCard(): Promise<void> {
     const targetLevel = curDoc().levels.find(l => l.key === type);
     if (targetLevel) {
       targetLevel.cards.push(newCard);
-      if (S.lv?.key === type) S.allCards.push({ ...newCard });
+      if (S.lv?.key === type) {
+        // 현재 학습 중인 레벨이면 세션에도 반영. 안키는 같은 객체를 allCards·queue에
+        // 함께 넣어(fail_count 공유) 이번 세션에서 학습되게 하고 진행 수를 늘린다.
+        const sessionCard: Card = { ...newCard };
+        S.allCards.push(sessionCard);
+        if (S.mode === 'anki' && S.side !== 'result') {
+          S.queue.push(sessionCard);
+          S.total++;
+        }
+      }
     }
     hideModal();
     render();
