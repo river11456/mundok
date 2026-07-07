@@ -116,7 +116,14 @@ const STREAK_KEY = `${LS}/streak`;
 
 interface StreakData { lastDate: string; count: number; todayCards: number; }
 
-function todayStr(): string { return new Date().toISOString().slice(0, 10); }
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function todayStr(): string { return localDateStr(new Date()); }
 
 export function getStreak(): StreakData {
   try {
@@ -137,7 +144,7 @@ export function recordStudySession(cardsCount: number): StreakData {
   const yest = new Date(); yest.setDate(yest.getDate() - 1);
   const next: StreakData = {
     lastDate: today,
-    count: prev.lastDate === yest.toISOString().slice(0, 10) ? prev.count + 1 : 1,
+    count: prev.lastDate === localDateStr(yest) ? prev.count + 1 : 1,
     todayCards: cardsCount,
   };
   localStorage.setItem(STREAK_KEY, JSON.stringify(next));

@@ -1,18 +1,34 @@
 # 文讀 — 프로젝트 현황
 
 > 새 세션에서 이어받을 때 이 파일을 먼저 읽으세요.
+> **개선 작업 목록은 `IMPROVEMENTS.md`** (2026-07-07 전수 검토) — 우선순위·착수 순서·항목별 위치/방법 정리됨.
 
 ---
 
 ## 프로젝트 개요
 
-한의학 한문 학습 웹앱. **Vite + TypeScript + Tailwind CSS (CDN)**.  
+한의학 한문 학습 웹앱. **Vite + TypeScript + Tailwind CSS (빌드 타임, v4)**.  
 문헌별 JSON 파일을 `src/data/`에 추가하면 빌드 시 자동 번들링.
 
 **앱 이름**: 文讀  
 **실행**: `문독.command` 더블클릭 → `http://localhost:19234`  
 **빌드**: `npm run build` (약 1초)  
 **서버**: `server.py` — 정적 파일 서빙 + 카드 CRUD API + 라이브 리로드
+
+---
+
+## 📌 현재 상태 (2026-07-07)
+
+`IMPROVEMENTS.md` 추천 착수 순서(① Tailwind → ③ 백업 → ② PWA → ⑦ streak) 4개 항목 완료(미커밋).
+
+| 항목 | 내용 |
+|------|------|
+| ① Tailwind 빌드 전환 | Play CDN 제거 → Tailwind v4 + `@tailwindcss/vite`. `src/style.css` 추가, `vite.config.ts`→`.mts`(ESM 플러그인 로드). 온보딩 슬라이드의 분리형 동적 클래스(`bg-${bg}`) 1건 수정. CSS 24.77KB(gzip 5.5KB) |
+| ③ 백업 범위 확장 | `exportUserData`/`importUserData`가 `hanja-v2/` 접두사 전체 키(안키 오답·streak·최근학습일 포함) 대상으로 확장. 신 포맷(`{version:2,keys}`) + 구 포맷(userdata 단일 객체) 하위호환. grammar 항목까지 구조 검증 강화 |
+| ② PWA 전환 | `public/manifest.json`(아이콘은 `icon.svg`를 `sips`로 192/512px 래스터화) + `public/sw.js`(앱 셸 stale-while-revalidate, 프로덕션 빌드에서만 등록) + `storage.persist()`. Google Fonts self-host는 레포 용량 문제로 SW 런타임 캐싱으로 대체 |
+| ⑦ streak UTC→로컬 | `state.ts`에 `localDateStr()` 추가, `todayStr()`/어제 계산 양쪽에 적용. KST 08:30(UTC 전날 23:30) 경계 재현 테스트로 수정 확인 |
+
+세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고. 아직 커밋 전 — 다음 세션에서 리뷰 후 커밋할 것.
 
 ---
 

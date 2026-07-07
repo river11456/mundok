@@ -749,13 +749,13 @@ const OB_SLIDES: { title: string; html: string }[] = [
     html: `
       <div class="flex justify-center gap-3">
         ${[
-          ['Space','뒤집기','stone-100','text-stone-700',''],
-          ['1','어려움','red-50','text-red-600','border border-red-100'],
-          ['2','보통','amber-50','text-amber-700','border border-amber-100'],
-          ['3','쉬움','green-50','text-green-700','border border-green-100'],
+          ['Space','뒤집기','bg-stone-100','text-stone-700',''],
+          ['1','어려움','bg-red-50','text-red-600','border border-red-100'],
+          ['2','보통','bg-amber-50','text-amber-700','border border-amber-100'],
+          ['3','쉬움','bg-green-50','text-green-700','border border-green-100'],
         ].map(([k,l,bg,tc,b]) =>
           `<div class="flex flex-col items-center gap-1.5">
-            <kbd class="px-3 py-2 bg-${bg} ${tc} ${b} rounded-lg font-mono text-sm">${k}</kbd>
+            <kbd class="px-3 py-2 ${bg} ${tc} ${b} rounded-lg font-mono text-sm">${k}</kbd>
             <span class="text-xs text-stone-400">${l}</span>
           </div>`
         ).join('')}

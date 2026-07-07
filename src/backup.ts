@@ -23,7 +23,7 @@ export function initBackup(): void {
       ⤒ 백업 파일에서 가져오기
     </button>
     <p class="px-3 pt-1 pb-1 text-[10px] leading-snug text-stone-400">
-      추가·수정한 카드는 이 브라우저에만 저장됩니다. 기기를 바꾸거나 기록을 지우기 전에 백업하세요.
+      추가·수정한 카드와 학습 기록은 이 브라우저에만 저장됩니다. 기기를 바꾸거나 기록을 지우기 전에 백업하세요.
     </p>`;
   document.body.appendChild(pop);
 
