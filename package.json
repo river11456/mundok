@@ -2,10 +2,12 @@
   "name": "hanja-crusher",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "lint": "node scripts/lint-data.mjs",
     "build": "node scripts/lint-data.mjs && tsc --noEmit && vite build",
+    "test": "node --experimental-strip-types --test",
     "preview": "vite preview"
   },
   "devDependencies": {

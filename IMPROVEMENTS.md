@@ -99,9 +99,18 @@
 
 ### 10. 자동 테스트 + CI PR 검증
 
-- [ ] 미착수
+- [x] 완료 (2026-07-08)
 - **문제**: 마이그레이션 때의 검증(서버 CRUD 11건, 안키 로직 7건)이 일회성이라 저장소에 없음. CI(`deploy.yml`)는 main push 빌드만.
-- **방법**: `node:test`(의존성 0)로 최소 셋 — 안키 큐 로직(`anki.ts`/`state.ts`), `applyUserData` 병합(`docs.ts`), lint 규칙(`lint-data.mjs`). CI에 `pull_request` 트리거로 `npm run build` + 테스트 추가.
+- **방법**: `node:test` + `node --experimental-strip-types`(Node 22 내장, 의존성 0)로 `test/` 아래 3개 스위트 20건.
+  - 순수 로직을 테스트 가능한 형태로 먼저 분리(동작 동일, 호출부만 위임):
+    - `src/anki-core.ts` — `anki.ts`의 안키 큐 재배치 로직을 `reinsertAfterRating()`으로 추출
+    - `src/docs-merge.ts` — `docs.ts`의 `applyUserData`/`mergeGrammar`를 `DOCS` 전역 대신 `docs` 인자를 받는 순수 함수로 추출
+    - `scripts/lint-data.mjs` — `lintDoc(dj)`를 export하고, 실제 파일 스캔+출력+`process.exit`는 CLI로 직접 실행됐을 때만 실행되도록 가드
+  - `test/anki-core.test.ts`(6건) · `test/docs-merge.test.ts`(7건) · `test/lint-data.test.mjs`(7건)
+  - `package.json`에 `"type": "module"` 추가(경고 제거) + `"test": "node --experimental-strip-types --test"` 스크립트
+  - `.github/workflows/ci.yml` 신설(`pull_request` 트리거, `npm ci && npm run build && npm test`) + 기존 `deploy.yml`(main push)에도 `npm test` 스텝 추가해 배포 전 검증
+- **부수 발견·수정**: `lint-data.mjs`의 CLI 가드(`import.meta.url === file://${process.argv[1]}`)가 저장소 경로에 한글(`문독`)이 포함되면 URL percent-encoding 불일치로 항상 거짓이 되는 버그 발견 → `fileURLToPath`로 디코딩 후 비교하도록 수정.
+- **검증**: `npm run build`(lint+tsc+vite) 통과, `npm test` 20/20 통과.
 
 ---
 

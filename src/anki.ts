@@ -1,4 +1,5 @@
 import { S, persist, recordStudySession } from './state';
+import { reinsertAfterRating } from './anki-core';
 import { render } from './render';
 
 export function rate(d: 1 | 2 | 3): void {
@@ -6,15 +7,7 @@ export function rate(d: 1 | 2 | 3): void {
   S.busy = true;
 
   const card = S.queue.shift()!;
-
-  if (d === 1) {
-    card.fail_count++;
-    const hi  = Math.min(3, S.queue.length);
-    const pos = hi > 0 ? 1 + Math.floor(Math.random() * hi) : 0;
-    S.queue.splice(pos, 0, card);
-  } else if (d === 2) {
-    S.queue.splice(Math.floor(S.queue.length / 2), 0, card);
-  }
+  S.queue = reinsertAfterRating(S.queue, card, d);
 
   persist();
   S.side = S.queue.length === 0 ? 'result' : 'front';

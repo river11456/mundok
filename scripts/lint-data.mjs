@@ -14,7 +14,7 @@
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR  = join(__dirname, '..', 'src', 'data');
@@ -22,13 +22,13 @@ const LEVEL_ORDER = ['char', 'word', 'sentence', 'paragraph'];
 // render.ts 의 드릴 경로와 일치
 const DRILL_LEVELS = { paragraph: ['sentence'], sentence: ['word', 'char'], word: ['char'] };
 
-const errors = [];
-const warns  = [];
+function trunc(s) { return s.length > 28 ? s.slice(0, 28) + '…' : s; }
 
-const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort();
-for (const file of files) {
-  const dj    = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
-  const docId = dj.id;
+/** 문헌(DocJSON) 1개를 검사해 { errors, warns } 를 반환한다. (순수 함수 — 테스트 용이) */
+export function lintDoc(dj) {
+  const docId  = dj.id;
+  const errors = [];
+  const warns  = [];
 
   // 문헌 내 전체 카드 id 집합 (drill 무결성용)
   const allIds = new Set();
@@ -73,35 +73,43 @@ for (const file of files) {
       }
     }
   }
+
+  return { errors, warns };
 }
 
-function trunc(s) { return s.length > 28 ? s.slice(0, 28) + '…' : s; }
+// CLI로 직접 실행됐을 때만 실제 파일을 읽어 검사 + 출력 (모듈로 import 될 땐 부작용 없음)
+// 한글 등 비ASCII 경로는 file:// URL이 percent-encoding되므로 fileURLToPath로 디코딩해 비교한다.
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  const errors = [];
+  const warns  = [];
 
-// 출력
-const group = (arr) => {
-  const m = new Map();
-  for (const x of arr) { const tag = x.split(':')[0]; if (!m.has(tag)) m.set(tag, []); m.get(tag).push(x); }
-  return m;
-};
+  const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort();
+  for (const file of files) {
+    const dj = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
+    const { errors: e, warns: w } = lintDoc(dj);
+    errors.push(...e);
+    warns.push(...w);
+  }
 
-console.log(`\n콘텐츠 lint — 문헌 ${files.length}개\n`);
-if (errors.length) {
-  console.log(`❌ ERROR ${errors.length}건:`);
-  errors.forEach(e => console.log(`   ${e}`));
-} else {
-  console.log(`✅ ERROR 0건 (id 중복·drill 깨짐·문법 범위 모두 정상)`);
+  console.log(`\n콘텐츠 lint — 문헌 ${files.length}개\n`);
+  if (errors.length) {
+    console.log(`❌ ERROR ${errors.length}건:`);
+    errors.forEach(e => console.log(`   ${e}`));
+  } else {
+    console.log(`✅ ERROR 0건 (id 중복·drill 깨짐·문법 범위 모두 정상)`);
+  }
+
+  console.log('');
+  if (warns.length) {
+    // 종류별 카운트 요약
+    const dup  = warns.filter(w => w.includes('중복 텍스트')).length;
+    const miss = warns.filter(w => w.includes('드릴다운 매칭 0건')).length;
+    console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss})`);
+    warns.forEach(w => console.log(`   ${w}`));
+  } else {
+    console.log(`✅ WARN 0건`);
+  }
+
+  console.log('');
+  process.exit(errors.length > 0 ? 1 : 0);
 }
-
-console.log('');
-if (warns.length) {
-  // 종류별 카운트 요약
-  const dup  = warns.filter(w => w.includes('중복 텍스트')).length;
-  const miss = warns.filter(w => w.includes('드릴다운 매칭 0건')).length;
-  console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss})`);
-  warns.forEach(w => console.log(`   ${w}`));
-} else {
-  console.log(`✅ WARN 0건`);
-}
-
-console.log('');
-process.exit(errors.length > 0 ? 1 : 0);
