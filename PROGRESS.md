@@ -19,7 +19,8 @@
 
 ## 📌 현재 상태 (2026-07-08)
 
-`IMPROVEMENTS.md` 🟡 중간 항목 5개(5·6·8·9·10) 완료·커밋 완료(`main` 기준 origin보다 앞섬 — push 필요). 🔴 높음 4번(모바일 레이아웃)은 사용자 지시로 보류.
+`IMPROVEMENTS.md` 🟡 중간 항목 5개(5·6·8·9·10) 완료·push 완료. 🔴 높음 4번(모바일 레이아웃)은 사용자 지시로 보류.
+🟢 낮음 **원본 PDF 분리** 완료 — PDF 7개를 `~/Documents/문독-원본PDF/`로 이동(체크섬 검증), `git filter-repo`로 전체 히스토리에서 제거 후 force-push(전 커밋 해시 변경, 저장소 8.58MiB→433KiB). ⚠ 다른 기기에 기존 클론이 있다면 새로 clone 필요.
 
 | 순서 | 항목 | 내용 |
 |------|------|------|
@@ -106,8 +107,8 @@
 │       ├── 여담론.json       # 格致餘論 朱震亨
 │       ├── 상고천진론.json   # 황제내경 소문
 │       ├── 편작육불치.json
-│       ├── 사기조신대론.json # 황제내경 소문
-│       └── original/   # 원본 PDF (참고용)
+│       └── 사기조신대론.json # 황제내경 소문
+│           (원본 PDF는 git에서 분리 — 관리자 로컬 ~/Documents/문독-원본PDF/)
 ├── scripts/           # lint-data.mjs — 콘텐츠 무결성 검사 (빌드 전 실행)
 ├── dist/              # 빌드 산출물 (git 제외 — CI가 빌드)
 ├── .github/workflows/ # deploy.yml — GitHub Pages 자동 배포

@@ -120,7 +120,7 @@
 ## 🟢 낮음 — 여유 있을 때
 
 - [ ] **코드포인트 vs UTF-16 인덱스 혼용** — 문법 주석은 `[...text]` 코드포인트, 드릴다운 매칭은 `indexOf` UTF-16. `renderGrammarSentence`(render.ts:203-235) 상태 기계에서 둘이 섞임 → BMP 밖 벽자(CJK 확장 B) 유입 시 표시 어긋남. 9번 리팩터 시 함께 통일 권장.
-- [ ] **원본 PDF 8.4MB 저장소 분리** — `src/data/original/` (저장소 8.6MB의 대부분). Release 자산·Drive 등으로 이동, README에 위치 기록. ⚠ git 히스토리에서도 빼려면 history rewrite 필요 — 비용 대비 판단.
+- [x] **원본 PDF 8.4MB 저장소 분리** ✅ (2026-07-08) — PDF 7개를 `~/Documents/문독-원본PDF/`로 이동(체크섬 검증), `git filter-repo`로 히스토리에서도 제거 후 force-push. 저장소 8.58MiB→433KiB. README에 보관 위치 기록.
 - [ ] **버전 문자열 하드코딩** — 홈 화면 `v1.0.0 · KJH`(render.ts:490)를 `package.json` 버전에서 주입(`import pkg from '../package.json'` 또는 vite define). package.json 이름도 구명칭 `hanja-crusher` → `mundok` 정리.
 - [x] **Google Fonts 오프라인 유지** ✅ (2026-07-07, 2번 PWA와 함께 처리) — self-host 대신 `sw.js` 런타임 캐싱으로 구현(레포 용량 회피).
 - [ ] **server.py `time` import 미사용** (server.py:8) — 제거.
