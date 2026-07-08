@@ -119,14 +119,14 @@
 
 ## 🟢 낮음 — 여유 있을 때
 
-- [ ] **코드포인트 vs UTF-16 인덱스 혼용** — 문법 주석은 `[...text]` 코드포인트, 드릴다운 매칭은 `indexOf` UTF-16. `renderGrammarSentence`(render.ts:203-235) 상태 기계에서 둘이 섞임 → BMP 밖 벽자(CJK 확장 B) 유입 시 표시 어긋남. 9번 리팩터 시 함께 통일 권장.
+- [x] **코드포인트 vs UTF-16 인덱스 혼용** ✅ (2026-07-08) — `findDrillSpans`를 코드포인트 인덱스로 전환(문법 주석과 동일 좌표계), render.ts의 UTF-16 슬라이스·`reading[i]` 접근·`front.length===reading.length` 비교 전부 코드포인트(`cpLen`/전개 배열)로 통일. 벽자(U+2000B) 회귀 테스트 2건 추가, lint 드릴다운 WARN 2건 전후 동일로 매칭 불변 확인.
 - [x] **원본 PDF 8.4MB 저장소 분리** ✅ (2026-07-08) — PDF 7개를 `~/Documents/문독-원본PDF/`로 이동(체크섬 검증), `git filter-repo`로 히스토리에서도 제거 후 force-push. 저장소 8.58MiB→433KiB. README에 보관 위치 기록.
-- [ ] **버전 문자열 하드코딩** — 홈 화면 `v1.0.0 · KJH`(render.ts:490)를 `package.json` 버전에서 주입(`import pkg from '../package.json'` 또는 vite define). package.json 이름도 구명칭 `hanja-crusher` → `mundok` 정리.
+- [x] **버전 문자열 하드코딩** ✅ (2026-07-08) — `import { version } from '../package.json'`(vite JSON named import — 트리셰이킹으로 version만 번들 포함)으로 홈 화면 주입. 패키지명 `hanja-crusher`→`mundok` 정리(lockfile 갱신).
 - [x] **Google Fonts 오프라인 유지** ✅ (2026-07-07, 2번 PWA와 함께 처리) — self-host 대신 `sw.js` 런타임 캐싱으로 구현(레포 용량 회피).
-- [ ] **server.py `time` import 미사용** (server.py:8) — 제거.
+- [x] **server.py `time` import 미사용** ✅ (2026-07-08) — 제거.
 - [x] **백업 가져오기 검증 강화** ✅ (2026-07-07, 3번과 함께 처리) — `validateUserData`가 additions/edits/deletions 배열 + grammar 항목·annotation 타입까지 검증.
 - [ ] **`문독.bat` Windows 미검증** — Windows 기기 확보 시 포트 폴백(`.runport`) 동작 확인.
-- [ ] **홈 화면 순서 = 파일명 가나다순** — 순서 조정이 파일명 변경을 요구(docs.ts:21). JSON에 `order` 필드 추가가 유연.
+- [x] **홈 화면 순서 = 파일명 가나다순** ✅ (2026-07-08) — `DocJSON`에 옵션 `order` 필드 추가(작을수록 앞, 없으면 파일명 가나다순 뒤 = 기존 동작 그대로). lint가 order 타입 검사. 현재 JSON들엔 미설정이라 표시 순서 변화 없음 — 필요할 때 해당 문헌 JSON에 `"order": N`만 추가.
 
 ---
 

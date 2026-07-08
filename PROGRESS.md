@@ -22,6 +22,8 @@
 `IMPROVEMENTS.md` 🟡 중간 항목 5개(5·6·8·9·10) 완료·push 완료. 🔴 높음 4번(모바일 레이아웃)은 사용자 지시로 보류.
 🟢 낮음 **원본 PDF 분리** 완료 — PDF 7개를 `~/Documents/문독-원본PDF/`로 이동(체크섬 검증), `git filter-repo`로 전체 히스토리에서 제거 후 force-push(전 커밋 해시 변경, 저장소 8.58MiB→433KiB). ⚠ 다른 기기에 기존 클론이 있다면 새로 clone 필요.
 
+🟢 낮음 나머지 4건도 완료: ① server.py 미사용 `time` import 제거 ② 홈 화면 버전 문자열 `package.json` 주입 + 패키지명 `mundok` 정리 ③ 드릴다운/문법 인덱스 코드포인트 통일(`findDrillSpans` 코드포인트화, 벽자 회귀 테스트 추가, lint WARN 전후 동일) ④ `DocJSON.order` 필드로 홈 화면 순서 지정 지원(미설정 시 기존 파일명 순 유지). 🟢에서 남은 건 `문독.bat` Windows 검증(기기 필요)뿐 — **다음 세션 후보**: 보류 중인 🔴 4번(모바일 레이아웃).
+
 | 순서 | 항목 | 내용 |
 |------|------|------|
 | 1 | ⑤+⑥ 저작 API id 기반 전환 + 404 | `server.py` edit/delete/save-grammar가 텍스트 대신 `card.id`로 카드 탐색(중복 텍스트 전체삭제 위험 제거). 대상 미발견 시 404 반환. `add-card`가 신규/기존 id를 응답에 포함해 방금 추가한 카드를 같은 세션에서 바로 수정/삭제해도 깨지지 않음. curl로 실서버 기동해 add/edit/delete/grammar id 매칭·404 케이스 검증 |
@@ -145,10 +147,12 @@
 }
 ```
 
+- **문헌 필드**: `id`, `title`, `sub`, `order?`(홈 화면 정렬 우선순위 — 작을수록 앞, 없으면 파일명 가나다순 뒤)
 - **카드 필드**: `id`(문헌 내 안정·불변), `text`(앞면), `reading`, `meaning`(뒷면), `note`, `grammar?`, `drill?`
 - `levels` 키: `char` | `word` | `sentence` | `paragraph`
 - `reading`: 한자와 글자 수가 같으면 뒷면에서 각 한자 아래 발음 표시
 - `grammar`: `type`(S/V/O/phrase) + `start`/`end`(text 코드포인트 인덱스). sentence 카드에만.
+- **인덱스 좌표계**: 문법 주석·드릴다운 매칭 모두 **코드포인트** 기준으로 통일 (2026-07-08, BMP 밖 벽자 안전).
 - 새 문헌 추가: JSON 파일을 `src/data/`에 넣고 `npm run build`. 무결성은 `scripts/lint-data.mjs`가 검사.
 
 ---
