@@ -11,7 +11,8 @@ const rawJsons = import.meta.glob('./data/*.json', {
 }) as Record<string, DocJSON>;
 
 export let DOCS: Doc[] = Object.entries(rawJsons)
-  .sort(([a], [b]) => a.localeCompare(b))   // 파일명 정렬 → 홈 화면 순서 고정
+  // order 필드 우선(작을수록 앞, 없으면 맨 뒤) → 동률은 파일명 가나다순
+  .sort(([pa, a], [pb, b]) => (a.order ?? Infinity) - (b.order ?? Infinity) || pa.localeCompare(pb))
   .map(([, dj]) => {
     const levels: Level[] = LEVEL_ORDER
       .filter(k => dj.levels[k]?.length)

@@ -91,5 +91,6 @@ export interface DocJSON {
   id:     string;    // = 파일명 (기존 docId·localStorage 키 호환)
   title:  string;
   sub:    string;
+  order?: number;    // 홈 화면 정렬 우선순위 (작을수록 앞). 없으면 파일명 가나다순 뒤에 배치.
   levels: Partial<Record<LevelKey, CardJSON[]>>;
 }

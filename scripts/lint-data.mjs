@@ -30,6 +30,11 @@ export function lintDoc(dj) {
   const errors = [];
   const warns  = [];
 
+  // order 필드 (홈 화면 정렬) — 있으면 숫자여야 함
+  if (dj.order !== undefined && typeof dj.order !== 'number') {
+    errors.push(`${docId}: order 필드가 숫자가 아님 (${JSON.stringify(dj.order)})`);
+  }
+
   // 문헌 내 전체 카드 id 집합 (drill 무결성용)
   const allIds = new Set();
   for (const k of LEVEL_ORDER) for (const c of dj.levels[k] ?? []) allIds.add(c.id);
