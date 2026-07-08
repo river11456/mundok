@@ -5,7 +5,7 @@
 저작 API는 이 JSON 파일을 직접 수정한다. vite build --watch 가 변경을 감지해
 재빌드 → 브라우저 자동 리로드. (구 userdata.json 델타 계층은 폐기됨)
 """
-import http.server, socketserver, json, os, subprocess, threading, time, shutil
+import http.server, socketserver, json, os, subprocess, threading, shutil
 
 PORT = 19234
 BASE = os.path.dirname(os.path.abspath(__file__))
