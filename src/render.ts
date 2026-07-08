@@ -1,14 +1,11 @@
-import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak } from './state';
+import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied } from './state';
 import { DOC_GROUPS, homeDocs } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
+import { findDrillSpans, spansByStart, spansByIndex, type DrillCandidate } from './drill-match';
+import { $app, esc, backBtn, homeBtn } from './render-shared';
+import { renderResult } from './result-screen';
 import type { Doc, GrammarAnnotation } from './types';
-
-const $app = (): HTMLElement => document.getElementById('app')!;
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 type CardStyle = { wrap: string; front: string; backAlign: string };
 
@@ -69,35 +66,12 @@ function buildSlotMap(annotations: GrammarAnnotation[]): Map<number, SlotAnno> {
   return map;
 }
 
-type DrillMatch = { id: string; back: string };
-
-function buildDrillMap(front: string): Map<number, DrillMatch> {
-  const charMap  = new Map<number, DrillMatch>();
+/** 하위 레벨(char/word/sentence) 카드 중 text에 등장하는 것들을 드릴다운 매칭 후보로 모은다. */
+function drillCandidates(text: string): DrillCandidate[] {
   const nextKeys = S.lv ? DRILL_LEVELS[S.lv.key] : null;
-  if (!nextKeys) return charMap;
-
-  const doc        = curDoc();
-  const candidates = nextKeys
-    .flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => front.includes(c.front)));
-  candidates.sort((a, b) => b.front.length - a.front.length);
-
-  const covered = new Set<number>();
-  for (const card of candidates) {
-    let p = 0;
-    while (p < front.length) {
-      const idx = front.indexOf(card.front, p);
-      if (idx === -1) break;
-      const end = idx + card.front.length;
-      if (![...card.front].some((_, k) => covered.has(idx + k))) {
-        for (let k = idx; k < end; k++) {
-          charMap.set(k, { id: card.id, back: card.back });
-          covered.add(k);
-        }
-      }
-      p = idx + 1;
-    }
-  }
-  return charMap;
+  if (!nextKeys) return [];
+  const doc = curDoc();
+  return nextKeys.flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => text.includes(c.front)));
 }
 
 function renderGrammarSentence(
@@ -151,7 +125,7 @@ function renderGrammarSentence(
   }
 
   // ── 표시 모드 ──────────────────────────────────────────────
-  const drillMap = buildDrillMap(front);
+  const drillMap = spansByIndex(findDrillSpans(front, drillCandidates(front)));
 
   const READ_RT = `font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e`;
   const SVO_BG: Record<string, string> = {
@@ -278,34 +252,8 @@ export function render(): void {
 
 function tokenizeHighlights(text: string): string {
   if (!S.lv) return esc(text);
-  const nextKeys = DRILL_LEVELS[S.lv.key];
-  if (!nextKeys) return esc(text);
-
-  const doc = curDoc();
-  const candidates = nextKeys
-    .flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => text.includes(c.front)));
-  if (candidates.length === 0) return esc(text);
-
-  candidates.sort((a, b) => b.front.length - a.front.length);
-
-  type Span = { start: number; end: number; id: string; front: string; back: string };
-  const spans: Span[] = [];
-
-  for (const card of candidates) {
-    let pos = 0;
-    while (pos < text.length) {
-      const idx = text.indexOf(card.front, pos);
-      if (idx === -1) break;
-      const end = idx + card.front.length;
-      if (!spans.some(s => idx < s.end && end > s.start)) {
-        spans.push({ start: idx, end, id: card.id, front: card.front, back: card.back });
-      }
-      pos = idx + 1;
-    }
-  }
-
+  const spans = findDrillSpans(text, drillCandidates(text));
   if (spans.length === 0) return esc(text);
-  spans.sort((a, b) => a.start - b.start);
 
   let html = '';
   let pos  = 0;
@@ -320,49 +268,9 @@ function tokenizeHighlights(text: string): string {
   return html;
 }
 
-function backBtn(label: string): string {
-  return `<button data-action="nav-back"
-    class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
-    <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6L8 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    ${esc(label)}
-  </button>`;
-}
-
-function homeBtn(): string {
-  return `<button data-action="nav-home"
-    class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors">
-    <svg width="13" height="13" viewBox="0 0 11 11" fill="currentColor">
-      <path d="M5.5 1L0.5 5.5H2V10H4.5V7H6.5V10H9V5.5H10.5L5.5 1Z"/>
-    </svg>
-    홈
-  </button>`;
-}
-
 function annotatedFront(front: string, reading: string): string {
-  // Build drill-down match map (same logic as tokenizeHighlights)
-  type M = { id: string; back: string; len: number };
-  const matchMap = new Map<number, M>();
-  const nextKeys = S.lv ? DRILL_LEVELS[S.lv.key] : null;
-  if (nextKeys) {
-    const doc = curDoc();
-    const candidates = nextKeys
-      .flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => front.includes(c.front)));
-    candidates.sort((a, b) => b.front.length - a.front.length);
-    const covered = new Set<number>();
-    for (const card of candidates) {
-      let p = 0;
-      while (p < front.length) {
-        const idx = front.indexOf(card.front, p);
-        if (idx === -1) break;
-        const end = idx + card.front.length;
-        if (![...card.front].some((_, k) => covered.has(idx + k))) {
-          matchMap.set(idx, { id: card.id, back: card.back, len: card.front.length });
-          for (let k = idx; k < end; k++) covered.add(k);
-        }
-        p = idx + 1;
-      }
-    }
-  }
+  const spans   = S.lv ? findDrillSpans(front, drillCandidates(front)) : [];
+  const byStart = spansByStart(spans);
 
   const charSpan = (ch: string, rd: string) =>
     `<ruby>${esc(ch)}<rt style="font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e">${esc(rd)}</rt></ruby>`;
@@ -370,11 +278,11 @@ function annotatedFront(front: string, reading: string): string {
   let html = '';
   let i = 0;
   while (i < front.length) {
-    const m = matchMap.get(i);
-    if (m) {
-      const inner = [...front.slice(i, i + m.len)].map((ch, j) => charSpan(ch, reading[i + j])).join('');
-      html += `<span data-action="drill-down" data-arg="${esc(m.id)}" title="${esc(m.back)}" class="inline-block border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">${inner}</span>`;
-      i += m.len;
+    const sp = byStart.get(i);
+    if (sp) {
+      const inner = [...front.slice(sp.start, sp.end)].map((ch, j) => charSpan(ch, reading[sp.start + j])).join('');
+      html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="inline-block border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">${inner}</span>`;
+      i = sp.end;
     } else {
       html += charSpan(front[i], reading[i]);
       i++;
@@ -675,284 +583,3 @@ function renderAnki(entering = false): void {
     </div>`;
 }
 
-// ── Shortcut help modal ───────────────────────────────────
-export function initShortcutHelp(): void {
-  const el = document.createElement('div');
-  el.id = 'shortcut-help';
-  el.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
-  el.innerHTML = `
-    <div id="sh-panel" class="bg-white rounded-2xl shadow-xl px-8 py-7 w-full max-w-xs mx-4">
-      <div class="text-sm font-bold text-stone-900 mb-5">키보드 단축키</div>
-      <table class="w-full text-xs text-stone-600 border-separate" style="border-spacing:0 6px">
-        <tbody>
-          <tr><td class="text-stone-400 pr-4 whitespace-nowrap">홈</td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">1–N</td><td>문헌 선택</td></tr>
-          <tr><td class="text-stone-400 pr-4">모드</td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">1 / 2</td><td>순차 / 안키</td></tr>
-          <tr><td class="text-stone-400 pr-4">단위</td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">1–N</td><td>단위 선택</td></tr>
-          <tr><td colspan="3" class="pt-2 pb-1 text-stone-300 text-xs">순차 모드</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">Space</td><td>뒤집기</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">← →</td><td>이전 / 다음</td></tr>
-          <tr><td colspan="3" class="pt-2 pb-1 text-stone-300 text-xs">안키 모드</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">Space</td><td>뒤집기</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">1 / 2 / 3</td><td>어려움 / 보통 / 쉬움</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">R</td><td>다시 시작 (결과 화면)</td></tr>
-          <tr><td colspan="3" class="pt-2 pb-1 text-stone-300 text-xs">전체</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">Esc</td><td>뒤로가기</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2">?</td><td>단축키 도움말</td></tr>
-          <tr><td></td><td class="font-mono bg-stone-100 rounded px-1.5 py-0.5 mr-2 text-stone-400" style="font-size:10px">Ctrl⇧R</td><td>안키 기록 초기화</td></tr>
-        </tbody>
-      </table>
-      <div class="mt-5 text-center text-xs text-stone-300">Esc 또는 ? 로 닫기</div>
-    </div>`;
-  el.addEventListener('click', e => { if (e.target === el) hideShortcutHelp(); });
-  el.querySelector('#sh-panel')?.addEventListener('click', e => e.stopPropagation());
-  document.body.appendChild(el);
-
-  const fab = document.createElement('button');
-  fab.id = 'sh-fab';
-  fab.className = 'fixed bottom-5 right-5 w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-500 hover:text-stone-700 text-sm font-bold flex items-center justify-center transition-colors z-40';
-  fab.textContent = '?';
-  fab.addEventListener('click', () => { if (isShortcutHelpOpen()) hideShortcutHelp(); else showShortcutHelp(); });
-  document.body.appendChild(fab);
-}
-
-export function isShortcutHelpOpen(): boolean {
-  return !document.getElementById('shortcut-help')?.classList.contains('hidden');
-}
-
-export function showShortcutHelp(): void {
-  document.getElementById('shortcut-help')?.classList.remove('hidden');
-}
-
-export function hideShortcutHelp(): void {
-  document.getElementById('shortcut-help')?.classList.add('hidden');
-}
-
-// ── Onboarding ────────────────────────────────────────────
-const OB_KEY = 'hanja-v2/onboarding-seen';
-
-const OB_SLIDES: { title: string; html: string }[] = [
-  {
-    title: '학습 시작하기',
-    html: `
-      <div class="flex flex-col items-center gap-1.5 text-sm">
-        ${['문헌 선택','모드 선택','단위 선택','학습'].map((s, i, a) =>
-          `<span class="px-5 py-2 bg-stone-100 rounded-xl text-stone-700 w-32 text-center">${s}</span>${i < a.length-1 ? '<span class="text-stone-300 text-xs">↓</span>' : ''}`
-        ).join('')}
-      </div>
-      <p class="text-sm text-stone-500 leading-relaxed mt-4 text-center">
-        순차 모드는 카드를 차례로 넘기며 공부하고,<br>
-        안키 모드는 모르는 카드를 집중 반복합니다.
-      </p>`,
-  },
-  {
-    title: '안키 모드',
-    html: `
-      <div class="flex justify-center gap-3">
-        ${[
-          ['Space','뒤집기','bg-stone-100','text-stone-700',''],
-          ['1','어려움','bg-red-50','text-red-600','border border-red-100'],
-          ['2','보통','bg-amber-50','text-amber-700','border border-amber-100'],
-          ['3','쉬움','bg-green-50','text-green-700','border border-green-100'],
-        ].map(([k,l,bg,tc,b]) =>
-          `<div class="flex flex-col items-center gap-1.5">
-            <kbd class="px-3 py-2 ${bg} ${tc} ${b} rounded-lg font-mono text-sm">${k}</kbd>
-            <span class="text-xs text-stone-400">${l}</span>
-          </div>`
-        ).join('')}
-      </div>
-      <p class="text-sm text-stone-500 leading-relaxed mt-5 text-center">
-        어려움·보통으로 평가한 카드는 다시 출제되고<br>쉬움은 오늘 학습 완료로 처리됩니다.
-      </p>`,
-  },
-  {
-    title: '드릴다운',
-    html: `
-      <div class="text-center hanja text-2xl text-stone-900 leading-loose">
-        凡<span class="border-b-2 border-stone-400">大醫</span><span class="border-b-2 border-stone-400">治病</span>必先<span class="border-b-2 border-stone-400">定志</span>
-      </div>
-      <p class="text-sm text-stone-500 leading-relaxed mt-5 text-center">
-        문장·단락 카드에서 <span class="border-b border-stone-500">밑줄 친 한자</span>를 클릭하면<br>
-        해당 글자·단어 카드로 바로 이동합니다.<br>
-        <span class="font-mono text-xs bg-stone-100 px-1.5 py-0.5 rounded">Esc</span> 로 원래 카드로 돌아옵니다.
-      </p>`,
-  },
-  {
-    title: '카드 추가·수정',
-    html: `
-      <div class="flex flex-col gap-3 text-sm">
-        ${[
-          ['추가','카드 앞면 텍스트를 드래그하면 "+ 카드 추가" 버블이 나타납니다'],
-          ['수정·삭제','카드 우상단 아이콘 버튼으로 수정하거나 삭제할 수 있습니다'],
-        ].map(([label, desc]) =>
-          `<div class="flex items-start gap-3">
-            <span class="text-xs font-bold text-stone-400 pt-0.5 w-14 shrink-0">${label}</span>
-            <span class="text-stone-600 leading-relaxed">${desc}</span>
-          </div>`
-        ).join('')}
-      </div>`,
-  },
-];
-
-let _obIdx = 0;
-
-function _obRender(): void {
-  const slide = OB_SLIDES[_obIdx];
-  const panel  = document.getElementById('ob-panel')!;
-  panel.querySelector<HTMLElement>('#ob-title')!.textContent = slide.title;
-  panel.querySelector<HTMLElement>('#ob-content')!.innerHTML = slide.html;
-  panel.querySelector<HTMLElement>('#ob-dots')!.innerHTML = OB_SLIDES.map((_, i) =>
-    `<div class="w-1.5 h-1.5 rounded-full transition-colors ${i === _obIdx ? 'bg-stone-800' : 'bg-stone-200'}"></div>`
-  ).join('');
-  const prev = panel.querySelector<HTMLButtonElement>('#ob-prev')!;
-  const next = panel.querySelector<HTMLButtonElement>('#ob-next')!;
-  prev.style.visibility = _obIdx === 0 ? 'hidden' : 'visible';
-  if (_obIdx === OB_SLIDES.length - 1) {
-    next.textContent = '시작하기';
-  } else {
-    next.textContent = '다음 →';
-  }
-}
-
-export function isOnboardingOpen(): boolean {
-  return !document.getElementById('ob-overlay')?.classList.contains('hidden');
-}
-
-export function showOnboarding(): void {
-  _obIdx = 0;
-  _obRender();
-  document.getElementById('ob-overlay')!.classList.remove('hidden');
-}
-
-function hideOnboarding(): void {
-  document.getElementById('ob-overlay')!.classList.add('hidden');
-}
-
-export function initOnboarding(): void {
-  const overlay = document.createElement('div');
-  overlay.id = 'ob-overlay';
-  overlay.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
-  overlay.innerHTML = `
-    <div id="ob-panel" class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4">
-      <div class="px-8 pt-8 pb-6">
-        <div id="ob-title" class="text-base font-bold text-stone-900 mb-5"></div>
-        <div id="ob-content" class="min-h-[140px]"></div>
-      </div>
-      <div class="px-8 pb-8 flex flex-col gap-4">
-        <div class="flex justify-center gap-1.5" id="ob-dots"></div>
-        <div class="flex justify-between items-center">
-          <button id="ob-prev" class="text-sm text-stone-400 hover:text-stone-700 transition-colors">← 이전</button>
-          <button id="ob-next" class="px-5 py-2 text-sm font-medium bg-stone-900 text-white rounded-xl hover:bg-stone-700 transition-colors"></button>
-        </div>
-      </div>
-    </div>`;
-
-  const panel = overlay.querySelector<HTMLElement>('#ob-panel')!;
-  panel.addEventListener('click', e => e.stopPropagation());
-  overlay.addEventListener('click', () => {
-    localStorage.setItem(OB_KEY, '1');
-    hideOnboarding();
-  });
-
-  overlay.querySelector('#ob-prev')!.addEventListener('click', () => {
-    if (_obIdx > 0) { _obIdx--; _obRender(); }
-  });
-  overlay.querySelector('#ob-next')!.addEventListener('click', () => {
-    if (_obIdx < OB_SLIDES.length - 1) {
-      _obIdx++;
-      _obRender();
-    } else {
-      localStorage.setItem(OB_KEY, '1');
-      hideOnboarding();
-    }
-  });
-
-  document.body.appendChild(overlay);
-
-  document.addEventListener('keydown', e => {
-    if (overlay.classList.contains('hidden')) return;
-    if (e.code === 'Space' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (_obIdx < OB_SLIDES.length - 1) { _obIdx++; _obRender(); }
-      else { localStorage.setItem(OB_KEY, '1'); hideOnboarding(); }
-    } else if (e.key === 'ArrowLeft') {
-      if (_obIdx > 0) { _obIdx--; _obRender(); }
-    } else if (e.key === 'Escape') {
-      localStorage.setItem(OB_KEY, '1');
-      hideOnboarding();
-    }
-  });
-
-  // 가이드 FAB (? 버튼 위)
-  const guide = document.createElement('button');
-  guide.className = 'fixed bottom-14 right-5 w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-500 hover:text-stone-700 flex items-center justify-center transition-colors z-40';
-  guide.title = '사용법 보기';
-  guide.innerHTML = `<svg width="15" height="15" viewBox="0 0 14 14" fill="none">
-    <rect x="1.5" y="1" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
-    <path d="M4 4.5H8M4 7H7M4 9.5H6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M10.5 4.5L12.5 6.5L10.5 8.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-  guide.addEventListener('click', showOnboarding);
-  document.body.appendChild(guide);
-
-  // 첫 방문 자동 표시
-  if (!localStorage.getItem(OB_KEY)) showOnboarding();
-}
-
-function renderResult(): void {
-  const streak = getStreak();   // 집계는 학습 완료 시점(anki.ts rate)에서 이미 1회 수행됨
-  const failed = [...S.allCards]
-    .filter(c => c.fail_count > 0)
-    .sort((a, b) => b.fail_count - a.fail_count);
-  const d = curDoc();
-
-  const rows = failed.length > 0
-    ? failed.map((c, i) => `
-        <tr class="border-b border-stone-100">
-          <td class="py-4 px-5 text-center text-stone-400 text-sm">${i + 1}</td>
-          <td class="hanja py-4 px-5 text-center text-2xl text-stone-900">${esc(c.front)}</td>
-          <td class="py-4 px-5 text-sm text-stone-500 leading-relaxed">${esc(c.reading)}${c.reading && c.back ? ' — ' : ''}${esc(c.back)}</td>
-          <td class="py-4 px-5 text-center text-sm font-bold text-red-500">${c.fail_count}</td>
-        </tr>`)
-        .join('')
-    : `<tr><td colspan="4" class="py-12 text-center text-stone-400 text-base">오답 없음 · 완벽합니다</td></tr>`;
-
-  $app().innerHTML = `
-    <div class="screen-enter w-full max-w-2xl flex flex-col gap-8">
-      <div class="flex items-center justify-between">
-        ${backBtn(`${d.title} / ${S.lv!.label}`)}
-        ${homeBtn()}
-      </div>
-      <div class="text-center">
-        <div class="text-3xl font-bold text-stone-900">학습 완료</div>
-        <div class="text-sm text-stone-400 mt-2">${S.total}장 완료 · 오답 ${failed.length}장</div>
-        <div class="flex justify-center gap-8 mt-5">
-          <div class="text-center">
-            <div class="text-2xl font-bold text-stone-800">${streak.count}일</div>
-            <div class="text-xs text-stone-400 mt-1">연속 학습</div>
-          </div>
-          <div class="w-px bg-stone-100"></div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-stone-800">${streak.todayCards}장</div>
-            <div class="text-xs text-stone-400 mt-1">오늘 학습</div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="border-b border-stone-100 bg-stone-50">
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">#</th>
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">한자</th>
-              <th class="py-4 px-5 text-left text-sm text-stone-400 font-medium">해석</th>
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">오답</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div class="flex justify-center gap-8 text-sm text-stone-400">
-        <span>R — 다시 시작</span>
-        <span>Ctrl+Shift+R — 초기화</span>
-      </div>
-    </div>`;
-}

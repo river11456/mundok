@@ -1,5 +1,7 @@
 import './style.css';
-import { render, initShortcutHelp, initOnboarding } from './render';
+import { render } from './render';
+import { initShortcutHelp } from './shortcut-help';
+import { initOnboarding } from './onboarding';
 import { setupClick, setupKeyboard } from './events';
 import { initAddCard } from './addcard';
 import { initEditCard } from './editcard';

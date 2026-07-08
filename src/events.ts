@@ -1,6 +1,8 @@
 import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, touchLastStudied, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { homeDocs } from './docs';
-import { render, isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp, isOnboardingOpen } from './render';
+import { render } from './render';
+import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
+import { isOnboardingOpen } from './onboarding';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { showEditModal } from './editcard';

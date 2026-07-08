@@ -91,11 +91,14 @@
 
 ### 9. 드릴다운 매칭 로직 3중 복제 해소 + render.ts 분리
 
-- [ ] 미착수
+- [x] 완료 (2026-07-08)
 - **위치**: `src/render.ts` — `buildDrillMap`(74-101) / `tokenizeHighlights`(279-321) / `annotatedFront`(341-384)가 같은 substring 매칭 알고리즘을 각자 구현
 - **문제**: 한 곳만 고치면 나머지가 어긋나는 구조.
-- **방법**: 매칭 1개 함수(스팬 목록 반환) + 렌더링 3가지 소비자로 분리. 겸사 render.ts(958줄)에서 온보딩·단축키 도움말·결과 화면을 별도 파일로 추출.
-- **검증**: 문법 표시 on/off × 뒤집기 전/후 × 드릴다운 클릭 조합이 리팩터 전과 동일한지 확인.
+- **방법**:
+  - `src/drill-match.ts` 신설 — `findDrillSpans(text, candidates)`(긴 텍스트 우선·비중첩 그리디 매칭, 순수 함수) 단일 출처로 통합 + `spansByStart`/`spansByIndex` 두 조회 헬퍼(구간 단위로 건너뛰는 `annotatedFront`용 / 글자 단위 상태 기계인 `renderGrammarSentence`용). 인덱싱 방식(UTF-16 기반)은 기존 그대로 보존 — 코드포인트 혼용 이슈(🟢 낮음 항목)는 범위 밖으로 남겨둠.
+  - `render.ts`(958줄)에서 분리: `src/onboarding.ts`(온보딩 슬라이드), `src/shortcut-help.ts`(단축키 도움말 모달), `src/result-screen.ts`(안키 결과 화면), `src/render-shared.ts`(`$app`/`esc`/`backBtn`/`homeBtn` 공용 헬퍼). `main.ts`/`events.ts`의 import 경로도 갱신.
+  - 결과: render.ts 958줄 → 585줄.
+- **검증**: `npm run build`(lint+tsc+vite) 통과 — lint의 드릴다운 매칭 WARN이 리팩터 전후 정확히 동일(양성편 s7·s8 2건)해 매칭 결과가 바뀌지 않았음을 데이터로 확인. `test/drill-match.test.ts`(7건) 신설로 최장매칭 우선·비중첩·복수 출현·두 조회 헬퍼를 단위 테스트. 서버 기동 후 브라우저로 열어 육안 확인 절차 안내(이 환경엔 headless 브라우저 도구가 없어 클릭/스크린샷 자동화는 못 함 — 사용자 확인 필요).
 
 ### 10. 자동 테스트 + CI PR 검증
 
