@@ -17,9 +17,24 @@
 
 ---
 
+## 📌 현재 상태 (2026-07-08)
+
+`IMPROVEMENTS.md` 🟡 중간 항목 5개(5·6·8·9·10) 완료·커밋 완료(`main` 기준 origin보다 앞섬 — push 필요). 🔴 높음 4번(모바일 레이아웃)은 사용자 지시로 보류.
+
+| 순서 | 항목 | 내용 |
+|------|------|------|
+| 1 | ⑤+⑥ 저작 API id 기반 전환 + 404 | `server.py` edit/delete/save-grammar가 텍스트 대신 `card.id`로 카드 탐색(중복 텍스트 전체삭제 위험 제거). 대상 미발견 시 404 반환. `add-card`가 신규/기존 id를 응답에 포함해 방금 추가한 카드를 같은 세션에서 바로 수정/삭제해도 깨지지 않음. curl로 실서버 기동해 add/edit/delete/grammar id 매칭·404 케이스 검증 |
+| 2 | ⑧ "최근 학습" 순차 모드 반영 | `state.ts`에 `touchLastStudied()` 분리(fail_count 안 건드리고 `_ts`만 갱신), 순차 모드 Space 플립(뒷면 확인) 시점에 호출. 안키 전용이던 최근 학습일 표시가 순차 모드도 반영 |
+| 3 | ⑩ 자동 테스트 + CI | `node:test`+`--experimental-strip-types`(Node 22 내장, 의존성 0)로 `test/` 27건. 안키 큐 재배치(`anki-core.ts`)·사용자 델타 병합(`docs-merge.ts`)·lint 규칙·드릴다운 매칭을 순수 함수로 분리해 테스트 가능하게 함. `.github/workflows/ci.yml`(PR 트리거) 신설 + `deploy.yml`에도 테스트 스텝 추가. 부수 발견: `lint-data.mjs`의 CLI 가드가 한글 경로(`문독`)에서 URL percent-encoding 불일치로 무력화되던 버그 수정 |
+| 4 | ⑨ 드릴다운 매칭 통합 + render.ts 분리 | `buildDrillMap`/`tokenizeHighlights`/`annotatedFront` 3중 복제를 `src/drill-match.ts`의 `findDrillSpans()` 단일 출처로 통합. render.ts(958줄)에서 `onboarding.ts`·`shortcut-help.ts`·`result-screen.ts`·`render-shared.ts` 분리 → 585줄. lint 드릴다운 WARN 건수 리팩터 전후 동일함으로 매칭 결과 불변 확인 |
+
+세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고. **다음 세션 후보**: 🟢 낮음 항목들(코드포인트/UTF-16 인덱스 혼용 통일, 원본 PDF 분리, 버전 문자열 하드코딩 등) 또는 보류 중인 🔴 4번(모바일 레이아웃).
+
+---
+
 ## 📌 현재 상태 (2026-07-07)
 
-`IMPROVEMENTS.md` 추천 착수 순서(① Tailwind → ③ 백업 → ② PWA → ⑦ streak) 4개 항목 완료(미커밋).
+`IMPROVEMENTS.md` 추천 착수 순서(① Tailwind → ③ 백업 → ② PWA → ⑦ streak) 4개 항목 완료·커밋 완료(`3eaf81a`).
 
 | 항목 | 내용 |
 |------|------|
@@ -28,7 +43,7 @@
 | ② PWA 전환 | `public/manifest.json`(아이콘은 `icon.svg`를 `sips`로 192/512px 래스터화) + `public/sw.js`(앱 셸 stale-while-revalidate, 프로덕션 빌드에서만 등록) + `storage.persist()`. Google Fonts self-host는 레포 용량 문제로 SW 런타임 캐싱으로 대체 |
 | ⑦ streak UTC→로컬 | `state.ts`에 `localDateStr()` 추가, `todayStr()`/어제 계산 양쪽에 적용. KST 08:30(UTC 전날 23:30) 경계 재현 테스트로 수정 확인 |
 
-세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고. 아직 커밋 전 — 다음 세션에서 리뷰 후 커밋할 것.
+세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고.
 
 ---
 
