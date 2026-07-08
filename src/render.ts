@@ -2,10 +2,11 @@ import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied } from './state';
 import { DOC_GROUPS, homeDocs } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
-import { findDrillSpans, spansByStart, spansByIndex, type DrillCandidate } from './drill-match';
+import { findDrillSpans, spansByStart, spansByIndex, cpLen, type DrillCandidate } from './drill-match';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
 import { renderResult } from './result-screen';
 import type { Doc, GrammarAnnotation } from './types';
+import { version } from '../package.json';
 
 type CardStyle = { wrap: string; front: string; backAlign: string };
 
@@ -83,13 +84,14 @@ function renderGrammarSentence(
 ): string {
   // 어노테이션도 없고 표시 모드면 → 일반 렌더링과 완전히 동일
   if (!editMode && annotations.length === 0) {
-    return isFlipped && front.length === reading.length && reading
+    return isFlipped && cpLen(front) === cpLen(reading) && reading
       ? annotatedFront(front, reading)
       : tokenizeHighlights(front);
   }
 
   const chars       = [...front];
-  const perCharRead = isFlipped && reading.length === chars.length && reading;
+  const reads       = [...reading];
+  const perCharRead = isFlipped && reads.length === chars.length && reading;
   const slotMap     = buildSlotMap(annotations);
   const hasAnyLabel = annotations.some(a => a.type !== 'phrase');
   const svoTailwind: Record<string, string> = {
@@ -113,7 +115,7 @@ function renderGrammarSentence(
           ? `<span class="text-[10px] leading-none select-none invisible">_</span>`
           : '';
       const rdChar = perCharRead
-        ? `<span class="text-[11px] text-stone-400 leading-none mt-0.5 select-none">${esc(reading[i])}</span>`
+        ? `<span class="text-[11px] text-stone-400 leading-none mt-0.5 select-none">${esc(reads[i])}</span>`
         : '';
       return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none ${bg} ${phraseCls} cursor-pointer hover:bg-stone-100" data-char-idx="${i}">
         ${badge}
@@ -152,7 +154,7 @@ function renderGrammarSentence(
   const charContent = (i: number): string => {
     const ch = esc(chars[i]);
     return perCharRead
-      ? `<ruby>${ch}<rt style="${READ_RT}">${esc((reading as string)[i])}</rt></ruby>`
+      ? `<ruby>${ch}<rt style="${READ_RT}">${esc(reads[i])}</rt></ruby>`
       : ch;
   };
 
@@ -255,36 +257,39 @@ function tokenizeHighlights(text: string): string {
   const spans = findDrillSpans(text, drillCandidates(text));
   if (spans.length === 0) return esc(text);
 
+  const chars = [...text];
   let html = '';
   let pos  = 0;
   for (const sp of spans) {
-    html += esc(text.slice(pos, sp.start));
+    html += esc(chars.slice(pos, sp.start).join(''));
     html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}"
       class="border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors"
       >${esc(sp.front)}</span>`;
     pos = sp.end;
   }
-  html += esc(text.slice(pos));
+  html += esc(chars.slice(pos).join(''));
   return html;
 }
 
 function annotatedFront(front: string, reading: string): string {
   const spans   = S.lv ? findDrillSpans(front, drillCandidates(front)) : [];
   const byStart = spansByStart(spans);
+  const chars   = [...front];
+  const reads   = [...reading];
 
   const charSpan = (ch: string, rd: string) =>
     `<ruby>${esc(ch)}<rt style="font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e">${esc(rd)}</rt></ruby>`;
 
   let html = '';
   let i = 0;
-  while (i < front.length) {
+  while (i < chars.length) {
     const sp = byStart.get(i);
     if (sp) {
-      const inner = [...front.slice(sp.start, sp.end)].map((ch, j) => charSpan(ch, reading[sp.start + j])).join('');
+      const inner = chars.slice(sp.start, sp.end).map((ch, j) => charSpan(ch, reads[sp.start + j])).join('');
       html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="inline-block border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">${inner}</span>`;
       i = sp.end;
     } else {
-      html += charSpan(front[i], reading[i]);
+      html += charSpan(chars[i], reads[i]);
       i++;
     }
   }
@@ -395,7 +400,7 @@ function renderHome(): void {
       <div class="stagger flex flex-col gap-3">${items}</div>
       <div class="flex flex-col gap-1 pb-2">
         <div class="text-xs text-stone-300 leading-relaxed">모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다. 공부하면서 직접 확인하고 수정하며 사용하세요.</div>
-        <div class="text-xs text-stone-300 tracking-wide mt-1">v1.0.0 · KJH</div>
+        <div class="text-xs text-stone-300 tracking-wide mt-1">v${version} · KJH</div>
       </div>
     </div>`;
 }
@@ -475,7 +480,7 @@ function renderSeq(entering = false): void {
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
   const frontHtml = isSentGrammar
     ? renderGrammarSentence(card.front, card.reading, sentAnnotations, S.seqFlipped, S.grammarEditMode)
-    : (S.seqFlipped && card.front.length === card.reading.length && card.reading
+    : (S.seqFlipped && cpLen(card.front) === cpLen(card.reading) && card.reading
         ? annotatedFront(card.front, card.reading)
         : tokenizeHighlights(card.front));
 
@@ -498,7 +503,7 @@ function renderSeq(entering = false): void {
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
-        ${S.seqFlipped ? cardBack(card, cs, !(card.front.length === card.reading.length && card.reading)) : `
+        ${S.seqFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
           <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
@@ -548,7 +553,7 @@ function renderAnki(entering = false): void {
   const isFlipped       = S.side === 'back';
   const frontHtml = isSentGrammar
     ? renderGrammarSentence(card.front, card.reading, sentAnnotations, isFlipped, S.grammarEditMode)
-    : (isFlipped && card.front.length === card.reading.length && card.reading
+    : (isFlipped && cpLen(card.front) === cpLen(card.reading) && card.reading
         ? annotatedFront(card.front, card.reading)
         : tokenizeHighlights(card.front));
 
@@ -571,7 +576,7 @@ function renderAnki(entering = false): void {
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
-        ${isFlipped ? cardBack(card, cs, !(card.front.length === card.reading.length && card.reading)) : `
+        ${isFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
           <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>

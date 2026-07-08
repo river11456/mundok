@@ -35,6 +35,19 @@ test('같은 텍스트가 여러 번 등장하면 모두 매칭된다(첫 위치
   assert.deepEqual(spans.map(s => s.start), [0, 2]);
 });
 
+test('BMP 밖 벽자(서로게이트 쌍)도 1글자로 세어 코드포인트 인덱스를 반환한다', () => {
+  // 𠀋 = U+2000B (CJK 확장 B, UTF-16으로 2유닛). UTF-16 기준이면 start:2가 되는 함정.
+  const spans = findDrillSpans('𠀋乙丙', [cand('w1', '乙丙')]);
+  assert.equal(spans.length, 1);
+  assert.deepEqual([spans[0].start, spans[0].end], [1, 3]);
+});
+
+test('벽자가 포함된 후보도 코드포인트 길이로 매칭된다', () => {
+  const spans = findDrillSpans('甲𠀋乙', [cand('w1', '𠀋乙')]);
+  assert.equal(spans.length, 1);
+  assert.deepEqual([spans[0].start, spans[0].end], [1, 3]);
+});
+
 test('spansByStart — 시작 인덱스로만 조회 가능(중간 인덱스는 없음)', () => {
   const spans = findDrillSpans('甲乙丙', [cand('w1', '乙丙')]);
   const map = spansByStart(spans);
