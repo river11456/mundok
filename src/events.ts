@@ -1,4 +1,4 @@
-import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, touchLastStudied, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { homeDocs } from './docs';
 import { render, isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp, isOnboardingOpen } from './render';
 import { rate } from './anki';
@@ -166,7 +166,13 @@ export function setupKeyboard(): void {
 
     } else if (S.scr === 'study') {
       if (S.mode === 'seq') {
-        if (e.code === 'Space')        { e.preventDefault(); S.seqFlipped = !S.seqFlipped; render(); }
+        if (e.code === 'Space') {
+          e.preventDefault();
+          S.seqFlipped = !S.seqFlipped;
+          // 뒷면(뜻)을 실제로 확인한 시점을 "학습했다"로 간주 — 안키 모드의 rate() 시점과 대응
+          if (S.seqFlipped) touchLastStudied();
+          render();
+        }
         else if (e.key === 'ArrowRight' || e.key === 'Enter') seqNext();
         else if (e.key === 'ArrowLeft') seqPrev();
       } else {

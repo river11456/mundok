@@ -88,11 +88,16 @@ export function loadAnki(cards: Card[]): Card[] {
   return cards.map(c => ({ ...c, fail_count: fails[c.id] ?? 0 }));
 }
 
+/** 홈 화면 "최근 학습" 표시용 타임스탬프만 갱신(안키 fail_count는 건드리지 않음). 순차 모드에서 사용. */
+export function touchLastStudied(): void {
+  localStorage.setItem(lsKey() + '_ts', Date.now().toString());
+}
+
 export function persist(): void {
   const fails: FailMap = {};
   for (const c of S.allCards) if (c.fail_count > 0) fails[c.id] = c.fail_count;
   localStorage.setItem(failKey(), JSON.stringify(fails));
-  localStorage.setItem(lsKey() + '_ts', Date.now().toString());
+  touchLastStudied();
 }
 
 /** 안키 기록 초기화 (Ctrl+Shift+R). */
