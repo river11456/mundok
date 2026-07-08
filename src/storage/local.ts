@@ -39,10 +39,11 @@ export class LocalStore implements Store {
     return load();
   }
 
-  async addCard(a: UserAddition): Promise<void> {
+  async addCard(a: UserAddition): Promise<string> {
     const d = load();
     d.additions.push(a);
     save(d);
+    return `${a.docId}_${a.type}_${a.text}`;
   }
 
   async editCard(e: UserEdit): Promise<void> {
@@ -70,7 +71,7 @@ export class LocalStore implements Store {
     save(d);
   }
 
-  async saveGrammar(docId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void> {
+  async saveGrammar(docId: string, _cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void> {
     const d = load();
     d.grammar = (d.grammar ?? []).filter(g => !(g.docId === docId && g.cardFront === cardFront));
     if (annotations.length > 0) d.grammar!.push({ docId, cardFront, annotations });

@@ -43,7 +43,7 @@
 
 ### 4. 모바일 레이아웃 점검
 
-- [ ] 미착수
+- [~] 보류 (2026-07-07, 사용자 지시로 후순위 연기)
 - **위치**: `index.html:34` (`<body class="min-h-screen flex items-center justify-center p-12">`)
 - **문제**:
   - flex 센터링 + 콘텐츠가 화면보다 길면 **상단이 잘려 스크롤로도 접근 불가** (단락 카드·결과 테이블에서 발생 가능) — `margin: auto` 패턴이나 `safe center`로 해결
@@ -57,17 +57,21 @@
 
 ### 5. 저작 API 텍스트 키 → 카드 id 키
 
-- [ ] 미착수
+- [x] 완료 (2026-07-08)
 - **위치**: `server.py` `_edit_card`/`_delete_card`/`_save_grammar` (텍스트로 카드 탐색), 클라이언트 `src/events.ts:79-82`(delete가 `card.front` 전달), `src/editcard.ts`, `src/grammar-edit.ts`
 - **문제**: 마이그레이션 핵심이 "텍스트=식별자 탈피"였는데 CRUD API는 아직 텍스트 키. 중복 텍스트 시 `_delete_card`는 일치하는 카드를 **전부** 삭제.
-- **방법**: 클라이언트는 이미 `card.id` 보유 → API 바디에 `id` 전달로 전환. `LocalStore`(정적 모드)는 텍스트 델타 유지(Phase 4b 보류와 일관) — 서버 모드만 전환해도 됨.
+- **방법**: 클라이언트는 이미 `card.id` 보유 → API 바디에 `id` 전달로 전환(`edit-card`/`delete-card`/`save-grammar`). `LocalStore`(정적 모드)는 텍스트 델타 유지(Phase 4b 보류와 일관) — 서버 모드만 전환.
+  - `_add_card`도 새/기존 카드의 `id`를 응답에 포함하도록 확장 → 방금 추가한 카드를 같은 세션에서 바로 수정/삭제해도(라이브 리로드 억제 구간) 클라이언트가 실제 서버 id를 갖게 되어 깨지지 않음(`store().addCard()` 반환값 `Promise<string>`으로 변경).
+  - `editcard.ts`의 카드 패치·`addcard.ts`의 delete 필터도 텍스트(`front`) 대신 `id` 기준으로 바꿔 중복 텍스트 카드 오조작 가능성 제거.
+- **검증**: `npm run build`(tsc+vite) 통과. 실제 서버 기동 후 curl로 add(신규/중복)·edit·delete·save-grammar id 매칭 확인, 원본 JSON과 diff로 부작용 없음(백업/복원) 확인.
 
 ### 6. 저작 API 대상 미발견 시 오류 반환
 
-- [ ] 미착수
+- [x] 완료 (2026-07-08, 5번과 함께 처리)
 - **위치**: `server.py:193-218` (edit/delete/grammar)
 - **문제**: 카드를 못 찾아도 조용히 no-op 후 `ok: true` → 화면-파일 desync를 관리자가 인지 못함.
-- **방법**: 미발견 시 `404` + 에러 메시지 반환, 클라이언트는 alert 표시. (5번과 같이 처리하면 효율적)
+- **방법**: 미발견 시 `404` + 에러 메시지(`카드를 찾을 수 없습니다`) 반환. 클라이언트 `post()`는 기존처럼 `!data.ok`면 throw하므로 `editcard.ts`/`addcard.ts`는 기존 catch가 자동으로 처리, `grammar-edit.ts`는 기존에 없던 try/catch + alert 추가.
+- **검증**: curl로 존재하지 않는 id에 edit/delete/save-grammar 요청 → 404 + `{"ok":false,"error":"카드를 찾을 수 없습니다"}` 확인.
 
 ### 7. streak 날짜 기준 UTC → 로컬
 

@@ -22,8 +22,9 @@ export interface Store {
    */
   loadDelta(): Promise<UserData | null>;
 
-  addCard(addition: UserAddition): Promise<void>;
+  /** 반환값: 새로 부여된(또는 기존과 중복된) 카드 id */
+  addCard(addition: UserAddition): Promise<string>;
   editCard(edit: UserEdit): Promise<void>;
   deleteCard(deletion: UserDeletion): Promise<void>;
-  saveGrammar(docId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void>;
+  saveGrammar(docId: string, cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void>;
 }

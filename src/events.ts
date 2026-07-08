@@ -78,7 +78,7 @@ export function setupClick(): void {
       }
       case 'delete-card': {
         const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
-        deleteCard(S.docId!, S.lv!.key, card.front);
+        deleteCard(S.docId!, S.lv!.key, card.id, card.front);
         break;
       }
       case 'toggle-refs': {

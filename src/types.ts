@@ -38,6 +38,7 @@ export interface UserAddition {
 export interface UserEdit {
   docId: string;
   type: LevelKey;
+  id: string;        // 서버 모드: 카드 탐색 키. LocalStore는 origText로 매칭(무시)
   origText: string;
   text: string;
   reading: string;
@@ -48,6 +49,7 @@ export interface UserEdit {
 export interface UserDeletion {
   docId: string;
   type: LevelKey;
+  id: string;        // 서버 모드: 카드 탐색 키. LocalStore는 text로 매칭(무시)
   text: string;
 }
 

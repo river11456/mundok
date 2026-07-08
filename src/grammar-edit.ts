@@ -1,7 +1,7 @@
 import { S } from './state';
 import { getAnnotations, saveAnnotations } from './grammar';
 import { render } from './render';
-import type { GrammarType } from './types';
+import type { Card, GrammarType } from './types';
 
 let _dragStart       = -1;
 let _pendingStart    = -1;
@@ -31,11 +31,13 @@ function hidePicker(): void {
   _lastHoveredIdx = -1;
 }
 
+function currentCard(): Card | undefined {
+  if (!S.lv) return undefined;
+  return S.mode === 'seq' ? S.lv.cards[S.seqIdx] : S.queue[0];
+}
+
 function currentCardFront(): string {
-  if (!S.lv) return '';
-  return S.mode === 'seq'
-    ? (S.lv.cards[S.seqIdx]?.front ?? '')
-    : (S.queue[0]?.front ?? '');
+  return currentCard()?.front ?? '';
 }
 
 function showPicker(start: number, end: number, clientX: number, clientY: number): void {
@@ -59,25 +61,35 @@ function showPicker(start: number, end: number, clientX: number, clientY: number
 async function applyAnnotation(type: GrammarType): Promise<void> {
   if (_pendingStart < 0) return;
   const docId = S.docId!;
-  const front = currentCardFront();
+  const card  = currentCard();
+  const front = card?.front ?? '';
   const anns  = getAnnotations(docId, front).filter(
     a => !(a.type === type && a.start < _pendingEnd && a.end > _pendingStart),
   );
   anns.push({ type, start: _pendingStart, end: _pendingEnd });
   hidePicker();
-  await saveAnnotations(docId, front, anns);
+  try {
+    await saveAnnotations(docId, card?.id ?? '', front, anns);
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '문법 주석 저장에 실패했습니다.');
+  }
   render();
 }
 
 async function deleteOverlapping(): Promise<void> {
   if (_pendingStart < 0) return;
   const docId = S.docId!;
-  const front = currentCardFront();
+  const card  = currentCard();
+  const front = card?.front ?? '';
   const anns  = getAnnotations(docId, front).filter(
     a => !(a.start < _pendingEnd && a.end > _pendingStart),
   );
   hidePicker();
-  await saveAnnotations(docId, front, anns);
+  try {
+    await saveAnnotations(docId, card?.id ?? '', front, anns);
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '문법 주석 삭제에 실패했습니다.');
+  }
   render();
 }
 

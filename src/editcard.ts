@@ -17,6 +17,7 @@ export function showEditModal(card: Card, type: string): void {
   $<HTMLTextAreaElement>('ec-back').value    = card.back;
   $<HTMLInputElement>('ec-note').value       = card.note;
   $('ec-overlay').dataset.origFront         = card.front;
+  $('ec-overlay').dataset.origId            = card.id;
   $('ec-overlay').dataset.cardType          = type;
   $('ec-error').classList.add('hidden');
   const btn = $('ec-submit');
@@ -29,6 +30,7 @@ export function showEditModal(card: Card, type: string): void {
 async function submitEdit(): Promise<void> {
   const overlay   = $('ec-overlay');
   const origFront = overlay.dataset.origFront!;
+  const origId    = overlay.dataset.origId!;
   const type      = overlay.dataset.cardType!;
   const docId     = S.docId!;
 
@@ -49,9 +51,9 @@ async function submitEdit(): Promise<void> {
     const textChanged = text !== origFront;
     const coTargets   = textChanged ? findCoEditTargets(origFront, type) : [];
 
-    await store().editCard({ docId, type: type as LevelKey, origText: origFront, text, reading, meaning: back, note });
+    await store().editCard({ docId, type: type as LevelKey, id: origId, origText: origFront, text, reading, meaning: back, note });
     const patch = (c: Card) => {
-      if (c.front === origFront) {
+      if (c.id === origId) {
         c.front = text; c.reading = reading; c.back = back; c.note = note;
       }
     };
@@ -164,7 +166,7 @@ async function applyCoEdit(): Promise<void> {
       const newFront  = origFront.split(origText).join(newText);
       if (newFront === origFront) continue;
       await store().editCard({
-        docId, type: t.level.key, origText: origFront, text: newFront,
+        docId, type: t.level.key, id: t.card.id, origText: origFront, text: newFront,
         reading: t.card.reading, meaning: t.card.back, note: t.card.note,
       });
       t.card.front = newFront;                                                  // DOCS(및 동일레벨 S.lv.cards) 갱신

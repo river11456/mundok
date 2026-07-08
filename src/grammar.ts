@@ -13,6 +13,7 @@ export function getAnnotations(docId: string, cardFront: string): GrammarAnnotat
 
 export async function saveAnnotations(
   docId: string,
+  cardId: string,
   cardFront: string,
   annotations: GrammarAnnotation[],
 ): Promise<void> {
@@ -25,5 +26,5 @@ export async function saveAnnotations(
     _data.push({ docId, cardFront, annotations });
   }
 
-  await store().saveGrammar(docId, cardFront, annotations);
+  await store().saveGrammar(docId, cardId, cardFront, annotations);
 }

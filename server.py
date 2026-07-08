@@ -158,62 +158,69 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if ctype not in LEVEL_ORDER:
                 raise ValueError(f'알 수 없는 레벨: {ctype}')
             with doc_lock:
-                doc   = load_doc(doc_id)
-                cards = ensure_level(doc, ctype)
-                if not any(c['text'] == front for c in cards):
+                doc      = load_doc(doc_id)
+                cards    = ensure_level(doc, ctype)
+                existing = next((c for c in cards if c['text'] == front), None)
+                if existing is not None:
+                    new_id = existing['id']
+                else:
+                    new_id = next_id(cards, ctype)
                     cards.append({
-                        'id':      next_id(cards, ctype),
+                        'id':      new_id,
                         'text':    front,
                         'reading': body.get('reading', '').strip(),
                         'meaning': body.get('back', '').strip(),
                         'note':    body.get('note', '').strip(),
                     })
                     save_doc(doc_id, doc)
-            self._json(200, {'ok': True})
+            self._json(200, {'ok': True, 'id': new_id})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
     def _delete_card(self):
         try:
-            body  = self._body()
-            doc_id = body['docId']
-            ctype  = body['type']
-            front  = body['front'].strip()
+            body    = self._body()
+            doc_id  = body['docId']
+            ctype   = body['type']
+            card_id = body['id']
             with doc_lock:
-                doc    = load_doc(doc_id)
-                cards  = doc['levels'].get(ctype, [])
-                kept   = [c for c in cards if c['text'] != front]
-                if len(kept) != len(cards):
+                doc   = load_doc(doc_id)
+                cards = doc['levels'].get(ctype, [])
+                kept  = [c for c in cards if c.get('id') != card_id]
+                found = len(kept) != len(cards)
+                if found:
                     doc['levels'][ctype] = kept
                     save_doc(doc_id, doc)
-            self._json(200, {'ok': True})
+            if found:
+                self._json(200, {'ok': True})
+            else:
+                self._json(404, {'ok': False, 'error': '카드를 찾을 수 없습니다'})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
     def _edit_card(self):
         try:
-            body      = self._body()
-            doc_id    = body['docId']
-            ctype     = body['type']
-            orig      = body['origFront'].strip()
-            text      = body['text'].strip()
+            body    = self._body()
+            doc_id  = body['docId']
+            ctype   = body['type']
+            card_id = body['id']
+            text    = body['text'].strip()
             if not text:
                 raise ValueError('한자가 비어 있습니다')
             with doc_lock:
-                doc   = load_doc(doc_id)
-                found = False
-                for c in doc['levels'].get(ctype, []):
-                    if c['text'] == orig:
-                        # 카드 내장 grammar 는 보존된다(텍스트 변경에도 끊기지 않음)
-                        c['text']    = text
-                        c['reading'] = body.get('reading', '').strip()
-                        c['meaning'] = body.get('back', '').strip()
-                        c['note']    = body.get('note', '').strip()
-                        found = True
-                        break
-                if found:
+                doc    = load_doc(doc_id)
+                target = next((c for c in doc['levels'].get(ctype, []) if c.get('id') == card_id), None)
+                if target is not None:
+                    # 카드 내장 grammar 는 보존된다(텍스트 변경에도 끊기지 않음)
+                    target['text']    = text
+                    target['reading'] = body.get('reading', '').strip()
+                    target['meaning'] = body.get('back', '').strip()
+                    target['note']    = body.get('note', '').strip()
                     save_doc(doc_id, doc)
-            self._json(200, {'ok': True})
+            if target is not None:
+                self._json(200, {'ok': True})
+            else:
+                self._json(404, {'ok': False, 'error': '카드를 찾을 수 없습니다'})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
@@ -221,18 +228,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             body        = self._body()
             doc_id      = body['docId']
-            card_front  = body['cardFront']
+            card_id     = body['id']
             annotations = body.get('annotations', [])
             with doc_lock:
                 doc    = load_doc(doc_id)
-                target = next((c for c in doc['levels'].get('sentence', []) if c['text'] == card_front), None)
+                target = next((c for c in doc['levels'].get('sentence', []) if c.get('id') == card_id), None)
                 if target is not None:
                     if annotations:
                         target['grammar'] = annotations
                     else:
                         target.pop('grammar', None)
                     save_doc(doc_id, doc)
-            self._json(200, {'ok': True})
+            if target is not None:
+                self._json(200, {'ok': True})
+            else:
+                self._json(404, {'ok': False, 'error': '카드를 찾을 수 없습니다'})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 

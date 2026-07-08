@@ -54,8 +54,8 @@ async function submitCard(): Promise<void> {
   $('ac-error').classList.add('hidden');
 
   try {
-    await store().addCard({ docId, type: type as LevelKey, text: front, reading, meaning: back, note });
-    const newCard: Card = { id: `${docId}_${type}_${front}`, front, reading, back, note, fail_count: 0 };
+    const id = await store().addCard({ docId, type: type as LevelKey, text: front, reading, meaning: back, note });
+    const newCard: Card = { id, front, reading, back, note, fail_count: 0 };
     const targetLevel = curDoc().levels.find(l => l.key === type);
     if (targetLevel) {
       targetLevel.cards.push(newCard);
@@ -85,14 +85,14 @@ function showError(msg: string): void {
   el.classList.remove('hidden');
 }
 
-export async function deleteCard(docId: string, type: string, front: string): Promise<void> {
+export async function deleteCard(docId: string, type: string, id: string, front: string): Promise<void> {
   if (!confirm(`'${front}' 카드를 삭제합니다.\n\n삭제 후 복구가 불가능합니다. 계속하시겠습니까?`)) return;
   try {
-    await store().deleteCard({ docId, type: type as LevelKey, text: front });
+    await store().deleteCard({ docId, type: type as LevelKey, id, text: front });
     const targetLevel = curDoc().levels.find(l => l.key === type);
-    if (targetLevel) targetLevel.cards = targetLevel.cards.filter(c => c.front !== front);
-    S.allCards = S.allCards.filter(c => c.front !== front);
-    S.queue    = S.queue.filter(c => c.front !== front);
+    if (targetLevel) targetLevel.cards = targetLevel.cards.filter(c => c.id !== id);
+    S.allCards = S.allCards.filter(c => c.id !== id);
+    S.queue    = S.queue.filter(c => c.id !== id);
     S.total    = S.allCards.length;
     if (S.mode === 'seq' && S.lv) {
       if (S.lv.cards.length === 0) { S.scr = 'level'; }
