@@ -1,5 +1,6 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession, collapsedShelves } from './state';
 import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
+import { isServerMode } from './storage';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
 import { findDrillSpans, spansByStart, spansByIndex, cpLen, type DrillCandidate } from './drill-match';
@@ -420,7 +421,7 @@ function renderHome(): void {
   const collapsed = collapsedShelves();
   const streak = getStreak();
 
-  const shelves = shelvesForHome().map(sh => {
+  const shelves = shelvesForHome().map((sh, i) => {
     const isCollapsed = collapsed.has(sh.id);
     return `
     <div>
@@ -429,6 +430,7 @@ function renderHome(): void {
           <svg class="chev" style="transform:rotate(${isCollapsed ? 0 : 90}deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>
+        ${i === 0 && isServerMode() ? `<button data-action="edit-groups" class="edit">그룹 편집</button>` : ''}
       </div>
       ${isCollapsed ? '' : `<div class="covers">${sh.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('')}</div>`}
     </div>`;

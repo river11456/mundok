@@ -3,6 +3,7 @@ import { homeDocs, refsOf } from './docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
+import { showGroupEdit, hideGroupEdit, isGroupEditOpen } from './group-edit';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { showEditModal } from './editcard';
@@ -106,6 +107,7 @@ export function setupClick(): void {
       case 'overlay-ref': navMode(arg!);                break;
       case 'toggle-shelf': toggleShelf(arg!); render(); break;
       case 'resume':      resumeStudy();                break;
+      case 'edit-groups': showGroupEdit();              break;
       case 'seq-prev':    seqPrev();                             break;
       case 'seq-next':    seqNext();                             break;
       case 'restart':     restartStudy();                        break;
@@ -156,7 +158,8 @@ export function setupClick(): void {
 // ── Keyboard ──────────────────────────────────────────────
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
-    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay'].some(
+    if (e.key === 'Escape' && isGroupEditOpen()) { hideGroupEdit(); return; }
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay'].some(
       id => !document.getElementById(id)?.classList.contains('hidden')
     );
     if (modalOpen || isOnboardingOpen()) return;

@@ -141,6 +141,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._edit_card()
         elif self.path == '/api/save-grammar':
             self._save_grammar()
+        elif self.path == '/api/save-groups':
+            self._save_groups()
         else:
             self.send_error(404)
 
@@ -243,6 +245,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json(200, {'ok': True})
             else:
                 self._json(404, {'ok': False, 'error': '카드를 찾을 수 없습니다'})
+        except Exception as e:
+            self._json(500, {'ok': False, 'error': str(e)})
+
+    def _save_groups(self):
+        """서가 그룹(_groups.json) 저장 — 그룹 편집 UI 전용. 구조·docId 참조를 검증한다."""
+        try:
+            body    = self._body()
+            shelves = body.get('shelves')
+            refs    = body.get('refs')
+            if not isinstance(shelves, list) or not isinstance(refs, list):
+                raise ValueError('shelves/refs 배열이 필요합니다')
+            doc_ids = {f[:-5] for f in os.listdir(DATA_DIR)
+                       if f.endswith('.json') and not f.startswith('_')}
+            seen = set()
+            for s in shelves:
+                if not isinstance(s.get('id'), str) or not isinstance(s.get('name'), str) \
+                        or not s['name'].strip() or not isinstance(s.get('docIds'), list):
+                    raise ValueError('선반 형식 이상 (id·name·docIds 필요)')
+                if s['id'] in seen:
+                    raise ValueError(f"선반 id 중복: {s['id']}")
+                seen.add(s['id'])
+                for d in s['docIds']:
+                    if d not in doc_ids:
+                        raise ValueError(f'존재하지 않는 문헌: {d}')
+            for r in refs:
+                if r.get('parentId') not in doc_ids:
+                    raise ValueError(f"존재하지 않는 부모 문헌: {r.get('parentId')}")
+                for d in r.get('childIds', []):
+                    if d not in doc_ids:
+                        raise ValueError(f'존재하지 않는 참고문헌: {d}')
+            with doc_lock:
+                path = os.path.join(DATA_DIR, '_groups.json')
+                tmp  = path + '.tmp'
+                with open(tmp, 'w', encoding='utf-8') as f:
+                    json.dump({'shelves': shelves, 'refs': refs}, f, ensure_ascii=False, indent=2)
+                    f.write('\n')
+                os.replace(tmp, path)
+            self._json(200, {'ok': True})
         except Exception as e:
             self._json(500, {'ok': False, 'error': str(e)})
 
