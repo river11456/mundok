@@ -53,8 +53,8 @@
 
 - [ ] 전 화면(home/mode/level/study/result/모달·FAB) 새 디자인 시스템으로 재구현
 - [ ] **서가 홈 구현**: 표지 그리드+제첨, 선반=그룹(하드코딩 `DOC_GROUPS` → 사용자 정의 그룹 스키마로 일반화 + 저작 모드 그룹 편집 UI), 참고문헌 **겹침 무더기+문헌 상세 오버레이**(목록창 기능 겸용 — 모드 시작·레벨 요약·참고문헌), **이어서 학습**(마지막 학습 위치 localStorage 저장), 문헌 JSON `color` 필드(미지정 시 자동 배정), 키보드 1~9 배지 유지
-- [ ] **서체 전환**: 명조 제거, 고딕 스택 적용, WenKai 도입 — 오프라인 대응(빌드 서브셋 self-host 권장 또는 sw.js 허용목록에 jsdelivr 추가)
-- [ ] **폰트 커버리지 lint**: `lint-data.mjs`에 번들 서체 커버 밖 글자 WARN 추가
+- [x] **서체 전환** ✅ (2026-07-18, v1.2.0) — 명조 제거, 고딕 사슬(Pretendard→Noto Sans KR/TC/SC) 적용, WenKai `.kai` 도입(워드마크·char 대형 한자). 오프라인: WenKai는 콘텐츠 한자 610자 서브셋 self-host(180KB, `npm run font:subset`), Pretendard는 sw.js jsdelivr 캐싱
+- [x] **폰트 커버리지 lint** ✅ (2026-07-18, v1.2.0) — `lint-data.mjs` `missingHanChars()`: 콘텐츠 한자가 서브셋 밖이면 WARN + 재생성 안내
 - [ ] 반응형 — 보류 중이던 IMPROVEMENTS 🔴4번(모바일 레이아웃: flex 센터링 상단 잘림, 과다 여백) 여기에 흡수
 - [ ] 터치 대응 기본기(드릴다운 힌트의 hover 의존 제거 등)
 - 검증: 데스크톱 / iPhone SE급 / 아이패드 3해상도 전 화면 확인 + 기존 테스트·lint 통과

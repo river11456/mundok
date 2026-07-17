@@ -17,6 +17,19 @@
 
 ---
 
+## 📌 현재 상태 (2026-07-18 저녁) — Phase 2 1단계 완료 (서체·에셋 기반, v1.2.0)
+
+`RENEWAL.md` 5절 1단계(B1~B3) 구현 완료·커밋(`03d966d`):
+
+- **B1 폰트 스택 전환**: 명조(Noto Serif) 전면 제거 → 고딕 사슬(`Pretendard→Noto Sans KR→TC→SC`). 해서 `.kai` 클래스 신설 — 홈 워드마크·홈 카드 장식 대형 한자·char 카드 대형 한자 3곳만 적용(16px 미만·학습 본문 금지 준수). sw.js 폰트 캐시에 jsdelivr 추가(Pretendard 오프라인)
+- **B2 WenKai 서브셋 self-host**: `npm run font:subset`(`scripts/subset-font.mjs`) — 콘텐츠 한자 610자만 서브셋 → `public/fonts/wenkai-tc-sub.woff2` **180KB**(원본 14.6MB). 원본 TTF는 `.fontcache/`(gitignore) 캐시, 산출물·글자 목록·OFL 라이선스는 커밋. 새 문헌 추가로 글자가 늘면 재실행
+- **B3 커버리지 lint**: `lint-data.mjs`가 콘텐츠 한자 ⊄ 서브셋이면 WARN(재생성 안내). 단일 출처 `collectHanChars()`를 서브셋 스크립트와 공유
+- **검증**: 빌드(lint ERROR 0·폰트 WARN 0 + tsc + vite) 통과, 테스트 31/31, dist/fonts 산출 확인. ⚠ 브라우저 육안 확인은 사용자 몫(서버 기동 후 홈·char 카드 서체 확인)
+
+**다음**: 2단계 — 공용 컴포넌트·토큰 CSS (`design/tokens.md` 기준 버튼·카드·프로그레스·kbd)
+
+---
+
 ## 📌 현재 상태 (2026-07-18) — 리뉴얼 미결 사항 처리
 
 `RENEWAL.md` 4절 미결 5건 처리 (문서만 변경, v1.1.0 유지):
