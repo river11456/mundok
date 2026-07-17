@@ -26,7 +26,7 @@ const SRC_URL    = 'https://github.com/lxgw/LxgwWenkaiTC/releases/latest/downloa
 const OUT_WOFF2  = join(OUT_DIR, 'wenkai-tc-sub.woff2');
 const OUT_CHARS  = join(OUT_DIR, 'wenkai-tc-sub.chars.txt');
 
-const djs = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort()
+const djs = readdirSync(DATA_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()
   .map(f => JSON.parse(readFileSync(join(DATA_DIR, f), 'utf-8')));
 const chars = [...collectHanChars(djs)].sort().join('');
 

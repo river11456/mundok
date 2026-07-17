@@ -50,6 +50,34 @@ export function missingHanChars(djs, subsetChars) {
   return [...collectHanChars(djs)].filter(ch => !have.has(ch));
 }
 
+/**
+ * 서가 그룹(_groups.json) 무결성 검사 — 존재하지 않는 docId 참조·중복은 ERROR.
+ * (한 문헌의 복수 선반 소속은 허용 — 같은 선반 내 중복만 잡는다)
+ */
+export function lintGroups(groups, docIds) {
+  const errors = [];
+  const ids = new Set(docIds);
+  const seenShelf = new Set();
+
+  for (const s of groups.shelves ?? []) {
+    if (seenShelf.has(s.id)) errors.push(`_groups: 선반 id 중복 "${s.id}"`);
+    else seenShelf.add(s.id);
+    const seen = new Set();
+    for (const id of s.docIds ?? []) {
+      if (!ids.has(id)) errors.push(`_groups/${s.id}: 존재하지 않는 문헌 "${id}"`);
+      if (seen.has(id)) errors.push(`_groups/${s.id}: 선반 내 문헌 중복 "${id}"`);
+      else seen.add(id);
+    }
+  }
+  for (const r of groups.refs ?? []) {
+    if (!ids.has(r.parentId)) errors.push(`_groups/refs: 존재하지 않는 부모 "${r.parentId}"`);
+    for (const id of r.childIds ?? []) {
+      if (!ids.has(id)) errors.push(`_groups/refs(${r.parentId}): 존재하지 않는 참고문헌 "${id}"`);
+    }
+  }
+  return errors;
+}
+
 /** 문헌(DocJSON) 1개를 검사해 { errors, warns } 를 반환한다. (순수 함수 — 테스트 용이) */
 export function lintDoc(dj) {
   const docId  = dj.id;
@@ -59,6 +87,11 @@ export function lintDoc(dj) {
   // order 필드 (홈 화면 정렬) — 있으면 숫자여야 함
   if (dj.order !== undefined && typeof dj.order !== 'number') {
     errors.push(`${docId}: order 필드가 숫자가 아님 (${JSON.stringify(dj.order)})`);
+  }
+
+  // color 필드 (표지색) — 있으면 #RRGGBB 형식
+  if (dj.color !== undefined && !/^#[0-9A-Fa-f]{6}$/.test(String(dj.color))) {
+    errors.push(`${docId}: color 형식 이상 (${JSON.stringify(dj.color)}) — "#RRGGBB" 필요`);
   }
 
   // 문헌 내 전체 카드 id 집합 (drill 무결성용)
@@ -114,7 +147,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const errors = [];
   const warns  = [];
 
-  const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort();
+  // `_`로 시작하는 파일(_groups.json 등)은 문헌이 아니라 메타 — 별도 검사
+  const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort();
   const djs   = [];
   for (const file of files) {
     const dj = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
@@ -122,6 +156,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     const { errors: e, warns: w } = lintDoc(dj);
     errors.push(...e);
     warns.push(...w);
+  }
+
+  // 서가 그룹 무결성 (_groups.json)
+  try {
+    const groups = JSON.parse(readFileSync(join(DATA_DIR, '_groups.json'), 'utf-8'));
+    errors.push(...lintGroups(groups, djs.map(d => d.id)));
+  } catch {
+    warns.push('_groups.json 없음 — 홈 화면이 미분류 단일 선반으로 표시됩니다');
   }
 
   // 폰트 커버리지 — 콘텐츠 한자가 self-host WenKai 서브셋에 전부 있는지 (없으면 해당 글자만 고딕 폴백)

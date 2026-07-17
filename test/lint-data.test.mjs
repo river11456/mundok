@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lintDoc, collectHanChars, missingHanChars, WORDMARK } from '../scripts/lint-data.mjs';
+import { lintDoc, lintGroups, collectHanChars, missingHanChars, WORDMARK } from '../scripts/lint-data.mjs';
 
 function doc(levels) {
   return { id: 'doc1', title: 't', sub: 's', levels };
@@ -75,6 +75,31 @@ test('word 레벨은 드릴다운 0건이어도 WARN 대상이 아니다(char �
   });
   const { warns } = lintDoc(dj);
   assert.equal(warns.length, 0);
+});
+
+test('color 형식이 #RRGGBB가 아니면 ERROR', () => {
+  const bad = { ...doc({}), color: 'red' };
+  const { errors } = lintDoc(bad);
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /color 형식 이상/);
+  assert.equal(lintDoc({ ...doc({}), color: '#F8E3D1' }).errors.length, 0);
+});
+
+test('lintGroups: 정상 그룹은 ERROR 0건', () => {
+  const groups = {
+    shelves: [{ id: 'g1', name: '1학기', docIds: ['a', 'b'] }],
+    refs:    [{ parentId: 'a', childIds: ['c'] }],
+  };
+  assert.deepEqual(lintGroups(groups, ['a', 'b', 'c']), []);
+});
+
+test('lintGroups: 깨진 docId 참조·선반 내 중복은 ERROR', () => {
+  const groups = {
+    shelves: [{ id: 'g1', name: '1학기', docIds: ['a', 'a', 'ghost'] }],
+    refs:    [{ parentId: 'nope', childIds: ['ghost2'] }],
+  };
+  const errors = lintGroups(groups, ['a']);
+  assert.equal(errors.length, 4);   // 중복 a, ghost, 부모 nope, 자식 ghost2
 });
 
 test('collectHanChars: 전 레벨 text+title+워드마크의 한자만 모으고 한글·공백은 제외', () => {

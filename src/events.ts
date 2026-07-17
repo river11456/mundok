@@ -1,5 +1,5 @@
-import { S, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, touchLastStudied, DRILL_NEXT, DRILL_LEVELS } from './state';
-import { homeDocs } from './docs';
+import { S, DOCS, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { homeDocs, refsOf } from './docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
@@ -9,8 +9,16 @@ import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
-function navHome(): void  { S.grammarEditMode = false; S.navStack = []; S.scr = 'home'; S.mode = null; render(); }
-function navMode(id: string): void  { S.docId = id; S.scr = 'mode';  render(); }
+function navHome(): void  { S.grammarEditMode = false; S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
+function navMode(id: string): void  { S.docId = id; S.docOverlay = null; S.scr = 'mode';  render(); }
+
+/** 홈 표지 클릭/숫자키 — 참고문헌이 있으면 상세 오버레이, 없으면 바로 mode 화면. */
+function openDoc(id: string): void {
+  if (refsOf(id).length > 0) { S.docOverlay = id; render(); }
+  else navMode(id);
+}
+
+function closeOverlay(): void { S.docOverlay = null; render(); }
 function navLevel(m: Mode): void    { S.mode  = m;  S.scr = 'level'; render(); }
 function navBack(): void {
   S.grammarEditMode = false;
@@ -20,12 +28,12 @@ function navBack(): void {
   else if (S.scr === 'study') navLevel(S.mode!);
 }
 
-function startStudy(lvIdx: number): void {
+function startStudy(lvIdx: number, seqStart = 0): void {
   S.navStack = [];
   S.lv = curDoc().levels[lvIdx];
 
   if (S.mode === 'seq') {
-    S.seqIdx = 0;
+    S.seqIdx = Math.min(seqStart, S.lv.cards.length - 1);
     S.seqFlipped = false;
   } else {
     S.allCards = loadAnki(S.lv.cards);
@@ -36,7 +44,20 @@ function startStudy(lvIdx: number): void {
   }
 
   S.scr = 'study';
+  saveLastSession();
   render();
+}
+
+/** 홈 히어로 "이어하기" — 마지막 학습 위치로 복귀 (A3). */
+function resumeStudy(): void {
+  const last = getLastSession();
+  if (!last) return;
+  const doc = DOCS.find(d => d.id === last.docId);
+  const lvIdx = doc?.levels.findIndex(l => l.key === last.lvKey) ?? -1;
+  if (!doc || lvIdx < 0) return;
+  S.docId = doc.id;
+  S.mode  = last.mode;
+  startStudy(lvIdx, last.mode === 'seq' ? last.idx : 0);
 }
 
 function hardReset(): void {
@@ -49,11 +70,11 @@ function restartStudy(): void {
 }
 
 function seqPrev(): void {
-  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; render(); }
+  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; saveLastSession(); render(); }
 }
 
 function seqNext(): void {
-  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; render(); }
+  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; saveLastSession(); render(); }
 }
 
 // ── Click delegation ──────────────────────────────────────
@@ -69,6 +90,22 @@ export function setupClick(): void {
       case 'nav-mode':    navMode(arg!);                break;
       case 'nav-level':   navLevel(arg! as Mode);       break;
       case 'start-study': startStudy(parseInt(arg!));   break;
+      case 'open-doc':    openDoc(arg!);                break;
+      case 'close-overlay': closeOverlay();             break;
+      case 'overlay-backdrop':
+        if (e.target === btn) closeOverlay();           // 바깥(백드롭 자체) 클릭만 닫기
+        break;
+      case 'overlay-mode': {
+        const id = S.docOverlay;
+        if (!id) break;
+        S.docId = id;
+        S.docOverlay = null;
+        navLevel(arg! as Mode);                          // mode 화면 생략 → 바로 단위 선택
+        break;
+      }
+      case 'overlay-ref': navMode(arg!);                break;
+      case 'toggle-shelf': toggleShelf(arg!); render(); break;
+      case 'resume':      resumeStudy();                break;
       case 'seq-prev':    seqPrev();                             break;
       case 'seq-next':    seqNext();                             break;
       case 'restart':     restartStudy();                        break;
@@ -81,16 +118,6 @@ export function setupClick(): void {
       case 'delete-card': {
         const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
         deleteCard(S.docId!, S.lv!.key, card.id, card.front);
-        break;
-      }
-      case 'toggle-refs': {
-        const isExpanded = S.expandedRefGroups.has(arg!);
-        if (isExpanded) S.expandedRefGroups.delete(arg!);
-        else S.expandedRefGroups.add(arg!);
-        const container = document.getElementById(`ref-group-${arg!}`);
-        const chevron   = btn.querySelector<HTMLElement>('span');
-        if (container) container.classList.toggle('hidden');
-        if (chevron)   chevron.style.transform = `rotate(${isExpanded ? 0 : 90}deg)`;
         break;
       }
       case 'toggle-grammar':
@@ -148,14 +175,20 @@ export function setupKeyboard(): void {
 
     if (e.key === 'Escape') {
       if (isShortcutHelpOpen()) { hideShortcutHelp(); return; }
+      if (S.scr === 'home' && S.docOverlay) { closeOverlay(); return; }
       navBack();
       return;
     }
 
     if (S.scr === 'home') {
       const i = +e.key - 1;
-      const doc = homeDocs()[i];   // 화면 표시 순서(참고문헌 제외)와 일치
-      if (doc) navMode(doc.id);
+      if (S.docOverlay) {
+        const refs = refsOf(S.docOverlay);   // 오버레이 안에서는 참고문헌 숫자 배지 우선
+        if (refs[i]) navMode(refs[i].id);
+        return;
+      }
+      const doc = homeDocs()[i];   // 서가 표시 순서(참고문헌 제외)와 일치
+      if (doc) openDoc(doc.id);
 
     } else if (S.scr === 'mode') {
       if (e.key === '1') navLevel('seq');

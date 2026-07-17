@@ -23,6 +23,7 @@ export interface Doc {
   id: string;
   title: string;
   sub: string;
+  color?: string;   // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
   levels: Level[];
 }
 
@@ -92,5 +93,25 @@ export interface DocJSON {
   title:  string;
   sub:    string;
   order?: number;    // 홈 화면 정렬 우선순위 (작을수록 앞). 없으면 파일명 가나다순 뒤에 배치.
+  color?: string;    // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
   levels: Partial<Record<LevelKey, CardJSON[]>>;
+}
+
+// ── 서가 그룹 스키마 (src/data/_groups.json — 문헌 JSON과 별도 파일) ────────
+//   선반(shelves) = 홈 화면 그룹, refs = 참고문헌(부모-자식, 겹침 무더기+오버레이).
+
+export interface ShelfJSON {
+  id:     string;    // 안정 id (g1, g2, …)
+  name:   string;    // 선반 표시 이름
+  docIds: string[];  // 소속 문헌 (표시 순서)
+}
+
+export interface RefGroupJSON {
+  parentId: string;
+  childIds: string[];
+}
+
+export interface GroupsJSON {
+  shelves: ShelfJSON[];
+  refs:    RefGroupJSON[];
 }

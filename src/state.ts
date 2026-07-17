@@ -1,4 +1,4 @@
-import type { Card, Doc, Level, Mode, Screen, Side } from './types';
+import type { Card, Doc, Level, LevelKey, Mode, Screen, Side } from './types';
 import { DOCS } from './docs';
 
 export { DOCS };
@@ -23,7 +23,8 @@ export const S = {
   grammarOn:       false,
   grammarEditMode: false,
 
-  expandedRefGroups: new Set<string>(),
+  /** 홈 문헌 상세 오버레이 — 열려 있으면 해당 docId */
+  docOverlay: null as string | null,
 };
 
 export const DRILL_NEXT: Record<string, string> = {
@@ -114,6 +115,57 @@ export function getDocLastStudied(docId: string): string | null {
   }
   if (!latest) return null;
   return new Date(latest).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+// ── 이어서 학습 (A3) — 마지막 학습 위치를 저장해 홈 히어로에서 원터치 복귀 ──
+const LAST_KEY = `${LS}/last-session`;
+
+export interface LastSession {
+  docId: string;
+  lvKey: LevelKey;
+  mode:  Mode;
+  idx:   number;   // seq: 현재 카드 인덱스 / anki: 완료 장수 (표시용)
+  total: number;
+  ts:    number;
+}
+
+export function saveLastSession(): void {
+  if (!S.docId || !S.lv || !S.mode) return;
+  const s: LastSession = {
+    docId: S.docId,
+    lvKey: S.lv.key,
+    mode:  S.mode,
+    idx:   S.mode === 'seq' ? S.seqIdx : S.total - S.queue.length,
+    total: S.mode === 'seq' ? S.lv.cards.length : S.total,
+    ts:    Date.now(),
+  };
+  localStorage.setItem(LAST_KEY, JSON.stringify(s));
+}
+
+export function getLastSession(): LastSession | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null') as LastSession | null;
+    if (d && typeof d.docId === 'string' && typeof d.lvKey === 'string'
+      && (d.mode === 'seq' || d.mode === 'anki') && typeof d.idx === 'number') return d;
+  } catch { /* ignore */ }
+  return null;
+}
+
+// ── 선반(그룹) 접기 상태 (A1) ─────────────────────────────
+const SHELF_KEY = `${LS}/shelves-collapsed`;
+
+export function collapsedShelves(): Set<string> {
+  try {
+    const a = JSON.parse(localStorage.getItem(SHELF_KEY) ?? '[]');
+    if (Array.isArray(a)) return new Set(a.filter((x): x is string => typeof x === 'string'));
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+export function toggleShelf(id: string): void {
+  const s = collapsedShelves();
+  if (s.has(id)) s.delete(id); else s.add(id);
+  localStorage.setItem(SHELF_KEY, JSON.stringify([...s]));
 }
 
 // ── Daily streak ──────────────────────────────────────────

@@ -27,6 +27,11 @@ export function store(): Store {
   return _store;
 }
 
+/** 관리자 저작 모드(server.py 감지) 여부 — 저작 전용 UI(그룹 편집 등) 노출 판단용. */
+export function isServerMode(): boolean {
+  return _store instanceof ServerStore;
+}
+
 // ── 백업: 내보내기 / 가져오기 (정적 모드 사용자 데이터 보험) ──────────────
 //   카드 편집 델타(userdata)뿐 아니라 안키 오답·최근 학습일·streak 등
 //   'hanja-v2/' 접두사 아래 모든 학습 기록을 함께 내보낸다.

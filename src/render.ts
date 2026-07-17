@@ -1,5 +1,5 @@
-import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied } from './state';
-import { DOC_GROUPS, homeDocs } from './docs';
+import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession, collapsedShelves } from './state';
+import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
 import { findDrillSpans, spansByStart, spansByIndex, cpLen, type DrillCandidate } from './drill-match';
@@ -311,81 +311,146 @@ function cardActions(lvKey?: string): string {
   </div>`;
 }
 
-function renderHome(): void {
-  const groupMap = new Map(DOC_GROUPS.map(g => [g.parentId, g.childIds]));
+// ── 서가 홈 (Phase 2 4단계 — 목업 final.html 화면 1) ─────────
 
-  const mainBtn = (d: Doc): string => {
-    const totalCards  = d.levels.reduce((s, l) => s + l.cards.length, 0);
-    const lastStudied = getDocLastStudied(d.id);
-    const bgChar      = esc(d.title[0] ?? '');
-    return `
-    <button data-action="nav-mode" data-arg="${d.id}"
-      class="relative w-full text-left px-7 py-6 bg-white border border-stone-200 rounded-2xl hover:border-stone-400 hover:shadow-md transition-all group overflow-hidden">
-      <div class="absolute right-4 bottom-0 hanja kai leading-none select-none pointer-events-none
-                  text-[88px] text-stone-100 group-hover:text-stone-200 transition-colors">
-        ${bgChar}
+function docTotalCards(d: Doc): number {
+  return d.levels.reduce((s, l) => s + l.cards.length, 0);
+}
+
+function heroWhen(ts: number): string {
+  const key = (x: Date) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
+  const d = new Date(ts);
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  if (key(d) === key(new Date())) return '오늘';
+  if (key(d) === key(yest))       return '어제';
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+/** 이어서 학습 히어로 — 기록이 없거나 문헌·레벨이 사라졌으면 빈 문자열. */
+function heroHtml(): string {
+  const last = getLastSession();
+  if (!last) return '';
+  const doc = DOCS.find(d => d.id === last.docId);
+  const lv  = doc?.levels.find(l => l.key === last.lvKey);
+  if (!doc || !lv) return '';
+  const modeLabel = last.mode === 'seq' ? '순차' : '안키';
+  const cur = last.mode === 'seq' ? Math.min(last.idx, lv.cards.length - 1) + 1 : last.idx;
+  return `
+    <div class="hero">
+      <div class="hero-cover" style="--cbg:${docColor(doc)}"><span class="slip kai">${esc(doc.title)}</span></div>
+      <div class="hero-main">
+        <div class="hero-eyebrow">이어서 학습</div>
+        <div class="hero-title"><span class="kai hanja">${esc(doc.title)}</span> <span class="lv">· ${esc(lv.label)} · ${modeLabel}</span></div>
+        <div class="hero-sub">${heroWhen(last.ts)} 학습 · <span class="num">${cur} / ${last.total}</span> 진행</div>
       </div>
-      <div class="relative">
-        <div class="hanja text-lg text-stone-900">${esc(d.title)}</div>
-        <div class="text-sm text-stone-400 mt-0.5">${esc(d.sub)}</div>
-        <div class="flex items-center gap-2 mt-3">
-          <span class="text-xs text-stone-300">${totalCards}장</span>
-          ${lastStudied ? `<span class="text-xs text-stone-300">·</span><span class="text-xs text-stone-400">최근 학습 ${lastStudied}</span>` : ''}
-        </div>
-      </div>
+      <button data-action="resume" class="hero-btn">이어하기</button>
+    </div>`;
+}
+
+function coverHtml(d: Doc, key: number | undefined): string {
+  const refs   = refsOf(d.id);
+  const recent = getDocLastStudied(d.id);
+  const coverBtn = `
+    <button data-action="open-doc" data-arg="${d.id}" class="cover" style="--cbg:${docColor(d)}">
+      <span class="slip kai hanja">${esc(d.title)}</span>
+      ${key !== undefined && key <= 9 ? `<span class="key num">${key}</span>` : ''}
+      <span class="cmeta num">${docTotalCards(d)}장</span>
+      ${recent ? `<span class="recent">${esc(recent)}</span>` : ''}
     </button>`;
-  };
+  const wrapped = refs.length
+    ? `<div class="case-wrap">
+         <span class="stack">${refs.slice(0, 3).map(r => `<i style="background:${docColor(r)}"></i>`).join('')}</span>
+         ${coverBtn}
+       </div>`
+    : coverBtn;
+  return `
+    <div class="book">
+      ${wrapped}
+      <div class="book-label"><div class="k">${esc(d.sub)}</div></div>
+    </div>`;
+}
 
-  const refBtn = (d: Doc): string => {
-    const totalCards = d.levels.reduce((s, l) => s + l.cards.length, 0);
-    return `
-    <button data-action="nav-mode" data-arg="${d.id}"
-      class="w-full text-left px-4 py-3 bg-stone-50 border border-stone-100 rounded-xl hover:border-stone-300 hover:bg-white hover:shadow-sm transition-all">
-      <div class="flex items-center gap-2">
-        <div class="hanja text-base text-stone-700">${esc(d.title)}</div>
-        <div class="text-xs text-stone-400 truncate flex-1">${esc(d.sub)}</div>
-        <div class="text-xs text-stone-300 shrink-0">${totalCards}장</div>
-      </div>
-    </button>`;
-  };
-
-  const items = homeDocs()
-    .map(d => {
-      const childIds = groupMap.get(d.id);
-      if (!childIds) return mainBtn(d);
-      const childDocs = childIds
-        .map(id => DOCS.find(doc => doc.id === id))
-        .filter((doc): doc is Doc => doc !== undefined);
-      const expanded = S.expandedRefGroups.has(d.id);
-      return `
-      <div class="flex flex-col gap-1.5">
-        ${mainBtn(d)}
-        <div class="ml-3 pl-3 border-l-2 border-stone-100 flex flex-col gap-1">
-          <button data-action="toggle-refs" data-arg="${d.id}"
-            class="flex items-center gap-1.5 px-1 pt-0.5 w-fit text-xs text-stone-300 hover:text-stone-500 transition-colors">
-            <span style="display:inline-block;transition:transform 0.2s;transform:rotate(${expanded ? 90 : 0}deg)">▶</span>
-            참고문헌 ${childDocs.length}
-          </button>
-          <div id="ref-group-${d.id}" class="${expanded ? '' : 'hidden'} flex flex-col gap-1">
-            ${childDocs.map(refBtn).join('')}
+/** 문헌 상세 오버레이 — 참고문헌 보유 문헌의 표지 클릭 시. 목록창 기능 겸용. */
+function docOverlayHtml(docId: string): string {
+  const d = DOCS.find(x => x.id === docId);
+  if (!d) return '';
+  const refs   = refsOf(docId);
+  const recent = getDocLastStudied(docId);
+  return `
+  <div class="doc-overlay" data-action="overlay-backdrop">
+    <div class="detail">
+      <button data-action="close-overlay" class="close" title="닫기">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <div class="detail-head">
+        <div class="detail-cover" style="--cbg:${docColor(d)}"><span class="slip kai hanja">${esc(d.title)}</span></div>
+        <div>
+          <div class="detail-title kai hanja">${esc(d.title)}</div>
+          <div class="detail-sub">${esc(d.sub)} · <span class="num">${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
+          <div class="detail-actions">
+            <button data-action="overlay-mode" data-arg="anki" class="btn-primary">안키 모드</button>
+            <button data-action="overlay-mode" data-arg="seq" class="btn-ghost">순차 재생</button>
           </div>
         </div>
-      </div>`;
-    })
-    .join('');
+      </div>
+      <div class="lv-chips">
+        ${d.levels.map(lv => `<span class="lv-chip"><b class="num">${lv.cards.length}</b>${esc(lv.label)}</span>`).join('')}
+      </div>
+      ${refs.length ? `
+      <div class="detail-refs">
+        <h3>참고문헌 ${refs.length}</h3>
+        <div class="dref-grid">
+          ${refs.map((r, i) => `
+          <div class="dref">
+            <button data-action="overlay-ref" data-arg="${r.id}" class="dref-cover" style="--cbg:${docColor(r)}">
+              <span class="slip kai hanja">${esc(r.title)}</span><span class="key num">${i + 1}</span>
+              <span class="cmeta num">${docTotalCards(r)}장</span>
+            </button>
+            <div class="k">${esc(r.sub)}</div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+      <div class="detail-foot">Esc 또는 바깥을 클릭하면 닫힙니다</div>
+    </div>
+  </div>`;
+}
+
+function renderHome(): void {
+  const keyOf = new Map(homeDocs().map((d, i) => [d.id, i + 1]));
+  const collapsed = collapsedShelves();
+  const streak = getStreak();
+
+  const shelves = shelvesForHome().map(sh => {
+    const isCollapsed = collapsed.has(sh.id);
+    return `
+    <div>
+      <div class="shelf-head">
+        <button data-action="toggle-shelf" data-arg="${sh.id}" class="shelf-toggle" title="${isCollapsed ? '펼치기' : '접기'}">
+          <svg class="chev" style="transform:rotate(${isCollapsed ? 0 : 90}deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>
+      </div>
+      ${isCollapsed ? '' : `<div class="covers">${sh.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('')}</div>`}
+    </div>`;
+  }).join('');
 
   $app().innerHTML = `
-    <div class="screen-enter w-full max-w-lg flex flex-col gap-8">
-      <div class="pt-6 pb-2">
-        <div class="hanja kai text-5xl tracking-widest text-stone-900">文讀</div>
-        <div class="text-sm text-stone-400 mt-2 tracking-wide">한의학 한문 학습</div>
+    <div class="screen-enter home">
+      <div class="home-head">
+        <div>
+          <div class="wordmark kai hanja">文讀</div>
+          <div class="tagline">한의학 한문 학습</div>
+        </div>
+        ${streak.count > 0 ? `<div class="streak-pill">연속 학습 <b class="num">${streak.count}</b>일</div>` : ''}
       </div>
-      <div class="stagger flex flex-col gap-3">${items}</div>
-      <div class="flex flex-col gap-1 pb-2">
-        <div class="text-xs text-stone-300 leading-relaxed">모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다. 공부하면서 직접 확인하고 수정하며 사용하세요.</div>
-        <div class="text-xs text-stone-300 tracking-wide mt-1">v${version} · KJH</div>
+      ${heroHtml()}
+      ${shelves}
+      <div class="home-foot">
+        모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다. 공부하면서 직접 확인하고 수정하며 사용하세요.
+        <div class="ver">v${version} · KJH</div>
       </div>
-    </div>`;
+    </div>
+    ${S.docOverlay ? docOverlayHtml(S.docOverlay) : ''}`;
 }
 
 function renderMode(): void {
