@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lintDoc } from '../scripts/lint-data.mjs';
+import { lintDoc, collectHanChars, missingHanChars, WORDMARK } from '../scripts/lint-data.mjs';
 
 function doc(levels) {
   return { id: 'doc1', title: 't', sub: 's', levels };
@@ -75,4 +75,23 @@ test('word 레벨은 드릴다운 0건이어도 WARN 대상이 아니다(char �
   });
   const { warns } = lintDoc(dj);
   assert.equal(warns.length, 0);
+});
+
+test('collectHanChars: 전 레벨 text+title+워드마크의 한자만 모으고 한글·공백은 제외', () => {
+  const dj = { id: 'doc1', title: '扁鵲', sub: '편작', levels: {
+    char:     [{ id: 'c1', text: '驕', reading: '교만할 교', meaning: '', note: '' }],
+    sentence: [{ id: 's1', text: '驕恣不論 一也', reading: '', meaning: '뜻풀이', note: '' }],
+  } };
+  const chars = collectHanChars([dj]);
+  for (const ch of ['扁', '鵲', '驕', '恣', '不', '論', '一', '也', ...WORDMARK]) assert.ok(chars.has(ch), ch);
+  assert.ok(!chars.has('편'));
+  assert.ok(!chars.has(' '));
+});
+
+test('missingHanChars: 서브셋에 없는 한자만 반환, 커버 완전하면 빈 배열', () => {
+  const dj = { id: 'doc1', title: '甲', sub: '', levels: {
+    char: [{ id: 'c1', text: '乙', reading: '', meaning: '', note: '' }],
+  } };
+  assert.deepEqual(missingHanChars([dj], '甲乙' + WORDMARK), []);
+  assert.deepEqual(missingHanChars([dj], '甲' + WORDMARK), ['乙']);
 });

@@ -24,6 +24,32 @@ const DRILL_LEVELS = { paragraph: ['sentence'], sentence: ['word', 'char'], word
 
 function trunc(s) { return s.length > 28 ? s.slice(0, 28) + '…' : s; }
 
+/** 홈 워드마크 — 콘텐츠 밖이지만 해서(WenKai)로 표시되므로 서브셋에 포함해야 한다. */
+export const WORDMARK = '文讀';
+
+/**
+ * 문헌들에서 해서(WenKai) 서브셋에 필요한 한자 전체를 모은다 (Set).
+ * 대상: 전 레벨 카드 text + title + sub + 워드마크. (뜻·독음은 한글 = 고딕 사슬 담당)
+ * 서브셋 생성(scripts/subset-font.mjs)과 커버리지 lint가 같은 로직을 공유한다.
+ */
+export function collectHanChars(djs) {
+  const out = new Set();
+  const add = (s) => { for (const ch of s ?? '') if (/\p{Script=Han}/u.test(ch)) out.add(ch); };
+  add(WORDMARK);
+  for (const dj of djs) {
+    add(dj.title);
+    add(dj.sub);
+    for (const k of LEVEL_ORDER) for (const c of dj.levels[k] ?? []) add(c.text);
+  }
+  return out;
+}
+
+/** 서브셋(chars 문자열/Set)에 없는 콘텐츠 한자 목록. 비면 커버리지 완전. */
+export function missingHanChars(djs, subsetChars) {
+  const have = new Set(subsetChars);
+  return [...collectHanChars(djs)].filter(ch => !have.has(ch));
+}
+
 /** 문헌(DocJSON) 1개를 검사해 { errors, warns } 를 반환한다. (순수 함수 — 테스트 용이) */
 export function lintDoc(dj) {
   const docId  = dj.id;
@@ -89,11 +115,25 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const warns  = [];
 
   const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json')).sort();
+  const djs   = [];
   for (const file of files) {
     const dj = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
+    djs.push(dj);
     const { errors: e, warns: w } = lintDoc(dj);
     errors.push(...e);
     warns.push(...w);
+  }
+
+  // 폰트 커버리지 — 콘텐츠 한자가 self-host WenKai 서브셋에 전부 있는지 (없으면 해당 글자만 고딕 폴백)
+  const manifestPath = join(__dirname, '..', 'public', 'fonts', 'wenkai-tc-sub.chars.txt');
+  try {
+    const subsetChars = readFileSync(manifestPath, 'utf-8');
+    const missing = missingHanChars(djs, subsetChars);
+    if (missing.length) {
+      warns.push(`폰트: WenKai 서브셋에 없는 한자 ${missing.length}자 "${trunc(missing.join(''))}" → npm run font:subset 재실행`);
+    }
+  } catch {
+    warns.push('폰트: WenKai 서브셋 미생성 (public/fonts/) → npm run font:subset 실행');
   }
 
   console.log(`\n콘텐츠 lint — 문헌 ${files.length}개\n`);
@@ -109,7 +149,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     // 종류별 카운트 요약
     const dup  = warns.filter(w => w.includes('중복 텍스트')).length;
     const miss = warns.filter(w => w.includes('드릴다운 매칭 0건')).length;
-    console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss})`);
+    const font = warns.filter(w => w.startsWith('폰트:')).length;
+    console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss}, 폰트 ${font})`);
     warns.forEach(w => console.log(`   ${w}`));
   } else {
     console.log(`✅ WARN 0건`);

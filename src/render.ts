@@ -13,7 +13,7 @@ type CardStyle = { wrap: string; front: string; backAlign: string };
 function cardStyle(key: string): CardStyle {
   switch (key) {
     case 'char':
-      return { wrap: 'max-w-2xl',  front: 'hanja text-8xl tracking-widest text-center', backAlign: 'text-center' };
+      return { wrap: 'max-w-2xl',  front: 'hanja kai text-8xl tracking-widest text-center', backAlign: 'text-center' };
     case 'word':
       return { wrap: 'max-w-2xl',  front: 'hanja text-5xl tracking-wide text-center',   backAlign: 'text-center' };
     case 'sentence':
@@ -129,7 +129,7 @@ function renderGrammarSentence(
   // ── 표시 모드 ──────────────────────────────────────────────
   const drillMap = spansByIndex(findDrillSpans(front, drillCandidates(front)));
 
-  const READ_RT = `font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e`;
+  const READ_RT = `font-size:12px;font-family:'Pretendard Variable',Pretendard,'Noto Sans KR',sans-serif;color:#a8a29e`;
   const SVO_BG: Record<string, string> = {
     S: '#fef2f2', V: '#eff6ff', O: '#f0fdf4',
   };
@@ -338,7 +338,7 @@ function renderHome(): void {
     return `
     <button data-action="nav-mode" data-arg="${d.id}"
       class="relative w-full text-left px-7 py-6 bg-white border border-stone-200 rounded-2xl hover:border-stone-400 hover:shadow-md transition-all group overflow-hidden">
-      <div class="absolute right-4 bottom-0 hanja leading-none select-none pointer-events-none
+      <div class="absolute right-4 bottom-0 hanja kai leading-none select-none pointer-events-none
                   text-[88px] text-stone-100 group-hover:text-stone-200 transition-colors">
         ${bgChar}
       </div>
@@ -394,7 +394,7 @@ function renderHome(): void {
   $app().innerHTML = `
     <div class="screen-enter w-full max-w-lg flex flex-col gap-8">
       <div class="pt-6 pb-2">
-        <div class="hanja text-5xl tracking-widest text-stone-900">文讀</div>
+        <div class="hanja kai text-5xl tracking-widest text-stone-900">文讀</div>
         <div class="text-sm text-stone-400 mt-2 tracking-wide">한의학 한문 학습</div>
       </div>
       <div class="stagger flex flex-col gap-3">${items}</div>

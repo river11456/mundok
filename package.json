@@ -1,17 +1,19 @@
 {
   "name": "mundok",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "lint": "node scripts/lint-data.mjs",
+    "font:subset": "node scripts/subset-font.mjs",
     "build": "node scripts/lint-data.mjs && tsc --noEmit && vite build",
     "test": "node --experimental-strip-types --test",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
+    "subset-font": "^2.5.0",
     "tailwindcss": "^4.3.2",
     "typescript": "^5.4.0",
     "vite": "^5.4.0"

@@ -21,8 +21,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-function isGoogleFont(url) {
-  return url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
+function isFontCdn(url) {
+  return url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com'
+    || url.hostname === 'cdn.jsdelivr.net'; // Pretendard 웹폰트 (WenKai는 self-host라 CDN 불필요)
 }
 
 self.addEventListener('fetch', (event) => {
@@ -30,8 +31,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Google Fonts: 글꼴 파일은 사실상 불변이므로 캐시 우선 — 오프라인에서도 한자 폰트 유지
-  if (isGoogleFont(url)) {
+  // 폰트 CDN(Google Fonts·jsdelivr): 글꼴 파일은 사실상 불변이므로 캐시 우선 — 오프라인에서도 폰트 유지
+  if (isFontCdn(url)) {
     event.respondWith(
       caches.open(FONT_CACHE).then(async (cache) => {
         const cached = await cache.match(req);

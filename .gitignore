@@ -8,5 +8,8 @@ __pycache__/
 .claude/
 문독.app/
 
+# 폰트 서브셋 원본 캐시 (scripts/subset-font.mjs 가 다운로드 — 산출물만 커밋)
+.fontcache/
+
 # 빌드 산출물 — CI(GitHub Actions)가 빌드하므로 커밋하지 않음
 dist/
