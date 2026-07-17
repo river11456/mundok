@@ -1,6 +1,8 @@
-// 文讀 서비스 워커 — 앱 셸(HTML/JS/CSS)과 Google Fonts를 캐싱해 오프라인 사용을 지원한다.
-// 캐시 무효화: 배포 시 내용이 크게 바뀌면 아래 버전 문자열을 올릴 것(자동화 없음, 소규모 앱이라 수동으로 충분).
-const CACHE_NAME = 'mundok-shell-v2'; // v2: 서체 리뉴얼(명조→고딕+WenKai) — 셸이 바뀌는 배포마다 올릴 것
+// 文讀 서비스 워커 — 앱 셸(HTML/JS/CSS)과 폰트를 캐싱해 오프라인 사용을 지원한다.
+// 셸 캐시: 빌드 시 vite(sw-cache-version 플러그인)가 __APP_VERSION__을 package.json 버전으로 치환
+//   → 릴리스(=버전업)마다 자동 무효화. 수동 관리 불필요.
+// 폰트 캐시: 폰트 파일은 사실상 불변이라 수동 버전 유지 (폰트 구성이 바뀔 때만 올릴 것).
+const CACHE_NAME = 'mundok-shell-__APP_VERSION__';
 const FONT_CACHE = 'mundok-fonts-v2'; // v2: Noto Serif 폐기 (구 명조 캐시 정리)
 const CORE_ASSETS = ['./', './index.html', './manifest.json'];
 
