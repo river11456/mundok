@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>최종 통합 시안 — 文讀 리뉴얼 (GoodNotes 라이브러리)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@latest/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@latest/style.css">
+<style>
+/* ── 확정 토큰: GoodNotes 라이브러리 문법 ────────
+   쿨 뉴트럴 크롬 + 파스텔 표지가 온기 담당.
+   한자 서체 3역할: 해서(홈 표지·대형 한자) / 고딕(학습 본문) / 위계는 굵기·크기.
+   귀여움은 형태에서: 큰 라운드 · 알약 버튼 · 스프링 호버. */
+:root {
+  --bg:#F4F4F6; --surface:#FFFFFF;
+  --ink:#1D1D1F; --sub:#6E7075; --faint:#AEB0B6;
+  --line:rgba(0,0,0,.08); --line-soft:rgba(0,0,0,.05);
+  --accent:#2E7CF6; --accent-deep:#1D66DB;
+  --s-fg:#D70015; --s-bg:rgba(255,59,48,.09);
+  --v-fg:#0040DD; --v-bg:rgba(0,122,255,.10);
+  --o-fg:#1D7A33; --o-bg:rgba(52,199,89,.13);
+  --fail:#D70015;
+  --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  background:#E6E7EA; color:var(--ink);
+  font-family:"Pretendard Variable",Pretendard,"Noto Sans KR","Noto Sans TC","Noto Sans SC",-apple-system,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px; padding-bottom:80px;
+}
+.kai { font-family:"LXGW WenKai TC","LXGW WenKai","Pretendard Variable",sans-serif; font-weight:400; }
+button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+.num { font-variant-numeric:tabular-nums; }
+
+/* ── 시안 메타 헤더 (시안 자체가 아님) ─────────── */
+.meta { max-width:1200px; margin:0 auto; padding:40px 24px 8px; }
+.meta .tag { font-size:11px; font-weight:700; letter-spacing:.12em; color:#8A8D94; }
+.meta h1 { font-size:22px; font-weight:800; margin-top:6px; }
+.meta p { font-size:13.5px; color:#5E626B; margin-top:8px; line-height:1.65; max-width:680px; }
+.meta nav { display:flex; gap:14px; margin-top:14px; font-size:13px; font-weight:600; flex-wrap:wrap; }
+.meta nav a { color:#0071E3; text-decoration:none; }
+.meta nav a.here { color:#8A8D94; pointer-events:none; }
+
+/* ── 화면 프레임 ──────────────────────────────── */
+.frame { max-width:1200px; margin:28px auto; border-radius:14px; overflow:hidden; box-shadow:0 10px 44px rgba(0,0,0,.13); border:1px solid rgba(0,0,0,.06); }
+.frame-bar { display:flex; align-items:center; gap:7px; padding:11px 14px; background:#FDFDFD; border-bottom:1px solid rgba(0,0,0,.06); }
+.frame-bar i { width:11px; height:11px; border-radius:50%; }
+.frame-bar i:nth-child(1){background:#FF5F57}.frame-bar i:nth-child(2){background:#FEBC2E}.frame-bar i:nth-child(3){background:#28C840}
+.frame-bar span { margin-left:8px; font-size:12px; color:#8A8F98; }
+.frame-body { position:relative; background:var(--bg); padding:clamp(28px,5vw,64px) clamp(16px,4vw,48px); display:flex; justify-content:center; }
+
+/* ── 홈: 서가(書架) ───────────────────────────── */
+.home { width:100%; max-width:680px; display:flex; flex-direction:column; gap:30px; }
+.home-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; }
+.wordmark { font-size:56px; letter-spacing:.06em; line-height:1; }
+.tagline { font-size:13.5px; color:var(--sub); margin-top:12px; }
+.streak-pill {
+  display:flex; align-items:baseline; gap:4px; padding:7px 13px;
+  background:var(--surface); border:1px solid var(--line); border-radius:999px;
+  font-size:12.5px; color:var(--sub); box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.streak-pill b { font-size:15px; color:var(--accent-deep); font-weight:700; }
+
+/* 이어서 학습 히어로 */
+.hero {
+  display:flex; align-items:center; gap:20px; padding:18px 20px;
+  background:var(--surface); border:1px solid var(--line-soft); border-radius:20px;
+  box-shadow:var(--shadow);
+}
+.hero-cover {
+  width:64px; aspect-ratio:3/4.1; border-radius:5px 9px 9px 5px; background:var(--cbg,#E3EDD9);
+  position:relative; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,.10); overflow:hidden;
+}
+.hero-cover .slip { position:absolute; top:6px; left:6px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#FFFFFF; border:1px solid rgba(0,0,0,.08); border-radius:2px; padding:4px 1.5px;
+  font-size:8.5px; letter-spacing:.12em; }
+.hero-main { flex:1; }
+.hero-eyebrow { font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--accent-deep); }
+.hero-title { font-size:19px; margin-top:5px; }
+.hero-title .lv { font-size:13px; color:var(--sub); font-family:"Pretendard Variable",Pretendard,sans-serif; }
+.hero-sub { font-size:12.5px; color:var(--sub); margin-top:5px; }
+.hero-btn {
+  padding:11px 20px; border-radius:999px; background:var(--accent); color:#fff;
+  font-size:13.5px; font-weight:700; flex-shrink:0;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s;
+  box-shadow:0 3px 10px rgba(46,124,246,.35);
+}
+.hero-btn:hover { transform:translateY(-2px); background:var(--accent-deep); }
+
+/* 선반(그룹) */
+.shelf-head { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.shelf-head .chev { color:var(--faint); transition:transform .2s; }
+.shelf-head h2 { font-size:12.5px; font-weight:700; letter-spacing:.13em; color:var(--sub); }
+.shelf-head .cnt { font-size:12px; color:var(--faint); }
+.shelf-head .edit { margin-left:auto; font-size:11.5px; color:var(--faint); padding:3px 10px; border:1px solid var(--line-soft); border-radius:999px; transition:color .15s,border-color .15s; }
+.shelf-head .edit:hover { color:var(--ink); border-color:rgba(0,0,0,.2); }
+.covers { display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:20px 16px; }
+.book { display:flex; flex-direction:column; gap:9px; }
+.cover {
+  position:relative; aspect-ratio:3/4.1; border-radius:6px 12px 12px 6px;
+  background:var(--cbg,#F8E3D1); text-align:left; width:100%; overflow:hidden;
+  box-shadow:0 3px 10px rgba(0,0,0,.09);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s;
+}
+.cover:hover { transform:translateY(-4px) rotate(-.6deg); box-shadow:0 10px 22px rgba(0,0,0,.16); }
+.cover .slip {
+  position:absolute; top:9px; left:9px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#FFFFFF; border:1px solid rgba(0,0,0,.08); border-radius:3px;
+  padding:8px 3px; font-size:14px; letter-spacing:.14em; line-height:1.15;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+.cover .key {
+  position:absolute; top:8px; right:8px; width:19px; height:19px; border-radius:50%;
+  background:rgba(255,255,255,.7); color:var(--sub); font-size:10.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  font-family:"Pretendard Variable",Pretendard,sans-serif;
+}
+.cover .cmeta {
+  position:absolute; left:10px; bottom:9px; font-size:11px; color:rgba(0,0,0,.48);
+  font-family:"Pretendard Variable",Pretendard,sans-serif; font-weight:600;
+}
+.cover .recent {
+  position:absolute; right:9px; bottom:9px; font-size:10px; font-weight:700;
+  background:rgba(255,255,255,.78); color:var(--accent-deep); border-radius:99px; padding:2px 7px;
+  font-family:"Pretendard Variable",Pretendard,sans-serif;
+}
+/* 참고문헌 있는 문헌 — 뒤에 여러 권이 자연스럽게 겹친 무더기 */
+.case-wrap { position:relative; }
+.case-wrap .stack { position:absolute; inset:0; pointer-events:none; }
+.case-wrap .stack i {
+  position:absolute; inset:0; border-radius:6px 12px 12px 6px;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.case-wrap .stack i:nth-child(1) { transform:translate(9px,-8px) rotate(2.4deg); }
+.case-wrap .stack i:nth-child(2) { transform:translate(6px,-5px) rotate(-1.6deg); }
+.case-wrap .stack i:nth-child(3) { transform:translate(3px,-2.5px) rotate(.8deg); }
+.case-wrap .cover { position:relative; z-index:1; }
+/* 호버 시 뒤 책들이 살짝 부채꼴로 벌어짐 */
+.case-wrap:hover .stack i:nth-child(1) { transform:translate(12px,-11px) rotate(3.6deg); }
+.case-wrap:hover .stack i:nth-child(2) { transform:translate(8px,-7px) rotate(-2.4deg); }
+.case-wrap:hover .stack i:nth-child(3) { transform:translate(4px,-3.5px) rotate(1.2deg); }
+.book-label { text-align:center; }
+.book-label .k { font-size:12.5px; color:var(--sub); font-weight:600; }
+/* 문헌 상세 오버레이 (= 함 열기 · 목록창 기능 겸용) */
+.doc-overlay {
+  position:absolute; inset:0; z-index:10;
+  background:rgba(110,115,122,.28);
+  backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:64px 20px 40px;
+}
+.doc-overlay[hidden] { display:none; }
+.detail {
+  width:100%; max-width:520px; background:var(--surface); border-radius:24px;
+  box-shadow:0 24px 64px rgba(0,0,0,.24); padding:26px 26px 22px; position:relative;
+  animation:pop .28s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pop { from { transform:scale(.92) translateY(8px); opacity:0; } }
+.detail .close { position:absolute; top:14px; right:14px; color:var(--faint); padding:7px; border-radius:99px; display:flex; transition:background .15s,color .15s; }
+.detail .close:hover { background:rgba(0,0,0,.05); color:var(--ink); }
+.detail-head { display:flex; gap:20px; align-items:center; }
+.detail-cover {
+  width:88px; aspect-ratio:3/4.1; flex-shrink:0; border-radius:5px 10px 10px 5px;
+  background:var(--cbg,#E3EDD9); position:relative; box-shadow:0 3px 10px rgba(0,0,0,.10);
+}
+.detail-cover .slip {
+  position:absolute; top:7px; left:7px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:2px;
+  padding:6px 2px; font-size:10.5px; letter-spacing:.12em;
+}
+.detail-title { font-size:24px; }
+.detail-sub { font-size:13px; color:var(--sub); margin-top:5px; }
+.detail-actions { display:flex; gap:9px; margin-top:15px; }
+.btn-primary {
+  padding:10px 18px; border-radius:999px; background:var(--accent); color:#fff;
+  font-size:13px; font-weight:700; box-shadow:0 3px 10px rgba(46,124,246,.3);
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s;
+}
+.btn-primary:hover { transform:translateY(-1px); background:var(--accent-deep); }
+.btn-ghost {
+  padding:10px 18px; border-radius:999px; border:1px solid var(--line); color:var(--sub);
+  font-size:13px; font-weight:600; transition:border-color .15s, color .15s;
+}
+.btn-ghost:hover { border-color:rgba(29,102,219,.45); color:var(--ink); }
+.lv-chips { display:flex; gap:8px; margin-top:20px; flex-wrap:wrap; }
+.lv-chip { background:#F4F4F6; border-radius:12px; padding:9px 14px; font-size:12px; color:var(--sub); }
+.lv-chip b { font-size:14px; color:var(--ink); font-weight:700; margin-right:3px; }
+.detail-refs { margin-top:22px; border-top:1px solid var(--line-soft); padding-top:17px; }
+.detail-refs h3 { font-size:11.5px; font-weight:700; letter-spacing:.13em; color:var(--sub); margin-bottom:13px; }
+.dref-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px 12px; }
+.dref { display:flex; flex-direction:column; gap:7px; text-align:center; }
+.dref-cover {
+  position:relative; aspect-ratio:3/4.1; border-radius:5px 10px 10px 5px;
+  background:var(--cbg,#EDEAE3); width:100%; box-shadow:0 2px 8px rgba(0,0,0,.09);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s;
+}
+.dref-cover:hover { transform:translateY(-3px); box-shadow:0 8px 18px rgba(0,0,0,.15); }
+.dref-cover .slip {
+  position:absolute; top:7px; left:7px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:2px;
+  padding:5px 2px; font-size:10.5px; letter-spacing:.12em;
+}
+.dref-cover .key {
+  position:absolute; top:6px; right:6px; width:17px; height:17px; border-radius:50%;
+  background:rgba(255,255,255,.75); color:var(--sub); font-size:10px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.dref-cover .cmeta { position:absolute; left:8px; bottom:7px; font-size:10px; color:rgba(0,0,0,.45); font-weight:600; }
+.dref .k { font-size:11.5px; color:var(--sub); font-weight:600; }
+.detail-foot { margin-top:18px; text-align:center; font-size:11px; color:var(--faint); }
+/* 문헌 추가 자리 */
+.cover.add {
+  background:transparent; border:1.5px dashed rgba(0,0,0,.15); box-shadow:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  color:var(--faint); border-radius:12px;
+}
+.cover.add:hover { transform:none; border-color:var(--accent); color:var(--accent-deep); }
+.cover.add .plus { font-size:26px; line-height:1; font-weight:300; }
+.cover.add .txt { font-size:11.5px; font-weight:600; }
+.home-foot { font-size:11.5px; color:var(--faint); line-height:1.7; }
+.home-foot .ver { margin-top:6px; letter-spacing:.04em; }
+
+/* ── 학습 화면 공통 ───────────────────────────── */
+.study { width:100%; max-width:860px; display:flex; flex-direction:column; gap:20px; }
+.study.narrow { max-width:620px; }
+.topbar { display:flex; align-items:center; justify-content:space-between; }
+.back { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--accent-deep); padding:7px 12px 7px 8px; border-radius:999px; transition:background .15s; }
+.back:hover { background:rgba(46,124,246,.08); }
+.top-right { display:flex; align-items:center; gap:14px; }
+.icon-btn { color:var(--sub); padding:7px; border-radius:8px; display:flex; transition:background .15s; }
+.icon-btn:hover { background:rgba(0,0,0,.05); }
+.count { font-size:13px; color:var(--sub); }
+.progress { height:5px; background:rgba(0,0,0,.07); border-radius:99px; overflow:hidden; }
+.progress i { display:block; height:100%; background:var(--accent); border-radius:99px; }
+.card {
+  position:relative; background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:24px; box-shadow:var(--shadow);
+  padding:clamp(32px,6vw,60px) clamp(24px,6vw,64px); min-height:380px;
+  display:flex; flex-direction:column; justify-content:center; gap:28px;
+}
+.card-tools { position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:4px; }
+.seg { display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:11.5px; background:rgba(0,0,0,.02); }
+.seg .lab { padding:5px 10px; color:var(--faint); border-right:1px solid var(--line); }
+.seg button { padding:5px 11px; color:var(--sub); }
+.seg button.on { background:var(--accent); color:#fff; font-weight:600; }
+.sentence { font-size:clamp(20px,3.4vw,27px); font-weight:500; line-height:2.6; letter-spacing:.05em; padding-top:14px; }
+.sentence ruby rt { font-size:11px; font-weight:400; color:var(--faint); letter-spacing:0; }
+.svo { position:relative; border-radius:5px; padding:1px 2px; }
+.svo > i {
+  position:absolute; bottom:calc(100% + 1px); left:0; right:0; text-align:center;
+  font-style:normal; font-size:10px; font-weight:800; line-height:1; pointer-events:none; letter-spacing:0;
+}
+.svo.s { background:var(--s-bg); } .svo.s > i { color:var(--s-fg); }
+.svo.v { background:var(--v-bg); } .svo.v > i { color:var(--v-fg); }
+.svo.o { background:var(--o-bg); } .svo.o > i { color:var(--o-fg); }
+.drill { border-bottom:2px solid rgba(0,0,0,.14); cursor:pointer; transition:border-color .15s, background .15s; }
+.drill:hover { border-color:var(--accent); background:rgba(46,124,246,.06); }
+.card-back { border-top:1px solid var(--line-soft); padding-top:22px; }
+.meaning { font-size:15.5px; color:#3A3A3C; line-height:1.85; }
+/* 한자(char) 카드 — 해서 대형 (쓰기 모드의 획 모델과 이어짐) */
+.bigchar {
+  font-family:"LXGW WenKai TC","LXGW WenKai","Pretendard Variable",sans-serif;
+  font-size:clamp(84px,16vw,124px); font-weight:400; line-height:1.15; text-align:center;
+}
+.char-reading { font-size:21px; font-weight:500; color:#3A3A3C; text-align:center; }
+.nav-row { display:flex; align-items:center; justify-content:space-between; }
+.nav-btn {
+  padding:11px 24px; font-size:13.5px; color:var(--sub);
+  background:var(--surface); border:1px solid var(--line); border-radius:999px;
+  transition:border-color .2s, color .2s, transform .2s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+.nav-btn:hover { border-color:rgba(29,102,219,.45); color:var(--ink); transform:translateY(-1px); }
+kbd {
+  font-size:11.5px; color:var(--sub);
+  background:var(--surface); border:1px solid var(--line); border-bottom-width:2px;
+  border-radius:8px; padding:2px 8px;
+}
+
+/* ── 결과 화면 ────────────────────────────────── */
+.result { width:100%; max-width:720px; display:flex; flex-direction:column; gap:26px; }
+.result-head { text-align:center; }
+.result-head h2 { font-size:26px; font-weight:800; }
+.result-head .sub { font-size:13.5px; color:var(--sub); margin-top:7px; }
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.stat { background:var(--surface); border:1px solid var(--line-soft); border-radius:18px; box-shadow:var(--shadow); padding:18px 16px 15px; text-align:center; }
+.stat b { display:block; font-size:27px; font-weight:800; letter-spacing:-.01em; }
+.stat b small { font-size:14px; font-weight:600; color:var(--sub); margin-left:2px; }
+.stat span { display:block; font-size:11.5px; color:var(--sub); margin-top:5px; }
+.stat.bad b { color:var(--fail); }
+.table-card { background:var(--surface); border:1px solid var(--line-soft); border-radius:20px; box-shadow:var(--shadow); overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { font-size:12px; font-weight:600; color:var(--sub); padding:13px 18px; border-bottom:1px solid var(--line-soft); background:rgba(0,0,0,.015); }
+td { padding:15px 18px; border-bottom:1px solid var(--line-soft); }
+tr:last-child td { border-bottom:none; }
+td.c, th.c { text-align:center; }
+td.rank { color:var(--faint); font-size:13px; }
+td.h { font-size:25px; font-weight:400; }
+td.mean { font-size:13.5px; color:var(--sub); line-height:1.6; }
+td.fails { font-weight:800; color:var(--fail); font-size:14px; }
+.result-foot { display:flex; justify-content:center; gap:26px; font-size:12.5px; color:var(--faint); }
+
+@media (max-width:560px) {
+  .stats { grid-template-columns:1fr; }
+  .home-head { flex-direction:column; align-items:flex-start; }
+  .hero { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+
+<header class="meta">
+  <div class="tag">최종 통합 시안 · v2</div>
+  <h1>GoodNotes 라이브러리 × 서가 × 해서+고딕</h1>
+  <p>확정 방향: <b>쿨 뉴트럴 크롬(GoodNotes 문법) + 파스텔 표지 서가가 온기 담당</b>.
+     홈은 제첨(題簽) 붙은 플랫 책 표지 그리드(선반=그룹, 이어서 학습 히어로).
+     참고문헌 있는 문헌은 <b>여러 권이 자연스럽게 겹친 무더기</b>(뒤 책들은 참고문헌 표지색, 호버 시 부채꼴) — <b>클릭하면 문헌 상세 오버레이</b>(목록창 기능 겸용)가 열립니다.
+     학습 본문은 고딕 스택(벽자 안전), 대형 한자·표지는 해서. 귀여움은 형태로: 큰 라운드 · 알약 버튼 · 스프링 호버.</p>
+  <nav>
+    <a href="index.html">← 비교 홈</a>
+    <a href="home-v2.html">홈 v2 탐색본</a>
+    <a href="type-test.html">서체 비교</a>
+    <a href="coverage-check.html">커버리지 감사</a>
+    <a class="here" href="#">최종 통합</a>
+  </nav>
+</header>
+
+<!-- ════════ 화면 1 · 홈 (서가) ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>홈 화면 — 서가 · 겹친 책 무더기 = 참고문헌 보유: 클릭하면 문헌 상세 오버레이</span></div>
+  <div class="frame-body">
+    <div class="home">
+
+      <div class="home-head">
+        <div>
+          <div class="wordmark kai">文讀</div>
+          <div class="tagline">한의학 한문 학습</div>
+        </div>
+        <div class="streak-pill">연속 학습 <b class="num">5</b>일</div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-cover" style="--cbg:#E3EDD9"><span class="slip kai">不治已病</span></div>
+        <div class="hero-main">
+          <div class="hero-eyebrow">이어서 학습</div>
+          <div class="hero-title"><span class="kai">不治已病治未病</span> <span class="lv">· 문장 · 안키</span></div>
+          <div class="hero-sub">어제 학습 · <span class="num">12 / 56</span> 진행 중</div>
+        </div>
+        <button class="hero-btn">이어하기</button>
+      </div>
+
+      <div>
+        <div class="shelf-head">
+          <svg class="chev" style="transform:rotate(90deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h2>1학기 강독</h2><span class="cnt num">5</span>
+          <button class="edit">그룹 편집</button>
+        </div>
+        <div class="covers">
+          <div class="book">
+            <button class="cover" style="--cbg:#F8E3D1">
+              <span class="slip kai">大醫精誠</span><span class="key">1</span>
+              <span class="cmeta num">90장</span><span class="recent">7/12</span>
+            </button>
+            <div class="book-label"><div class="k">대의정성</div></div>
+          </div>
+          <div class="book">
+            <div class="case-wrap">
+              <span class="stack"><i style="background:#E0EDEA"></i><i style="background:#F6DFDD"></i><i style="background:#EDEAE3"></i></span>
+              <button class="cover" id="case-open" style="--cbg:#E3EDD9">
+                <span class="slip kai">不治已病治未病</span><span class="key">2</span>
+                <span class="cmeta num">139장</span><span class="recent">7/15</span>
+              </button>
+            </div>
+            <div class="book-label"><div class="k">불치이병치미병</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#F7ECCF">
+              <span class="slip kai">食無求飽</span><span class="key">3</span>
+              <span class="cmeta num">132장</span>
+            </button>
+            <div class="book-label"><div class="k">식무구포</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#DCE8F2">
+              <span class="slip kai">養性篇</span><span class="key">4</span>
+              <span class="cmeta num">160장</span><span class="recent">7/10</span>
+            </button>
+            <div class="book-label"><div class="k">양성편</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#E8E0F0">
+              <span class="slip kai">茹淡論</span><span class="key">5</span>
+              <span class="cmeta num">153장</span>
+            </button>
+            <div class="book-label"><div class="k">여담론</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div>
+        <div class="shelf-head">
+          <svg class="chev" style="transform:rotate(90deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h2>2학기 강독</h2><span class="cnt num">0</span>
+        </div>
+        <div class="covers">
+          <div class="book">
+            <button class="cover add"><span class="plus">+</span><span class="txt">문헌 추가</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-foot">
+        모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다.
+        <div class="ver">v1.1.0 · KJH</div>
+      </div>
+
+    </div>
+
+    <!-- 문헌 상세 오버레이 (함 열림 상태 · 목록창 기능 겸용) -->
+    <div class="doc-overlay" id="doc-overlay" hidden>
+      <div class="detail">
+        <button class="close" id="detail-close" title="닫기">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+
+        <div class="detail-head">
+          <div class="detail-cover" style="--cbg:#E3EDD9"><span class="slip kai">不治已病治未病</span></div>
+          <div>
+            <div class="detail-title kai">不治已病治未病</div>
+            <div class="detail-sub">불치이병치미병 · <span class="num">139장</span> · 최근 학습 7월 15일</div>
+            <div class="detail-actions">
+              <button class="btn-primary">안키 모드</button>
+              <button class="btn-ghost">순차 재생</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lv-chips">
+          <span class="lv-chip"><b class="num">52</b>한자</span>
+          <span class="lv-chip"><b class="num">41</b>어휘</span>
+          <span class="lv-chip"><b class="num">38</b>문장</span>
+          <span class="lv-chip"><b class="num">8</b>문단</span>
+        </div>
+
+        <div class="detail-refs">
+          <h3>참고문헌 3</h3>
+          <div class="dref-grid">
+            <div class="dref">
+              <button class="dref-cover" style="--cbg:#EDEAE3">
+                <span class="slip kai">上古天眞論</span><span class="key">1</span>
+                <span class="cmeta num">56장</span>
+              </button>
+              <div class="k">상고천진론</div>
+            </div>
+            <div class="dref">
+              <button class="dref-cover" style="--cbg:#F6DFDD">
+                <span class="slip kai">扁鵲六不治</span><span class="key">2</span>
+                <span class="cmeta num">54장</span>
+              </button>
+              <div class="k">편작육불치</div>
+            </div>
+            <div class="dref">
+              <button class="dref-cover" style="--cbg:#E0EDEA">
+                <span class="slip kai">四氣調神大論</span><span class="key">3</span>
+                <span class="cmeta num">163장</span>
+              </button>
+              <div class="k">사기조신대론</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-foot">Esc 또는 바깥을 클릭하면 닫힙니다</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 화면 2 · 학습 (한자 카드 · 뒷면) — 해서 대형 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>학습 화면 — 한자 · 뒷면 (해서 대형 디스플레이)</span></div>
+  <div class="frame-body">
+    <div class="study narrow">
+      <div class="topbar">
+        <button class="back">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          扁鵲六不治 · 한자
+        </button>
+        <div class="top-right">
+          <button class="icon-btn" title="홈으로">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2.5 7L8 2.5 13.5 7v6a1 1 0 01-1 1h-9a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="count num">6 / 37</span>
+        </div>
+      </div>
+
+      <div class="progress"><i style="width:16.2%"></i></div>
+
+      <div class="card">
+        <div class="card-tools">
+          <button class="icon-btn" title="카드 수정">
+            <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" title="카드 삭제">
+            <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 4V3C5 2.4 5.4 2 6 2H8C8.6 2 9 2.4 9 3V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M4 4L4.5 11.5H9.5L10 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="bigchar">驕</div>
+        <div class="card-back">
+          <div class="char-reading">교만할 교</div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="nav-btn">← 이전</button>
+        <kbd>Space</kbd>
+        <button class="nav-btn">다음 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 화면 3 · 학습 (문장 · 문법 보기 · 뒷면) — 고딕 본문 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>학습 화면 — 문장 · 문법 보기 켬 · 뒷면 (고딕 본문)</span></div>
+  <div class="frame-body">
+    <div class="study">
+      <div class="topbar">
+        <button class="back">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          扁鵲六不治 · 문장
+        </button>
+        <div class="top-right">
+          <button class="icon-btn" title="홈으로">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2.5 7L8 2.5 13.5 7v6a1 1 0 01-1 1h-9a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </button>
+          <span class="count num">1 / 6</span>
+        </div>
+      </div>
+
+      <div class="progress"><i style="width:16.7%"></i></div>
+
+      <div class="card">
+        <div class="card-tools">
+          <span class="seg"><span class="lab">文法</span><button class="on">보기</button><button>편집</button></span>
+          <button class="icon-btn" title="카드 수정">
+            <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" title="카드 삭제">
+            <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 4V3C5 2.4 5.4 2 6 2H8C8.6 2 9 2.4 9 3V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M4 4L4.5 11.5H9.5L10 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="sentence">
+          <span class="drill"><span class="svo s"><i>S</i><ruby>驕<rt>교</rt></ruby><ruby>恣<rt>자</rt></ruby></span></span><span class="drill"><ruby>不<rt>불</rt></ruby><span class="svo v"><i>V</i><ruby>論<rt>론</rt></ruby></span><ruby>於<rt>어</rt></ruby><span class="svo o"><i>O</i><ruby>理<rt>리</rt></ruby></span></span> <ruby>一<rt>일</rt></ruby><ruby>不<rt>불</rt></ruby><ruby>治<rt>치</rt></ruby><ruby>也<rt>야</rt></ruby>
+        </div>
+
+        <div class="card-back">
+          <p class="meaning">교만하고 방자한 태도로 하여금 (의학의) 이치를 논하지 못하는 경우를 첫번째 치료할 수 없는 상황이라 한다</p>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="nav-btn" style="opacity:.35; pointer-events:none">← 이전</button>
+        <kbd>Space</kbd>
+        <button class="nav-btn">다음 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 화면 4 · 안키 결과 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>안키 결과 화면</span></div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="topbar">
+        <button class="back">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          扁鵲六不治 · 한자
+        </button>
+        <button class="icon-btn" title="홈으로">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2.5 7L8 2.5 13.5 7v6a1 1 0 01-1 1h-9a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="result-head">
+        <h2>학습 완료</h2>
+        <div class="sub"><span class="num">37장</span> 완료 · 오답 <span class="num">3장</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b class="num">5<small>일</small></b><span>연속 학습</span></div>
+        <div class="stat"><b class="num">91<small>장</small></b><span>오늘 학습</span></div>
+        <div class="stat bad"><b class="num">3<small>장</small></b><span>오답</span></div>
+      </div>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr><th class="c">#</th><th class="c">한자</th><th style="text-align:left">해석</th><th class="c">오답</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="c rank num">1</td><td class="c h">羸</td><td class="mean">파리할 리</td><td class="c fails num">3</td></tr>
+            <tr><td class="c rank num">2</td><td class="c h">驕</td><td class="mean">교만할 교</td><td class="c fails num">2</td></tr>
+            <tr><td class="c rank num">3</td><td class="c h">幷</td><td class="mean">어우를 병</td><td class="c fails num">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result-foot">
+        <span><kbd>R</kbd> 다시 시작</span>
+        <span><kbd>Ctrl+Shift+R</kbd> 초기화</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+const ov = document.getElementById('doc-overlay');
+document.getElementById('case-open').addEventListener('click', () => { ov.hidden = false; });
+document.getElementById('detail-close').addEventListener('click', () => { ov.hidden = true; });
+ov.addEventListener('click', e => { if (e.target === ov) ov.hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ov.hidden = true; });
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서체 커버리지 감사 — 실데이터 한자 607종</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400&family=Noto+Sans+TC:wght@400&family=Noto+Sans+SC:wght@400&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@latest/style.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#ECEDEF; color:#1C1D20; font-family:"Pretendard Variable",Pretendard,-apple-system,sans-serif; font-size:15px; padding:48px 20px 80px; }
+.wrap { max-width:1100px; margin:0 auto; }
+h1 { font-size:24px; font-weight:800; }
+.eyebrow { font-size:12px; letter-spacing:.14em; color:#8A8D94; font-weight:600; margin-bottom:8px; }
+p.desc { font-size:14px; color:#5E626B; margin-top:10px; line-height:1.7; max-width:700px; }
+nav { display:flex; gap:14px; margin-top:14px; font-size:13px; font-weight:600; }
+nav a { color:#0071E3; text-decoration:none; }
+#status { margin-top:26px; font-size:14px; font-weight:600; color:#5E626B; }
+table { width:100%; border-collapse:collapse; margin-top:14px; background:#fff; border-radius:14px; overflow:hidden; border:1px solid rgba(0,0,0,.07); }
+th,td { padding:13px 16px; text-align:left; border-bottom:1px solid rgba(0,0,0,.05); font-size:14px; }
+th { font-size:12px; color:#8A8D94; background:rgba(0,0,0,.02); }
+td.ok { color:#1D7A33; font-weight:700; }
+td.warn { color:#B45309; font-weight:700; }
+td.miss-list { font-size:18px; line-height:1.8; word-break:break-all; color:#B4433A; max-width:420px; }
+.stack-row { background:rgba(0,113,227,.05); }
+.grid-sec { margin-top:36px; }
+.grid-sec h2 { font-size:17px; font-weight:800; margin-bottom:6px; }
+.grid-sec p { font-size:13px; color:#71757E; margin-bottom:14px; }
+#chargrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(44px,1fr)); gap:4px; background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:14px; padding:18px; }
+#chargrid span { display:flex; align-items:center; justify-content:center; aspect-ratio:1; font-size:24px; border-radius:6px; font-family:"Pretendard Variable",Pretendard,"Noto Sans KR","Noto Sans TC","Noto Sans SC",sans-serif; }
+#chargrid span.miss { background:rgba(180,67,58,.12); outline:2px solid #B4433A; }
+footer { margin-top:24px; font-size:12px; color:#8A8D94; line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">번외 실험 · 커버리지 감사</div>
+  <h1>실데이터 한자 607종 × 서체별 커버리지 실측</h1>
+  <p class="desc">현재 8개 문헌의 모든 카드 텍스트에서 추출한 고유 한자 607종을, 후보 서체 각각이 실제로
+     그릴 수 있는지 <b>이 브라우저에서 직접 검사</b>합니다(document.fonts.check). 아래 표의 "누락"이
+     그 서체가 못 그려서 다음 폴백으로 넘어가는 글자입니다. Chrome 기준이 가장 정확합니다.</p>
+  <nav>
+    <a href="index.html">← 비교 홈</a>
+    <a href="type-test.html">서체 4종 비교</a>
+  </nav>
+
+  <div id="status">폰트 로딩 중…</div>
+  <table id="report" hidden>
+    <thead><tr><th>서체</th><th>커버</th><th>누락 글자</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="grid-sec">
+    <h2>전수 육안 검증 — 권장 스택으로 렌더링</h2>
+    <p>Pretendard → Noto Sans KR → TC → SC 스택으로 607자 전부를 표시합니다.
+       네모(두부)나 스타일이 튀는 글자가 보이면 알려주세요. 빨간 표시는 스택 전체가 못 그리는 글자(OS 폴백行).</p>
+    <div id="chargrid"></div>
+  </div>
+
+  <footer>
+    · 검사 대상: src/data/*.json 전체 text 필드 (2026-07-17 추출 기준) · 새 문헌 추가 시 이 페이지를 재생성해야 합니다.<br>
+    · Phase 2에서 같은 검사를 빌드 lint(scripts/lint-data.mjs)에 넣어 자동화하는 것을 제안합니다.
+  </footer>
+</div>
+<script>
+const CHARS = "一七三上下不世中丹主乃久之乎九也亂予事二云五亟亡交亦亨人仁今以伏伐但何余作使來侯便俗保信修俱倫假偏備傳傷僻充先光克兕內全六其具兼冬冰冷凉凡凶出刑利制刻則前功助務勝勞勢勿化匿十千却卽厄厚原厥厭去又及友反取口古只召可右吉同名吐君含吾周味呼命和咯哉唯唾問善喩嘔嘗噫四因圖土在地坼垂塞增壽夏外多夜大天太夫夭夷奉奪好如妄妍始媸子存孜學守安定宜宮害家容富寒實寧少尙就居屬山岐嶮巇工巧巨巫己已市帝師常平年幷幼度庭廣延形彭彼待後徒得德心必志怒思急性怨恐恣息悔患悽情惜惟惱想惻意愚愛愴慈慎慨慮應成我或所扁抱拜按損撤撲擾攝收放故敏救教數斂斯斷於施旣日旨早明易昔春是時晉晝晩普智暇暑暗曰書最月有服朝木未本朱栗格榮橫次欲歟止正此步歲歷歸殆殞殺毒民氣水永求汗汲沒沖治沽況泄泉法津活流浸消涌涓液淋淡淤深淸清渴源溫溲滅滋滑滔滿漏漓潤澤濁瀉火災烹焉無焰然熒熱燎爲爽爾物犯獎玉理甘甚生用由當疏疑疲疹疾病痎痰痾痿瘧療發百皆皇皮益盖盛盡省眞瞻矣知祈祜神禍秀私秋秦穀積立等答節篇米粕粗粳精糟終絶經緩縱繼纏罰義羸習者而耗耶聊聖肉肓肝肥肺胃能脯脾腎膏膚臥自至致與興良色若苦英茂茹莫菌菓菜華菽萬著葱蒼蓄蓋蕃薑薤藏藥虎虛蛄蟪行術衛衣被補見親言詐誓語說調諄論謂護譽變豈財貧貪貴賊賓賞賤賦赤赴起足跗身輕辛辰述迹追退逆逐通逝進逸過遏遐道達適避邁邪酒醢醫醯重量金長閉間防降陰陳陸陽隱雖雞難震霞靈非順須預頓頤頰頻願類顧食飧飪飮飲飽養餌餐餘饑馳騁驕骨髓髮鮮鳴鵲鷄鹹鹽麥黃齊齒";
+const FONTS = [
+  ["Pretendard (UI·한글 겸용)", '"Pretendard Variable"'],
+  ["Noto Sans KR (한국 자형)", '"Noto Sans KR"'],
+  ["Noto Sans TC (전통 자형)", '"Noto Sans TC"'],
+  ["Noto Sans SC (URO 전체 내장)", '"Noto Sans SC"'],
+  ["Noto Serif KR (현행 명조)", '"Noto Serif KR"'],
+  ["LXGW WenKai TC (해서)", '"LXGW WenKai TC"'],
+];
+const STACK = ['"Pretendard Variable"','"Noto Sans KR"','"Noto Sans TC"','"Noto Sans SC"'];
+const status = document.getElementById('status');
+
+async function loadFont(fam, text) {
+  const CHUNK = 40;
+  for (let i = 0; i < text.length; i += CHUNK) {
+    try { await document.fonts.load(`16px ${fam}`, text.slice(i, i + CHUNK)); } catch(e) {}
+  }
+}
+
+(async () => {
+  const chars = [...CHARS];
+  const cover = {};
+  for (let f = 0; f < FONTS.length; f++) {
+    const [label, fam] = FONTS[f];
+    status.textContent = `로딩·검사 중 (${f+1}/${FONTS.length}) — ${label}`;
+    await loadFont(fam, CHARS);
+    cover[fam] = new Set(chars.filter(ch => document.fonts.check(`16px ${fam}`, ch)));
+  }
+  const stackSet = new Set(chars.filter(ch => STACK.some(fam => cover[fam].has(ch))));
+
+  const tbody = document.querySelector('#report tbody');
+  const row = (label, set, cls) => {
+    const missing = chars.filter(ch => !set.has(ch));
+    const tr = document.createElement('tr');
+    if (cls) tr.className = cls;
+    tr.innerHTML = `<td>${label}</td>
+      <td class="${missing.length ? 'warn' : 'ok'}">${set.size} / ${chars.length}</td>
+      <td class="miss-list">${missing.length ? missing.join(' ') : '—'}</td>`;
+    tbody.appendChild(tr);
+  };
+  FONTS.forEach(([label, fam]) => row(label, cover[fam]));
+  row('★ 권장 스택 (Pretendard→KR→TC→SC)', stackSet, 'stack-row');
+
+  document.getElementById('report').hidden = false;
+  status.textContent = `검사 완료 — 고유 한자 ${chars.length}종`;
+
+  const grid = document.getElementById('chargrid');
+  grid.innerHTML = chars.map(ch =>
+    `<span title="U+${ch.codePointAt(0).toString(16).toUpperCase()}"${stackSet.has(ch) ? '' : ' class="miss"'}>${ch}</span>`
+  ).join('');
+})();
+</script>
+</body>
+</html>

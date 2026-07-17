@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>시안 B — 모던 에디토리얼 · 文讀</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700;900&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── 토큰: 백자 바탕 · 먹 잉크 · 청자 액센트 ───── */
+:root {
+  --bg:#FBFAF7; --ink:#1C1B17; --sub:#726F66; --faint:#A6A398;
+  --line:#E9E6DD; --line-strong:#D8D4C8;
+  --accent:#2F6D5F; --accent-soft:rgba(47,109,95,.07);
+  --fail:#B4433A;
+  --s-fg:#B4433A; --s-bg:rgba(192,70,60,.07);
+  --v-fg:#3A66A8; --v-bg:rgba(58,102,168,.08);
+  --o-fg:#3F7B52; --o-bg:rgba(63,123,82,.09);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  background:#E6E7EA; color:var(--ink);
+  font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px; padding-bottom:80px;
+}
+.hanja { font-family:"Noto Serif KR","Noto Serif SC",serif; }
+button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+.num { font-variant-numeric:tabular-nums; }
+.eyebrow { font-size:11.5px; letter-spacing:.22em; color:var(--accent); font-weight:600; }
+
+/* ── 시안 메타 헤더 ───────────────────────────── */
+.meta { max-width:1200px; margin:0 auto; padding:40px 24px 8px; }
+.meta .tag { font-size:11px; font-weight:700; letter-spacing:.12em; color:#8A8D94; }
+.meta h1 { font-size:22px; font-weight:800; margin-top:6px; }
+.meta p { font-size:13.5px; color:#5E626B; margin-top:8px; line-height:1.65; max-width:640px; }
+.meta nav { display:flex; gap:14px; margin-top:14px; font-size:13px; font-weight:600; }
+.meta nav a { color:#0071E3; text-decoration:none; }
+.meta nav a.here { color:#8A8D94; pointer-events:none; }
+
+/* ── 화면 프레임 ──────────────────────────────── */
+.frame { max-width:1200px; margin:28px auto; border-radius:14px; overflow:hidden; box-shadow:0 10px 44px rgba(0,0,0,.13); border:1px solid rgba(0,0,0,.06); }
+.frame-bar { display:flex; align-items:center; gap:7px; padding:11px 14px; background:#FDFDFD; border-bottom:1px solid rgba(0,0,0,.06); }
+.frame-bar i { width:11px; height:11px; border-radius:50%; }
+.frame-bar i:nth-child(1){background:#FF5F57}.frame-bar i:nth-child(2){background:#FEBC2E}.frame-bar i:nth-child(3){background:#28C840}
+.frame-bar span { margin-left:8px; font-size:12px; color:#8A8F98; }
+.frame-body { background:var(--bg); padding:clamp(32px,6vw,80px) clamp(20px,5vw,56px); display:flex; justify-content:center; }
+
+/* ── 홈 화면: 목차(目次) ──────────────────────── */
+.home { width:100%; max-width:640px; }
+.home-head { display:flex; justify-content:space-between; align-items:stretch; gap:24px; }
+.wordmark { font-size:clamp(56px,10vw,84px); font-weight:900; letter-spacing:.08em; line-height:1.05; margin-top:14px; }
+.tagline { font-size:14px; color:var(--sub); margin-top:16px; }
+.tagline b { color:var(--ink); font-weight:600; }
+.vquote {
+  writing-mode:vertical-rl; font-size:15px; letter-spacing:.42em; color:var(--accent);
+  border-left:1px solid var(--line); padding-left:20px; margin-left:4px;
+  display:flex; align-items:flex-start; opacity:.85; font-weight:600;
+}
+.rule { border:none; border-top:1px solid var(--ink); margin:36px 0 6px; }
+.toc { list-style:none; }
+.toc-item { border-bottom:1px solid var(--line); }
+.toc-item.last { border-bottom:1px solid var(--ink); }
+.toc-row { display:flex; align-items:baseline; gap:16px; width:100%; text-align:left; padding:22px 4px; transition:background .15s; }
+.toc-row:hover { background:var(--accent-soft); }
+.toc-row:hover .t { color:var(--accent); }
+.toc .no { font-size:15px; color:var(--accent); width:24px; flex-shrink:0; }
+.toc .t { font-size:clamp(20px,3.4vw,25px); font-weight:700; transition:color .15s; }
+.toc .s { font-size:12.5px; color:var(--faint); margin-left:10px; }
+.toc .leader { flex:1; border-bottom:1px dotted var(--line-strong); transform:translateY(-4px); min-width:24px; }
+.toc .n { font-size:13px; color:var(--sub); flex-shrink:0; }
+.toc .recent { font-size:11px; color:var(--accent); flex-shrink:0; margin-left:2px; }
+.refs { padding:0 4px 20px 40px; display:flex; flex-direction:column; gap:2px; }
+.refs-cap { font-size:11px; letter-spacing:.16em; color:var(--faint); margin-bottom:8px; }
+.ref { display:flex; align-items:baseline; gap:12px; width:100%; text-align:left; padding:9px 0; transition:color .15s; color:var(--sub); }
+.ref:hover { color:var(--accent); }
+.ref .t { font-size:16.5px; font-weight:600; color:var(--ink); transition:color .15s; }
+.ref:hover .t { color:var(--accent); }
+.ref .s { font-size:12px; color:var(--faint); }
+.ref .leader { flex:1; border-bottom:1px dotted var(--line); transform:translateY(-3px); }
+.ref .n { font-size:12px; color:var(--faint); }
+.home-foot { margin-top:28px; font-size:11.5px; color:var(--faint); line-height:1.8; }
+.home-foot .ver { margin-top:8px; letter-spacing:.1em; }
+
+/* ── 학습 화면: 지면 위의 글 ──────────────────── */
+.study { width:100%; max-width:760px; display:flex; flex-direction:column; }
+.topline { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.crumb { font-size:12px; letter-spacing:.18em; color:var(--sub); font-weight:600; }
+.crumb a { color:var(--accent); text-decoration:none; cursor:pointer; }
+.frac { font-size:17px; letter-spacing:.1em; }
+.frac .of { color:var(--faint); font-size:13px; margin:0 3px; }
+.b-prog { height:2px; background:var(--line); margin-top:14px; }
+.b-prog i { display:block; height:100%; width:16.7%; background:var(--accent); }
+.tools { display:flex; justify-content:flex-end; gap:18px; margin-top:18px; font-size:12px; color:var(--faint); }
+.tools button { color:var(--faint); letter-spacing:.06em; transition:color .15s; padding:2px 0; }
+.tools button:hover { color:var(--ink); }
+.tools button.on { color:var(--accent); font-weight:700; border-bottom:2px solid var(--accent); }
+.sentence {
+  font-size:clamp(24px,4.2vw,32px); line-height:2.6; letter-spacing:.08em;
+  padding:clamp(28px,5vw,52px) 0 clamp(20px,4vw,36px);
+}
+.sentence ruby rt { font-size:11.5px; color:var(--faint); font-family:"Pretendard Variable",Pretendard,sans-serif; letter-spacing:0; }
+.svo { position:relative; padding:1px 2px; }
+.svo > i {
+  position:absolute; bottom:calc(100% + 1px); left:0; right:0; text-align:center;
+  font-style:normal; font-size:10px; font-weight:800; line-height:1; pointer-events:none;
+  font-family:"Pretendard Variable",Pretendard,sans-serif; letter-spacing:.05em;
+}
+.svo.s { background:var(--s-bg); } .svo.s > i { color:var(--s-fg); }
+.svo.v { background:var(--v-bg); } .svo.v > i { color:var(--v-fg); }
+.svo.o { background:var(--o-bg); } .svo.o > i { color:var(--o-fg); }
+.drill { border-bottom:1.5px solid var(--line-strong); cursor:pointer; transition:border-color .15s, background .15s; }
+.drill:hover { border-color:var(--accent); background:var(--accent-soft); }
+.meaning-block { border-left:2px solid var(--accent); padding:6px 0 6px 22px; margin:8px 0 4px; }
+.meaning { font-size:16px; color:#45443E; line-height:1.9; }
+.b-nav { display:flex; align-items:center; justify-content:space-between; margin-top:44px; padding-top:18px; border-top:1px solid var(--line); }
+.b-nav button { font-size:14px; color:var(--sub); letter-spacing:.04em; transition:color .15s; padding:6px 2px; }
+.b-nav button:hover { color:var(--accent); }
+.b-nav .kbd { font-size:11.5px; color:var(--faint); letter-spacing:.14em; }
+
+/* ── 결과 화면 ────────────────────────────────── */
+.result { width:100%; max-width:660px; display:flex; flex-direction:column; }
+.result .topline { margin-bottom:40px; }
+.result-title { font-size:clamp(30px,5vw,38px); font-weight:900; }
+.result-sub { font-size:13px; color:var(--sub); margin-top:10px; letter-spacing:.04em; }
+.stats { display:flex; align-items:stretch; gap:0; margin:38px 0 10px; }
+.stat { flex:1; text-align:center; padding:4px 8px; }
+.stat + .stat { border-left:1px solid var(--line); }
+.stat b { display:block; font-size:clamp(30px,5vw,40px); font-weight:900; font-family:"Noto Serif KR",serif; line-height:1.15; }
+.stat b small { font-size:15px; font-weight:600; color:var(--sub); margin-left:3px; font-family:"Pretendard Variable",Pretendard,sans-serif; }
+.stat span { display:block; font-size:11px; letter-spacing:.18em; color:var(--sub); margin-top:8px; }
+.stat.bad b { color:var(--fail); }
+.table-wrap { margin-top:30px; overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+thead tr { border-top:1px solid var(--ink); border-bottom:1px solid var(--line-strong); }
+th { font-size:11px; font-weight:600; letter-spacing:.18em; color:var(--sub); padding:12px 14px; }
+td { padding:17px 14px; border-bottom:1px solid var(--line); }
+tbody tr:last-child { border-bottom:1px solid var(--ink); }
+td.c, th.c { text-align:center; }
+td.rank { color:var(--faint); font-size:13px; }
+td.h { font-size:26px; }
+td.mean { font-size:13.5px; color:var(--sub); line-height:1.6; }
+td.fails { font-weight:800; color:var(--fail); font-size:16px; font-family:"Noto Serif KR",serif; }
+.result-foot { display:flex; justify-content:center; gap:30px; font-size:11.5px; color:var(--faint); margin-top:30px; letter-spacing:.08em; }
+
+@media (max-width:600px) {
+  .vquote { display:none; }
+  .toc .s { display:none; }
+}
+</style>
+</head>
+<body>
+
+<header class="meta">
+  <div class="tag">시안 B</div>
+  <h1>모던 에디토리얼</h1>
+  <p>백자(白磁) 바탕에 청자(靑磁) 액센트 — 한국 도자의 색으로 고전의 품격을 현대적으로. 카드 박스를 걷어내고
+     목차(目次)형 구성과 큰 세리프 타이포가 지면을 이끕니다. 홈의 한자 숫자(一二三…)는 실제 키보드 단축키 1~9와 대응.</p>
+  <nav>
+    <a href="index.html">← 비교 홈</a>
+    <a href="a-mac-native.html">A. Mac 네이티브</a>
+    <a class="here" href="#">B. 모던 에디토리얼</a>
+    <a href="c-dark-glass.html">C. 다크 글래스</a>
+  </nav>
+</header>
+
+<!-- ════════ 화면 1 · 홈 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>홈 화면</span></div>
+  <div class="frame-body">
+    <div class="home">
+      <div class="home-head">
+        <div>
+          <div class="eyebrow">漢文讀解 · 한의학 한문 학습</div>
+          <h1 class="wordmark hanja">文讀</h1>
+          <div class="tagline">연속 학습 <b class="num">5일</b> · 오늘 <b class="num">91장</b></div>
+        </div>
+        <div class="vquote hanja">上工治未病</div>
+      </div>
+
+      <hr class="rule">
+
+      <ol class="toc">
+        <li class="toc-item">
+          <button class="toc-row">
+            <span class="no hanja">一</span>
+            <span><span class="t hanja">大醫精誠</span><span class="s">대의정성</span></span>
+            <span class="leader"></span>
+            <span class="recent">7/12</span>
+            <span class="n num">90장</span>
+          </button>
+        </li>
+        <li class="toc-item">
+          <button class="toc-row">
+            <span class="no hanja">二</span>
+            <span><span class="t hanja">不治已病治未病</span><span class="s">불치이병치미병</span></span>
+            <span class="leader"></span>
+            <span class="recent">7/15</span>
+            <span class="n num">139장</span>
+          </button>
+          <div class="refs">
+            <div class="refs-cap">참고문헌 三篇</div>
+            <button class="ref"><span class="t hanja">上古天眞論</span><span class="s">상고천진론</span><span class="leader"></span><span class="n num">56장</span></button>
+            <button class="ref"><span class="t hanja">扁鵲六不治</span><span class="s">편작육불치</span><span class="leader"></span><span class="n num">54장</span></button>
+            <button class="ref"><span class="t hanja">四氣調神大論</span><span class="s">사기조신대론</span><span class="leader"></span><span class="n num">163장</span></button>
+          </div>
+        </li>
+        <li class="toc-item">
+          <button class="toc-row">
+            <span class="no hanja">三</span>
+            <span><span class="t hanja">食無求飽</span><span class="s">식무구포</span></span>
+            <span class="leader"></span>
+            <span class="n num">132장</span>
+          </button>
+        </li>
+        <li class="toc-item">
+          <button class="toc-row">
+            <span class="no hanja">四</span>
+            <span><span class="t hanja">養性篇</span><span class="s">양성편</span></span>
+            <span class="leader"></span>
+            <span class="recent">7/10</span>
+            <span class="n num">160장</span>
+          </button>
+        </li>
+        <li class="toc-item last">
+          <button class="toc-row">
+            <span class="no hanja">五</span>
+            <span><span class="t hanja">茹淡論(1)</span><span class="s">여담론</span></span>
+            <span class="leader"></span>
+            <span class="n num">153장</span>
+          </button>
+        </li>
+      </ol>
+
+      <div class="home-foot">
+        모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다.
+        <div class="ver">v1.1.0 · KJH</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 화면 2 · 학습 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>학습 화면 — 문장 · 문법 보기 켬 · 뒷면</span></div>
+  <div class="frame-body">
+    <div class="study">
+      <div class="topline">
+        <div class="crumb"><a>← 扁鵲六不治</a> &nbsp;·&nbsp; 文章</div>
+        <div class="frac hanja num">一 <span class="of">/</span> 六</div>
+      </div>
+      <div class="b-prog"><i></i></div>
+
+      <div class="tools">
+        <button class="on">文法 보기</button>
+        <button>편집</button>
+        <button>수정</button>
+        <button>삭제</button>
+      </div>
+
+      <div class="sentence hanja">
+        <span class="drill"><span class="svo s"><i>S</i><ruby>驕<rt>교</rt></ruby><ruby>恣<rt>자</rt></ruby></span></span><span class="drill"><ruby>不<rt>불</rt></ruby><span class="svo v"><i>V</i><ruby>論<rt>론</rt></ruby></span><ruby>於<rt>어</rt></ruby><span class="svo o"><i>O</i><ruby>理<rt>리</rt></ruby></span></span> <ruby>一<rt>일</rt></ruby><ruby>不<rt>불</rt></ruby><ruby>治<rt>치</rt></ruby><ruby>也<rt>야</rt></ruby>
+      </div>
+
+      <div class="meaning-block">
+        <p class="meaning">교만하고 방자한 태도로 하여금 (의학의) 이치를 논하지 못하는 경우를 첫번째 치료할 수 없는 상황이라 한다</p>
+      </div>
+
+      <div class="b-nav">
+        <button style="opacity:.35; pointer-events:none">← 이전</button>
+        <span class="kbd">SPACE</span>
+        <button>다음 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 화면 3 · 안키 결과 ════════ -->
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>안키 결과 화면</span></div>
+  <div class="frame-body">
+    <div class="result">
+      <div class="topline">
+        <div class="crumb"><a>← 扁鵲六不治 · 한자</a></div>
+        <div class="crumb"><a>홈</a></div>
+      </div>
+
+      <div>
+        <div class="eyebrow">학습 결과</div>
+        <h2 class="result-title hanja">學習 完了</h2>
+        <div class="result-sub"><span class="num">37장</span> 완료 · 오답 <span class="num">3장</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b class="num">5<small>일</small></b><span>연속 학습</span></div>
+        <div class="stat"><b class="num">91<small>장</small></b><span>오늘 학습</span></div>
+        <div class="stat bad"><b class="num">3<small>장</small></b><span>오답</span></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th class="c">番</th><th class="c">한자</th><th style="text-align:left">해석</th><th class="c">오답</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="c rank num">1</td><td class="c h hanja">羸</td><td class="mean">파리할 리</td><td class="c fails num">3</td></tr>
+            <tr><td class="c rank num">2</td><td class="c h hanja">驕</td><td class="mean">교만할 교</td><td class="c fails num">2</td></tr>
+            <tr><td class="c rank num">3</td><td class="c h hanja">幷</td><td class="mean">어우를 병</td><td class="c fails num">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result-foot">
+        <span>R — 다시 시작</span>
+        <span>CTRL+SHIFT+R — 초기화</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

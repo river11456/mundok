@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>홈 v2 — 서가(書架) 콘셉트 · 文讀</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@latest/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@latest/style.css">
+<style>
+:root {
+  --bg:#FAF8F5; --surface:#FFFFFF;
+  --ink:#25211E; --sub:#78716C; --faint:#B3ACA4;
+  --line:rgba(60,40,20,.09); --line-soft:rgba(60,40,20,.055);
+  --accent:#E87446; --accent-deep:#D45F33;
+  --shadow:0 2px 4px rgba(80,50,30,.04), 0 8px 24px rgba(80,50,30,.06);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  background:#E6E7EA; color:var(--ink);
+  font-family:"Pretendard Variable",Pretendard,"Noto Sans KR","Noto Sans TC","Noto Sans SC",-apple-system,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px; padding-bottom:80px;
+}
+.kai { font-family:"LXGW WenKai TC","LXGW WenKai","Pretendard Variable",sans-serif; font-weight:400; }
+button { font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+.num { font-variant-numeric:tabular-nums; }
+
+/* ── 시안 메타 헤더 ───────────────────────────── */
+.meta { max-width:1200px; margin:0 auto; padding:40px 24px 8px; }
+.meta .tag { font-size:11px; font-weight:700; letter-spacing:.12em; color:#8A8D94; }
+.meta h1 { font-size:22px; font-weight:800; margin-top:6px; }
+.meta p { font-size:13.5px; color:#5E626B; margin-top:8px; line-height:1.65; max-width:680px; }
+.meta nav { display:flex; gap:14px; margin-top:14px; font-size:13px; font-weight:600; flex-wrap:wrap; }
+.meta nav a { color:#0071E3; text-decoration:none; }
+.meta nav a.here { color:#8A8D94; pointer-events:none; }
+
+/* ── 화면 프레임 ──────────────────────────────── */
+.frame { max-width:1200px; margin:28px auto; border-radius:14px; overflow:hidden; box-shadow:0 10px 44px rgba(0,0,0,.13); border:1px solid rgba(0,0,0,.06); }
+.frame-bar { display:flex; align-items:center; gap:7px; padding:11px 14px; background:#FDFDFD; border-bottom:1px solid rgba(0,0,0,.06); }
+.frame-bar i { width:11px; height:11px; border-radius:50%; }
+.frame-bar i:nth-child(1){background:#FF5F57}.frame-bar i:nth-child(2){background:#FEBC2E}.frame-bar i:nth-child(3){background:#28C840}
+.frame-bar span { margin-left:8px; font-size:12px; color:#8A8F98; }
+.frame-body { background:var(--bg); padding:clamp(28px,5vw,64px) clamp(16px,4vw,48px); display:flex; justify-content:center; }
+
+/* ── 홈 v2 ────────────────────────────────────── */
+.home { width:100%; max-width:680px; display:flex; flex-direction:column; gap:30px; }
+.home-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; }
+.wordmark { font-size:56px; letter-spacing:.06em; line-height:1; }
+.tagline { font-size:13.5px; color:var(--sub); margin-top:12px; }
+.streak-pill {
+  display:flex; align-items:baseline; gap:4px; padding:7px 13px;
+  background:var(--surface); border:1px solid var(--line); border-radius:999px;
+  font-size:12.5px; color:var(--sub); box-shadow:0 1px 2px rgba(80,50,30,.03);
+}
+.streak-pill b { font-size:15px; color:var(--accent-deep); font-weight:700; }
+
+/* 이어서 학습 히어로 */
+.hero {
+  display:flex; align-items:center; gap:20px; padding:18px 20px;
+  background:var(--surface); border:1px solid var(--line-soft); border-radius:20px;
+  box-shadow:var(--shadow);
+}
+.hero-cover {
+  width:64px; aspect-ratio:3/4.1; border-radius:5px 9px 9px 5px; background:var(--cbg,#E3EDD9);
+  position:relative; flex-shrink:0; box-shadow:inset -1px 0 0 rgba(60,40,20,.06), 0 2px 6px rgba(80,50,30,.10);
+}
+.hero-cover .slip { position:absolute; top:6px; left:6px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#FFFDF8; border:1px solid rgba(60,40,20,.10); border-radius:2px; padding:4px 1.5px;
+  font-size:8.5px; letter-spacing:.12em; }
+.hero-main { flex:1; }
+.hero-eyebrow { font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--accent-deep); }
+.hero-title { font-size:19px; margin-top:5px; }
+.hero-title .lv { font-size:13px; color:var(--sub); font-family:"Pretendard Variable",Pretendard,sans-serif; }
+.hero-sub { font-size:12.5px; color:var(--sub); margin-top:5px; }
+.hero-btn {
+  padding:11px 20px; border-radius:999px; background:var(--accent); color:#fff;
+  font-size:13.5px; font-weight:700; flex-shrink:0;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .2s;
+  box-shadow:0 3px 10px rgba(232,116,70,.35);
+}
+.hero-btn:hover { transform:translateY(-2px); background:var(--accent-deep); }
+
+/* 선반(그룹) */
+.shelf-head { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.shelf-head .chev { color:var(--faint); transition:transform .2s; }
+.shelf-head h2 { font-size:12.5px; font-weight:700; letter-spacing:.13em; color:var(--sub); }
+.shelf-head .cnt { font-size:12px; color:var(--faint); }
+.shelf-head .edit { margin-left:auto; font-size:11.5px; color:var(--faint); padding:3px 10px; border:1px solid var(--line-soft); border-radius:999px; transition:color .15s,border-color .15s; }
+.shelf-head .edit:hover { color:var(--ink); border-color:rgba(60,40,20,.2); }
+.covers { display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:20px 16px; }
+.book { display:flex; flex-direction:column; gap:9px; }
+.cover {
+  position:relative; aspect-ratio:3/4.1; border-radius:6px 12px 12px 6px;
+  background:var(--cbg,#F8E3D1); text-align:left; width:100%;
+  box-shadow:inset -2px 0 0 rgba(60,40,20,.05), inset 2px 0 0 rgba(255,255,255,.35), 0 3px 10px rgba(80,50,30,.09);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s;
+}
+.cover:hover { transform:translateY(-4px) rotate(-.6deg); box-shadow:inset -2px 0 0 rgba(60,40,20,.05), 0 10px 22px rgba(80,50,30,.16); }
+.cover .slip {
+  position:absolute; top:9px; left:9px; writing-mode:vertical-rl; text-orientation:upright;
+  background:#FFFDF8; border:1px solid rgba(60,40,20,.10); border-radius:3px;
+  padding:8px 3px; font-size:14px; letter-spacing:.14em; line-height:1.15;
+  box-shadow:0 1px 2px rgba(80,50,30,.06);
+}
+.cover .key {
+  position:absolute; top:8px; right:8px; width:19px; height:19px; border-radius:50%;
+  background:rgba(255,255,255,.65); color:var(--sub); font-size:10.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  font-family:"Pretendard Variable",Pretendard,sans-serif;
+}
+.cover .cmeta {
+  position:absolute; left:10px; bottom:9px; font-size:11px; color:rgba(60,40,20,.55);
+  font-family:"Pretendard Variable",Pretendard,sans-serif; font-weight:600;
+}
+.cover .recent {
+  position:absolute; right:9px; bottom:9px; font-size:10px; font-weight:700;
+  background:rgba(255,255,255,.7); color:var(--accent-deep); border-radius:99px; padding:2px 7px;
+  font-family:"Pretendard Variable",Pretendard,sans-serif;
+}
+/* 참고문헌 스택 — 뒤에 살짝 겹친 책들 */
+.stack-wrap { position:relative; }
+.stack-wrap::before, .stack-wrap::after {
+  content:""; position:absolute; inset:0; border-radius:6px 12px 12px 6px;
+  background:var(--cbg,#DCE8F2); filter:brightness(.96);
+}
+.stack-wrap::before { transform:translate(5px,-4px) rotate(1.6deg); opacity:.65; }
+.stack-wrap::after  { transform:translate(2.5px,-2px) rotate(.8deg); opacity:.85; }
+.stack-wrap .cover { position:relative; z-index:1; }
+.cover .refbadge {
+  position:absolute; right:8px; top:34px; font-size:10px; font-weight:700;
+  background:rgba(255,255,255,.75); color:var(--sub); border-radius:99px; padding:2px 7px;
+  font-family:"Pretendard Variable",Pretendard,sans-serif;
+}
+.book-label { text-align:center; }
+.book-label .k { font-size:12.5px; color:var(--sub); font-weight:600; }
+
+/* 하위 선반 (펼친 참고문헌) */
+.subshelf {
+  margin-top:16px; padding:16px 16px 18px; border-radius:16px;
+  background:rgba(255,255,255,.55); border:1px dashed rgba(60,40,20,.13);
+}
+.subshelf-head { font-size:11.5px; font-weight:700; letter-spacing:.1em; color:var(--faint); margin-bottom:12px; }
+.subshelf-head b { color:var(--sub); font-weight:700; }
+.subshelf .covers { grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:16px 12px; }
+.subshelf .cover .slip { font-size:11px; padding:6px 2.5px; top:7px; left:7px; }
+.subshelf .cover .cmeta { font-size:10px; }
+
+/* 문헌 추가 자리 */
+.cover.add {
+  background:transparent; border:1.5px dashed rgba(60,40,20,.16); box-shadow:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  color:var(--faint); border-radius:12px;
+}
+.cover.add:hover { transform:none; border-color:var(--accent); color:var(--accent-deep); }
+.cover.add .plus { font-size:26px; line-height:1; font-weight:300; }
+.cover.add .txt { font-size:11.5px; font-weight:600; font-family:"Pretendard Variable",Pretendard,sans-serif; }
+
+.home-foot { font-size:11.5px; color:var(--faint); line-height:1.7; }
+.home-foot .ver { margin-top:6px; letter-spacing:.04em; }
+
+@media (max-width:560px) {
+  .home-head { flex-direction:column; align-items:flex-start; }
+  .hero { flex-wrap:wrap; }
+}
+</style>
+</head>
+<body>
+
+<header class="meta">
+  <div class="tag">홈 화면 v2 제안</div>
+  <h1>서가(書架) 콘셉트 — 문헌은 목록이 아니라 책</h1>
+  <p>Apple Books의 표지 그리드 문법 + 고서 표지의 제첨(題簽 · 세로 제목 라벨)을 파스텔로 재해석.
+     <b>선반 = 그룹</b>이라 계획 중인 "목록 그룹화" 기능과 그대로 맞물리고, 문헌이 늘수록 화면이 더 풍성해집니다.
+     참고문헌은 부모 책 뒤에 겹친 스택으로 표현 → 펼치면 하위 선반. 키보드 1~9 배지 유지.</p>
+  <nav>
+    <a href="index.html">← 비교 홈</a>
+    <a href="final.html">최종 통합 시안</a>
+    <a class="here" href="#">홈 v2 (서가)</a>
+  </nav>
+</header>
+
+<section class="frame">
+  <div class="frame-bar"><i></i><i></i><i></i><span>홈 화면 v2 — 서가 · "불치이병치미병" 참고문헌 펼친 상태</span></div>
+  <div class="frame-body">
+    <div class="home">
+
+      <div class="home-head">
+        <div>
+          <div class="wordmark kai">文讀</div>
+          <div class="tagline">한의학 한문 학습</div>
+        </div>
+        <div class="streak-pill">연속 학습 <b class="num">5</b>일</div>
+      </div>
+
+      <!-- 이어서 학습 -->
+      <div class="hero">
+        <div class="hero-cover" style="--cbg:#E3EDD9"><span class="slip kai">不治已病</span></div>
+        <div class="hero-main">
+          <div class="hero-eyebrow">이어서 학습</div>
+          <div class="hero-title"><span class="kai">不治已病治未病</span> <span class="lv">· 문장 · 안키</span></div>
+          <div class="hero-sub">어제 학습 · <span class="num">12 / 56</span> 진행 중</div>
+        </div>
+        <button class="hero-btn">이어하기</button>
+      </div>
+
+      <!-- 선반 1: 1학기 강독 -->
+      <div>
+        <div class="shelf-head">
+          <svg class="chev" style="transform:rotate(90deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h2>1학기 강독</h2><span class="cnt num">5</span>
+          <button class="edit">그룹 편집</button>
+        </div>
+        <div class="covers">
+          <div class="book">
+            <button class="cover" style="--cbg:#F8E3D1">
+              <span class="slip kai">大醫精誠</span><span class="key">1</span>
+              <span class="cmeta num">90장</span><span class="recent">7/12</span>
+            </button>
+            <div class="book-label"><div class="k">대의정성</div></div>
+          </div>
+          <div class="book">
+            <div class="stack-wrap" style="--cbg:#E3EDD9">
+              <button class="cover" style="--cbg:#E3EDD9">
+                <span class="slip kai">不治已病治未病</span><span class="key">2</span>
+                <span class="refbadge">참고 3</span>
+                <span class="cmeta num">139장</span><span class="recent">7/15</span>
+              </button>
+            </div>
+            <div class="book-label"><div class="k">불치이병치미병</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#F7ECCF">
+              <span class="slip kai">食無求飽</span><span class="key">3</span>
+              <span class="cmeta num">132장</span>
+            </button>
+            <div class="book-label"><div class="k">식무구포</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#DCE8F2">
+              <span class="slip kai">養性篇</span><span class="key">4</span>
+              <span class="cmeta num">160장</span><span class="recent">7/10</span>
+            </button>
+            <div class="book-label"><div class="k">양성편</div></div>
+          </div>
+          <div class="book">
+            <button class="cover" style="--cbg:#E8E0F0">
+              <span class="slip kai">茹淡論</span><span class="key">5</span>
+              <span class="cmeta num">153장</span>
+            </button>
+            <div class="book-label"><div class="k">여담론</div></div>
+          </div>
+        </div>
+
+        <!-- 펼친 참고문헌 하위 선반 -->
+        <div class="subshelf">
+          <div class="subshelf-head"><b>不治已病治未病</b> · 참고문헌 3</div>
+          <div class="covers">
+            <div class="book">
+              <button class="cover" style="--cbg:#EDEAE3">
+                <span class="slip kai">上古天眞論</span>
+                <span class="cmeta num">56장</span>
+              </button>
+              <div class="book-label"><div class="k">상고천진론</div></div>
+            </div>
+            <div class="book">
+              <button class="cover" style="--cbg:#F6DFDD">
+                <span class="slip kai">扁鵲六不治</span>
+                <span class="cmeta num">54장</span>
+              </button>
+              <div class="book-label"><div class="k">편작육불치</div></div>
+            </div>
+            <div class="book">
+              <button class="cover" style="--cbg:#E0EDEA">
+                <span class="slip kai">四氣調神大論</span>
+                <span class="cmeta num">163장</span>
+              </button>
+              <div class="book-label"><div class="k">사기조신대론</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 선반 2: 2학기 강독 (예정) -->
+      <div>
+        <div class="shelf-head">
+          <svg class="chev" style="transform:rotate(90deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h2>2학기 강독</h2><span class="cnt num">0</span>
+        </div>
+        <div class="covers">
+          <div class="book">
+            <button class="cover add"><span class="plus">+</span><span class="txt">문헌 추가</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-foot">
+        모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다.
+        <div class="ver">v1.1.0 · KJH</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

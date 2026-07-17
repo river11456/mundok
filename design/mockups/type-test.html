@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실험 — 한자는 세련될 수 있는가 · 서체 4종 비교</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+KR:wght@100;300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-tc-webfont@latest/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@latest/style.css">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; }
+body {
+  background:#ECEDEF; color:#1C1D20;
+  font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo",sans-serif;
+  font-size:15px; padding:48px 20px 80px;
+}
+.wrap { max-width:1100px; margin:0 auto; }
+header.top { margin-bottom:34px; max-width:720px; }
+.top .eyebrow { font-size:12px; letter-spacing:.14em; color:#8A8D94; font-weight:600; }
+.top h1 { font-size:26px; font-weight:800; margin-top:8px; }
+.top p { font-size:14px; color:#5E626B; margin-top:12px; line-height:1.75; }
+.top nav { display:flex; gap:14px; margin-top:16px; font-size:13px; font-weight:600; }
+.top nav a { color:#0071E3; text-decoration:none; }
+
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(440px,1fr)); gap:18px; }
+@media (max-width:960px){ .grid{ grid-template-columns:1fr; } }
+
+.spec {
+  background:#FFFFFF; border:1px solid rgba(0,0,0,.07); border-radius:18px;
+  padding:28px 30px 30px; display:flex; flex-direction:column; gap:0;
+}
+.spec-head { display:flex; align-items:baseline; gap:10px; padding-bottom:6px; }
+.spec-head .no { font-size:13px; font-weight:800; color:#0071E3; }
+.spec-head h2 { font-size:17px; font-weight:800; }
+.spec-head .now { font-size:11px; font-weight:700; color:#8A8D94; border:1px solid rgba(0,0,0,.12); border-radius:99px; padding:2px 9px; }
+.spec-cap { font-size:12.5px; color:#71757E; line-height:1.65; padding-bottom:20px; border-bottom:1px solid rgba(0,0,0,.06); }
+.spec-cap b { color:#3E424B; }
+
+.row { padding:22px 0; border-bottom:1px solid rgba(0,0,0,.05); }
+.row:last-child { border-bottom:none; padding-bottom:4px; }
+.row-label { font-size:10.5px; letter-spacing:.16em; color:#A2A6AD; font-weight:700; margin-bottom:14px; font-family:"Pretendard Variable",Pretendard,sans-serif; }
+
+/* 각 스펙 섹션은 --hf(한자 서체)·--hw(기본 굵기)만 바꾼다 */
+.hj { font-family:var(--hf); font-weight:var(--hw,400); }
+
+.wm { font-size:56px; line-height:1.1; letter-spacing:var(--wmt,.04em); font-weight:var(--wmw,700); }
+.wm-sub { font-size:13px; color:#8A8D94; margin-top:8px; font-family:"Pretendard Variable",Pretendard,sans-serif; }
+
+.charline { display:flex; align-items:center; gap:26px; }
+.bigchar { font-size:88px; line-height:1; font-weight:var(--cw,var(--hw,400)); }
+.charmeta { font-size:14.5px; color:#3E424B; }
+.charmeta small { display:block; font-size:12px; color:#A2A6AD; margin-top:4px; }
+
+.sent { font-size:25px; line-height:1.9; letter-spacing:.05em; font-weight:var(--sw,var(--hw,400)); }
+.sent-read { font-size:13px; color:#8A8D94; margin-top:10px; font-family:"Pretendard Variable",Pretendard,sans-serif; letter-spacing:.06em; }
+
+.titlerow { display:flex; align-items:baseline; gap:12px; }
+.titlerow .t { font-size:23px; font-weight:var(--tw,600); }
+.titlerow .s { font-size:12.5px; color:#A2A6AD; font-family:"Pretendard Variable",Pretendard,sans-serif; }
+.titlerow .n { margin-left:auto; font-size:12.5px; color:#8A8D94; font-family:"Pretendard Variable",Pretendard,sans-serif; font-variant-numeric:tabular-nums; }
+
+/* 처리별 정의 */
+.spec.ming   { --hf:"Noto Serif KR","Noto Serif SC",serif; --hw:400; --wmw:700; }
+.spec.gothic { --hf:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; --hw:500; --wmw:700; --wmt:.01em; --sw:500; }
+.spec.thin   { --hf:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; --hw:300; --wmw:200; --wmt:.06em; --cw:200; --sw:300; --tw:400; }
+.spec.thin .wm { font-size:64px; }
+.spec.kai    { --hf:"LXGW WenKai TC","LXGW WenKai",serif; --hw:400; --wmw:400; }
+
+/* 하단 노트 */
+.notes { margin-top:36px; display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px; }
+.note { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:16px; padding:24px 26px; }
+.note h3 { font-size:15px; font-weight:800; margin-bottom:12px; }
+.note ul { list-style:none; display:flex; flex-direction:column; gap:9px; }
+.note li { font-size:13.5px; color:#5E626B; line-height:1.65; padding-left:16px; position:relative; }
+.note li::before { content:"—"; position:absolute; left:0; color:#B4B8BF; }
+.note li b { color:#1C1D20; }
+footer { margin-top:30px; font-size:12px; color:#8A8D94; line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">번외 실험 · PHASE 1</div>
+    <h1>한자는 세련될 수 있는가 — 서체 4종 비교</h1>
+    <p>같은 실제 콘텐츠(워드마크 · 한자 카드 · 문장 · 문헌 제목)를 서체 처리만 바꿔 나란히 놓았습니다.
+       "올드함"의 원인이 한자 자체인지, <b>명조체라는 관습</b>인지 눈으로 확인하는 페이지입니다.
+       기준은 하나 — 매일 볼 문장에서 "읽고 싶다"는 느낌이 드는 것.</p>
+    <nav>
+      <a href="index.html">← 비교 홈</a>
+      <a href="a-mac-native.html">시안 A</a>
+      <a href="b-editorial.html">시안 B</a>
+      <a href="c-dark-glass.html">시안 C</a>
+      <a href="coverage-check.html">커버리지 감사</a>
+    </nav>
+  </header>
+
+  <div class="grid">
+
+    <!-- ① 명조 (현행) -->
+    <section class="spec ming">
+      <div class="spec-head"><span class="no">①</span><h2>명조 (세리프)</h2><span class="now">현재 앱</span></div>
+      <p class="spec-cap">옥편 · 구판 교과서 · 신문 활자의 인상. 격은 있지만 <b>"옛날 인쇄물"의 기억</b>과 붙어 있다. 세 시안이 공통으로 이 서체였다.</p>
+      <div class="row"><div class="row-label">워드마크</div>
+        <div class="wm hj">文讀</div><div class="wm-sub">한의학 한문 학습</div>
+      </div>
+      <div class="row"><div class="row-label">한자 카드</div>
+        <div class="charline"><span class="bigchar hj">驕</span><div class="charmeta">교만할 교<small>扁鵲六不治 · c6</small></div></div>
+      </div>
+      <div class="row"><div class="row-label">문장</div>
+        <div class="sent hj">驕恣不論於理 一不治也</div>
+        <div class="sent-read">교자불론어리 일불치야</div>
+      </div>
+      <div class="row"><div class="row-label">문헌 제목</div>
+        <div class="titlerow"><span class="t hj">不治已病治未病</span><span class="s">불치이병치미병</span><span class="n">139장</span></div>
+      </div>
+    </section>
+
+    <!-- ② 고딕 -->
+    <section class="spec gothic">
+      <div class="spec-head"><span class="no">②</span><h2>고딕 (산세리프)</h2></div>
+      <p class="spec-cap"><b>현대 CJK 디자인의 기본값.</b> Apple 중화권·일본 공식 페이지(PingFang·Hiragino), MUJI 無印良品, 일본 지하철 사인이 전부 이 방식. "Mac다운 한자"는 사실 고딕이다.</p>
+      <div class="row"><div class="row-label">워드마크</div>
+        <div class="wm hj">文讀</div><div class="wm-sub">한의학 한문 학습</div>
+      </div>
+      <div class="row"><div class="row-label">한자 카드</div>
+        <div class="charline"><span class="bigchar hj">驕</span><div class="charmeta">교만할 교<small>扁鵲六不治 · c6</small></div></div>
+      </div>
+      <div class="row"><div class="row-label">문장</div>
+        <div class="sent hj">驕恣不論於理 一不治也</div>
+        <div class="sent-read">교자불론어리 일불치야</div>
+      </div>
+      <div class="row"><div class="row-label">문헌 제목</div>
+        <div class="titlerow"><span class="t hj">不治已病治未病</span><span class="s">불치이병치미병</span><span class="n">139장</span></div>
+      </div>
+    </section>
+
+    <!-- ③ 얇은 고딕 대형 -->
+    <section class="spec thin">
+      <div class="spec-head"><span class="no">③</span><h2>얇은 고딕, 크게</h2></div>
+      <p class="spec-cap">가는 획 + 큰 크기 + 여백 = <b>럭셔리·에디토리얼의 문법.</b> 雪花秀(설화수), 일본 포스터, 코스메틱 브랜딩. 같은 고딕도 굵기 연출로 완전히 다른 인상이 된다.</p>
+      <div class="row"><div class="row-label">워드마크</div>
+        <div class="wm hj">文讀</div><div class="wm-sub">한의학 한문 학습</div>
+      </div>
+      <div class="row"><div class="row-label">한자 카드</div>
+        <div class="charline"><span class="bigchar hj">驕</span><div class="charmeta">교만할 교<small>扁鵲六不治 · c6</small></div></div>
+      </div>
+      <div class="row"><div class="row-label">문장</div>
+        <div class="sent hj">驕恣不論於理 一不治也</div>
+        <div class="sent-read">교자불론어리 일불치야</div>
+      </div>
+      <div class="row"><div class="row-label">문헌 제목</div>
+        <div class="titlerow"><span class="t hj">不治已病治未病</span><span class="s">불치이병치미병</span><span class="n">139장</span></div>
+      </div>
+    </section>
+
+    <!-- ④ 해서 -->
+    <section class="spec kai">
+      <div class="spec-head"><span class="no">④</span><h2>해서 (楷書 · LXGW WenKai)</h2></div>
+      <p class="spec-cap">손글씨의 골격. 요즘 중화권 앱·블로그에서 유행하는 오픈소스 서체로 <b>따뜻하면서 현대적</b>. 획 순서·구조가 손으로 쓰는 형태와 같아 <b>Phase 4 쓰기 모드의 "획 모델"</b>과 자연스럽게 연결된다.</p>
+      <div class="row"><div class="row-label">워드마크</div>
+        <div class="wm hj">文讀</div><div class="wm-sub">한의학 한문 학습</div>
+      </div>
+      <div class="row"><div class="row-label">한자 카드</div>
+        <div class="charline"><span class="bigchar hj">驕</span><div class="charmeta">교만할 교<small>扁鵲六不治 · c6</small></div></div>
+      </div>
+      <div class="row"><div class="row-label">문장</div>
+        <div class="sent hj">驕恣不論於理 一不治也</div>
+        <div class="sent-read">교자불론어리 일불치야</div>
+      </div>
+      <div class="row"><div class="row-label">문헌 제목</div>
+        <div class="titlerow"><span class="t hj">不治已病治未病</span><span class="s">불치이병치미병</span><span class="n">139장</span></div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>서체 말고도 "올드함"을 만들던 것들</h3>
+      <ul>
+        <li>카드 구석의 <b>고스트 한자 워터마크</b> — 장식용 한자는 전통찻집 인상. 제거 후보.</li>
+        <li><b>넓은 자간의 세리프 제목</b> — 사극 타이틀 문법. 고딕이라면 자간은 타이트하게.</li>
+        <li>시안 B의 <b>세로쓰기 인용구</b> — 박물관 안내판 쪽으로 기운다. 제거 후보.</li>
+        <li><b>크림·종이색 바탕</b> — 현재 앱(#F7F5F0)의 유산. 뉴트럴 화이트/다크로.</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>조합 전략 (섞어 쓰기)</h3>
+      <ul>
+        <li><b>전부 통일</b>이 기본값 — 워드마크·제목·본문 모두 ② 또는 ③.</li>
+        <li>또는 <b>역할 분리</b>: UI·제목은 고딕(②), 학습 본문 한자만 해서(④) — "읽는 건 모던, 익히는 건 손글씨 골격".</li>
+        <li>명조(①)를 남긴다면 <b>본문 큰 글자 한정</b> — 워드마크·제목·작은 글자에서 빼는 것만으로도 인상이 크게 바뀐다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    ④가 명조처럼 보인다면 폰트 로딩 실패(오프라인)입니다 — 온라인 상태에서 새로고침하세요.
+    벽자(羸·幷 등) 표시는 서체 확정 후 전수 검증합니다.
+  </footer>
+
+</div>
+</body>
+</html>
