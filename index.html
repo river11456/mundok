@@ -8,7 +8,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#F7F5F0">
+  <meta name="theme-color" content="#F4F4F6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -25,7 +25,8 @@
     body {
       font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', -apple-system, 'Apple SD Gothic Neo', sans-serif;
     }
-    body { background: #F7F5F0; color: #1C1917; transition: background 0.4s ease; }
+    /* 첫 페인트용 리터럴 — 토큰 정본은 src/style.css :root (--bg·--ink) */
+    body { background: #F4F4F6; color: #1D1D1F; transition: background 0.4s ease; }
     body.anki-mode { background: #EBF1F8; }
     /* 한자 텍스트 — body와 동일한 고딕 사슬(KR→TC→SC 같은 뼈대 폴백, 벽자에도 획 스타일 유지). 명조 전면 제거 */
     .hanja { font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', -apple-system, 'Apple SD Gothic Neo', sans-serif; }

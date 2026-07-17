@@ -494,28 +494,28 @@ function renderSeq(entering = false): void {
         </div>
       </div>
 
-      <div class="w-full h-0.5 bg-stone-200 rounded-full overflow-hidden">
-        <div class="h-full bg-stone-800 rounded-full transition-all duration-300" style="width:${pct}%"></div>
+      <div class="progress-track w-full">
+        <div class="progress-fill" style="width:${pct}%"></div>
       </div>
 
-      <div class="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col gap-6 py-14 px-16 min-h-[380px] justify-center">
+      <div class="card-surface">
         ${cardActions(S.lv?.key)}
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
         ${S.seqFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
+          <div class="text-sm text-stone-300 text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex justify-between items-center">
         <button data-action="seq-prev"
-          class="px-6 py-3 text-sm border border-stone-200 rounded-xl text-stone-500 hover:border-stone-400 hover:text-stone-800 transition-all ${S.seqIdx === 0 ? 'opacity-30 pointer-events-none' : ''}">
+          class="nav-btn ${S.seqIdx === 0 ? 'opacity-30 pointer-events-none' : ''}">
           ← 이전
         </button>
-        <span class="text-sm text-stone-300">Space</span>
+        <kbd class="kbd">Space</kbd>
         <button data-action="seq-next"
-          class="px-6 py-3 text-sm border border-stone-200 rounded-xl text-stone-500 hover:border-stone-400 hover:text-stone-800 transition-all ${S.seqIdx === cards.length - 1 ? 'opacity-30 pointer-events-none' : ''}">
+          class="nav-btn ${S.seqIdx === cards.length - 1 ? 'opacity-30 pointer-events-none' : ''}">
           다음 →
         </button>
       </div>
@@ -567,17 +567,17 @@ function renderAnki(entering = false): void {
         </div>
       </div>
 
-      <div class="w-full h-0.5 bg-stone-200 rounded-full overflow-hidden">
-        <div class="h-full bg-stone-800 rounded-full transition-all duration-300" style="width:${pct}%"></div>
+      <div class="progress-track w-full">
+        <div class="progress-fill" style="width:${pct}%"></div>
       </div>
 
-      <div class="relative bg-white border border-stone-200 rounded-2xl shadow-sm flex flex-col gap-6 py-14 px-16 min-h-[380px] justify-center">
+      <div class="card-surface">
         ${cardActions(S.lv?.key)}
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
         ${isFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm text-stone-300 text-center">Space 키로 정답 보기</div>`}
+          <div class="text-sm text-stone-300 text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
