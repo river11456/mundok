@@ -2,9 +2,9 @@
 export function initShortcutHelp(): void {
   const el = document.createElement('div');
   el.id = 'shortcut-help';
-  el.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
+  el.className = 'modal-backdrop z-50 hidden';
   el.innerHTML = `
-    <div id="sh-panel" class="bg-white rounded-2xl shadow-xl px-8 py-7 w-full max-w-xs mx-4">
+    <div id="sh-panel" class="modal-surface px-8 py-7 w-full max-w-xs mx-4">
       <div class="text-sm font-bold text-stone-900 mb-5">키보드 단축키</div>
       <table class="w-full text-xs text-stone-600 border-separate" style="border-spacing:0 6px">
         <tbody>

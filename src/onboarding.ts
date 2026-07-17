@@ -101,9 +101,9 @@ function hideOnboarding(): void {
 export function initOnboarding(): void {
   const overlay = document.createElement('div');
   overlay.id = 'ob-overlay';
-  overlay.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
+  overlay.className = 'modal-backdrop z-50 hidden';
   overlay.innerHTML = `
-    <div id="ob-panel" class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4">
+    <div id="ob-panel" class="modal-surface w-full max-w-sm mx-4">
       <div class="px-8 pt-8 pb-6">
         <div id="ob-title" class="text-base font-bold text-stone-900 mb-5"></div>
         <div id="ob-content" class="min-h-[140px]"></div>
@@ -112,7 +112,7 @@ export function initOnboarding(): void {
         <div class="flex justify-center gap-1.5" id="ob-dots"></div>
         <div class="flex justify-between items-center">
           <button id="ob-prev" class="text-sm text-stone-400 hover:text-stone-700 transition-colors">← 이전</button>
-          <button id="ob-next" class="px-5 py-2 text-sm font-medium bg-stone-900 text-white rounded-xl hover:bg-stone-700 transition-colors"></button>
+          <button id="ob-next" class="btn-primary"></button>
         </div>
       </div>
     </div>`;

@@ -110,12 +110,12 @@ export function initAddCard(): void {
   // ── Modal ──────────────────────────────────────────────
   const overlay = document.createElement('div');
   overlay.id = 'ac-overlay';
-  overlay.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
+  overlay.className = 'modal-backdrop z-50 hidden';
 
   const opts = TYPE_LABELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
   overlay.innerHTML = `
-    <div id="ac-modal" class="bg-white rounded-2xl shadow-xl px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
+    <div id="ac-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
       <div class="text-sm font-bold text-stone-900">카드 추가</div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-stone-400">타입</label>
@@ -149,9 +149,9 @@ export function initAddCard(): void {
       <div id="ac-error" class="text-xs text-red-500 hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ac-cancel"
-          class="px-4 py-2 text-xs text-stone-500 border border-stone-200 rounded-lg hover:border-stone-400 transition-colors">취소</button>
+          class="btn-ghost">취소</button>
         <button id="ac-submit"
-          class="px-4 py-2 text-xs font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors">저장</button>
+          class="btn-primary">저장</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -173,7 +173,7 @@ export function initAddCard(): void {
   bubble.style.transform = 'translateX(-50%)';
   bubble.innerHTML = `
     <button id="ac-bubble-btn"
-      class="bg-stone-900 text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:bg-stone-700 transition-colors whitespace-nowrap">
+      class="btn-primary px-3 py-1.5 text-xs shadow-lg whitespace-nowrap">
       + 카드 추가
     </button>`;
   document.body.appendChild(bubble);

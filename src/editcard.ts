@@ -187,10 +187,10 @@ async function applyCoEdit(): Promise<void> {
 export function initEditCard(): void {
   const overlay = document.createElement('div');
   overlay.id = 'ec-overlay';
-  overlay.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-50 hidden';
+  overlay.className = 'modal-backdrop z-50 hidden';
 
   overlay.innerHTML = `
-    <div id="ec-modal" class="bg-white rounded-2xl shadow-xl px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
+    <div id="ec-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
       <div class="text-sm font-bold text-stone-900">카드 수정</div>
       <div class="flex flex-col gap-1">
         <label class="text-xs text-stone-400">한자</label>
@@ -216,9 +216,9 @@ export function initEditCard(): void {
       <div id="ec-error" class="text-xs text-red-500 hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ec-cancel"
-          class="px-4 py-2 text-xs text-stone-500 border border-stone-200 rounded-lg hover:border-stone-400 transition-colors">취소</button>
+          class="btn-ghost">취소</button>
         <button id="ec-submit"
-          class="px-4 py-2 text-xs font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors">저장</button>
+          class="btn-primary">저장</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -231,9 +231,9 @@ export function initEditCard(): void {
   // ── 연결 카드 일괄 수정 모달 ──────────────────────────────
   const ce = document.createElement('div');
   ce.id = 'ce-overlay';
-  ce.className = 'fixed inset-0 bg-stone-900/40 flex items-center justify-center z-[60] hidden';
+  ce.className = 'modal-backdrop z-[60] hidden';
   ce.innerHTML = `
-    <div id="ce-modal" class="bg-white rounded-2xl shadow-xl px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]">
+    <div id="ce-modal" class="modal-surface px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]">
       <div class="text-sm font-bold text-stone-900">연결된 카드도 함께 수정</div>
       <div id="ce-sub" class="text-xs text-stone-500 leading-relaxed"></div>
       <div class="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2 leading-relaxed">
@@ -243,9 +243,9 @@ export function initEditCard(): void {
       <div id="ce-error" class="text-xs text-red-500 hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ce-skip"
-          class="px-4 py-2 text-xs text-stone-500 border border-stone-200 rounded-lg hover:border-stone-400 transition-colors">건너뛰기</button>
+          class="btn-ghost">건너뛰기</button>
         <button id="ce-apply"
-          class="px-4 py-2 text-xs font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-700 transition-colors">적용</button>
+          class="btn-primary">적용</button>
       </div>
     </div>`;
   document.body.appendChild(ce);

@@ -13,13 +13,13 @@ type CardStyle = { wrap: string; front: string; backAlign: string };
 function cardStyle(key: string): CardStyle {
   switch (key) {
     case 'char':
-      return { wrap: 'max-w-2xl',  front: 'hanja kai text-8xl tracking-widest text-center', backAlign: 'text-center' };
+      return { wrap: 'max-w-2xl',  front: 'hanja kai bigchar text-center', backAlign: 'text-center' };
     case 'word':
       return { wrap: 'max-w-2xl',  front: 'hanja text-5xl tracking-wide text-center',   backAlign: 'text-center' };
     case 'sentence':
-      return { wrap: 'max-w-4xl', front: 'hanja text-2xl leading-[2.2] tracking-wide text-left',  backAlign: 'text-left' };
+      return { wrap: 'max-w-4xl', front: 'hanja sentence-body text-left',  backAlign: 'text-left' };
     case 'paragraph':
-      return { wrap: 'max-w-5xl', front: 'hanja text-xl leading-[2.2] tracking-wide text-left',   backAlign: 'text-left' };
+      return { wrap: 'max-w-5xl', front: 'hanja paragraph-body text-left',   backAlign: 'text-left' };
     default:
       return { wrap: 'max-w-2xl',  front: 'hanja text-5xl tracking-wide text-center',   backAlign: 'text-center' };
   }
@@ -40,7 +40,7 @@ type SlotAnno = {
 function buildSlotMap(annotations: GrammarAnnotation[]): Map<number, SlotAnno> {
   const map    = new Map<number, SlotAnno>();
   const get    = (i: number) => { if (!map.has(i)) map.set(i, {}); return map.get(i)!; };
-  const svoBg  : Record<string, string> = { S: 'bg-red-50', V: 'bg-blue-50', O: 'bg-green-50' };
+  const svoBg  : Record<string, string> = { S: 'svo-bg-S', V: 'svo-bg-V', O: 'svo-bg-O' };
   const phrases = ['border-indigo-400', 'border-purple-400', 'border-teal-400'];
   let phraseIdx = 0;
 
@@ -95,7 +95,7 @@ function renderGrammarSentence(
   const slotMap     = buildSlotMap(annotations);
   const hasAnyLabel = annotations.some(a => a.type !== 'phrase');
   const svoTailwind: Record<string, string> = {
-    S: 'text-red-500', V: 'text-blue-500', O: 'text-green-600',
+    S: 'svo-fg-S', V: 'svo-fg-V', O: 'svo-fg-O',
   };
 
   // ── 편집 모드: flex 그리드, 글자별 드래그 가능 셀 ─────────
@@ -129,12 +129,11 @@ function renderGrammarSentence(
   // ── 표시 모드 ──────────────────────────────────────────────
   const drillMap = spansByIndex(findDrillSpans(front, drillCandidates(front)));
 
-  const READ_RT = `font-size:12px;font-family:'Pretendard Variable',Pretendard,'Noto Sans KR',sans-serif;color:#a8a29e`;
   const SVO_BG: Record<string, string> = {
-    S: '#fef2f2', V: '#eff6ff', O: '#f0fdf4',
+    S: 'var(--s-bg)', V: 'var(--v-bg)', O: 'var(--o-bg)',
   };
   const SVO_COLOR: Record<string, string> = {
-    S: '#ef4444', V: '#3b82f6', O: '#16a34a',
+    S: 'var(--s-fg)', V: 'var(--v-fg)', O: 'var(--o-fg)',
   };
   const PHRASE_CLS: Record<string, string> = {
     'border-indigo-400': 'border-t-2 border-indigo-400',
@@ -154,7 +153,7 @@ function renderGrammarSentence(
   const charContent = (i: number): string => {
     const ch = esc(chars[i]);
     return perCharRead
-      ? `<ruby>${ch}<rt style="${READ_RT}">${esc(reads[i])}</rt></ruby>`
+      ? `<ruby>${ch}<rt>${esc(reads[i])}</rt></ruby>`
       : ch;
   };
 
@@ -194,7 +193,7 @@ function renderGrammarSentence(
       curSvoKey = svoKey;
       if (svoEntry) {
         const { ann } = svoEntry;
-        const lbl = `<span style="position:absolute;bottom:100%;left:0;right:0;text-align:center;font-size:10px;font-weight:700;color:${SVO_COLOR[ann.type]};line-height:1;padding-bottom:2px;pointer-events:none">${ann.type}</span>`;
+        const lbl = `<span style="position:absolute;bottom:100%;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:${SVO_COLOR[ann.type]};line-height:1;padding-bottom:2px;pointer-events:none">${ann.type}</span>`;
         html += `<span style="position:relative;display:inline-block;vertical-align:baseline;background:${SVO_BG[ann.type]}">${lbl}`;
       }
     }
@@ -202,8 +201,7 @@ function renderGrammarSentence(
       closeDrill();
       curDrillId = drillId;
       if (drill) {
-        html += `<span data-action="drill-down" data-arg="${esc(drill.id)}" title="${esc(drill.back)}"
-          class="border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">`;
+        html += `<span data-action="drill-down" data-arg="${esc(drill.id)}" title="${esc(drill.back)}" class="drill">`;
       }
     }
 
@@ -215,20 +213,11 @@ function renderGrammarSentence(
 }
 
 function grammarButtons(): string {
-  const viewCls = S.grammarOn
-    ? 'bg-indigo-500 text-white'
-    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50';
-  const editCls = S.grammarEditMode
-    ? 'bg-amber-500 text-white'
-    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50';
   return `
-    <span class="inline-flex items-center rounded-lg border border-stone-200 overflow-hidden text-[11px] font-medium">
-      <span class="px-2.5 py-1 text-stone-400 bg-stone-50 border-r border-stone-200 hanja select-none">文法</span>
-      <button data-action="toggle-grammar" title="문법 표시"
-        class="px-2.5 py-1 transition-colors ${viewCls}">보기</button>
-      <span class="w-px bg-stone-200 self-stretch"></span>
-      <button data-action="toggle-grammar-edit" title="문법 편집"
-        class="px-2.5 py-1 transition-colors ${editCls}">편집</button>
+    <span class="seg">
+      <span class="seg-lab hanja select-none">文法</span>
+      <button data-action="toggle-grammar" title="문법 표시" class="${S.grammarOn ? 'on' : ''}">보기</button>
+      <button data-action="toggle-grammar-edit" title="문법 편집" class="${S.grammarEditMode ? 'on' : ''}">편집</button>
     </span>`;
 }
 
@@ -262,9 +251,7 @@ function tokenizeHighlights(text: string): string {
   let pos  = 0;
   for (const sp of spans) {
     html += esc(chars.slice(pos, sp.start).join(''));
-    html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}"
-      class="border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors"
-      >${esc(sp.front)}</span>`;
+    html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="drill">${esc(sp.front)}</span>`;
     pos = sp.end;
   }
   html += esc(chars.slice(pos).join(''));
@@ -278,7 +265,7 @@ function annotatedFront(front: string, reading: string): string {
   const reads   = [...reading];
 
   const charSpan = (ch: string, rd: string) =>
-    `<ruby>${esc(ch)}<rt style="font-size:12px;font-family:'Noto Sans KR',sans-serif;color:#a8a29e">${esc(rd)}</rt></ruby>`;
+    `<ruby>${esc(ch)}<rt>${esc(rd)}</rt></ruby>`;
 
   let html = '';
   let i = 0;
@@ -286,7 +273,7 @@ function annotatedFront(front: string, reading: string): string {
     const sp = byStart.get(i);
     if (sp) {
       const inner = chars.slice(sp.start, sp.end).map((ch, j) => charSpan(ch, reads[sp.start + j])).join('');
-      html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="inline-block border-b-2 border-stone-300 cursor-pointer hover:bg-amber-50 hover:border-amber-500 transition-colors">${inner}</span>`;
+      html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="inline-block drill">${inner}</span>`;
       i = sp.end;
     } else {
       html += charSpan(chars[i], reads[i]);
@@ -298,10 +285,10 @@ function annotatedFront(front: string, reading: string): string {
 
 function cardBack(card: { reading: string; back: string; note: string }, cs: CardStyle, showReading = true): string {
   return `
-    <div class="border-t border-stone-100 pt-6 flex flex-col gap-3">
-      ${showReading && card.reading ? `<div class="text-xl text-stone-700 ${cs.backAlign}">${esc(card.reading)}</div>` : ''}
-      ${card.back    ? `<div class="text-base text-stone-600 ${cs.backAlign} leading-relaxed">${esc(card.back)}</div>` : ''}
-      ${card.note    ? `<div class="text-sm text-stone-400 ${cs.backAlign} leading-relaxed border-t border-stone-100 pt-3">${esc(card.note)}</div>` : ''}
+    <div class="card-back flex flex-col gap-3">
+      ${showReading && card.reading ? `<div class="reading-line ${cs.backAlign}">${esc(card.reading)}</div>` : ''}
+      ${card.back    ? `<div class="meaning ${cs.backAlign}">${esc(card.back)}</div>` : ''}
+      ${card.note    ? `<div class="text-sm t-sub ${cs.backAlign} leading-relaxed border-t border-[rgba(0,0,0,.05)] pt-3">${esc(card.note)}</div>` : ''}
     </div>`;
 }
 
@@ -309,16 +296,12 @@ function cardActions(lvKey?: string): string {
   return `
   <div class="absolute top-4 right-4 flex gap-1 items-center">
     ${lvKey === 'sentence' ? grammarButtons() : ''}
-    <button data-action="edit-card"
-      class="p-2 text-stone-200 hover:text-blue-400 hover:bg-blue-50 transition-colors rounded-lg"
-      title="카드 수정">
+    <button data-action="edit-card" class="icon-btn" title="카드 수정">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <button data-action="delete-card"
-      class="p-2 text-stone-200 hover:text-red-400 hover:bg-red-50 transition-colors rounded-lg"
-      title="카드 삭제">
+    <button data-action="delete-card" class="icon-btn icon-btn-danger" title="카드 삭제">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         <path d="M5 4V3C5 2.4 5.4 2 6 2H8C8.6 2 9 2.4 9 3V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -414,23 +397,21 @@ function renderMode(): void {
         ${homeBtn()}
       </div>
       <div class="text-center">
-        <div class="hanja text-2xl text-stone-900">${esc(d.title)}</div>
-        <div class="text-sm text-stone-400 mt-1">${esc(d.sub)}</div>
+        <div class="hanja text-2xl t-ink">${esc(d.title)}</div>
+        <div class="text-sm t-sub mt-1">${esc(d.sub)}</div>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <button data-action="nav-level" data-arg="seq"
-          class="p-8 bg-white border border-stone-200 rounded-2xl hover:border-stone-400 hover:shadow-sm transition-all text-left">
-          <div class="text-3xl text-stone-300 mb-4">→</div>
-          <div class="text-base font-bold text-stone-900">순차 재생</div>
-          <div class="text-sm text-stone-400 mt-1.5 leading-relaxed">전체를 순서대로</div>
-          <div class="text-xs text-stone-300 mt-4">Space · ← →</div>
+        <button data-action="nav-level" data-arg="seq" class="tile p-8">
+          <div class="text-3xl t-faint mb-4">→</div>
+          <div class="text-base font-bold t-ink">순차 재생</div>
+          <div class="text-sm t-sub mt-1.5 leading-relaxed">전체를 순서대로</div>
+          <div class="mt-4 flex gap-1.5"><kbd class="kbd">Space</kbd><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd></div>
         </button>
-        <button data-action="nav-level" data-arg="anki"
-          class="p-8 bg-white border border-stone-200 rounded-2xl hover:border-stone-400 hover:shadow-sm transition-all text-left">
-          <div class="text-3xl text-stone-300 mb-4">↺</div>
-          <div class="text-base font-bold text-stone-900">안키 모드</div>
-          <div class="text-sm text-stone-400 mt-1.5 leading-relaxed">모르는 것 집중 반복</div>
-          <div class="text-xs text-stone-300 mt-4">Space · 1 · 2 · 3</div>
+        <button data-action="nav-level" data-arg="anki" class="tile p-8">
+          <div class="text-3xl t-faint mb-4">↺</div>
+          <div class="text-base font-bold t-ink">안키 모드</div>
+          <div class="text-sm t-sub mt-1.5 leading-relaxed">모르는 것 집중 반복</div>
+          <div class="mt-4 flex gap-1.5"><kbd class="kbd">Space</kbd><kbd class="kbd">1</kbd><kbd class="kbd">2</kbd><kbd class="kbd">3</kbd></div>
         </button>
       </div>
     </div>`;
@@ -440,13 +421,12 @@ function renderLevel(): void {
   const d = curDoc();
   const modeLabel = S.mode === 'seq' ? '순차 재생' : '안키 모드';
   const rows = d.levels.map((lv, i) => `
-    <button data-action="start-study" data-arg="${i}"
-      class="w-full text-left px-7 py-5 bg-white border border-stone-200 rounded-2xl hover:border-stone-400 hover:shadow-sm transition-all group">
+    <button data-action="start-study" data-arg="${i}" class="tile w-full px-7 py-5">
       <div class="flex items-center justify-between">
-        <div class="text-base font-bold text-stone-900">${esc(lv.label)}</div>
+        <div class="text-base font-bold t-ink">${esc(lv.label)}</div>
         <div class="flex items-center gap-4">
-          <span class="text-sm text-stone-400">${lv.cards.length}장</span>
-          <svg class="w-5 h-5 text-stone-300 group-hover:text-stone-500 transition-colors" viewBox="0 0 16 16" fill="none">
+          <span class="text-sm t-sub num">${lv.cards.length}장</span>
+          <svg class="chev w-5 h-5 t-faint transition-colors" viewBox="0 0 16 16" fill="none">
             <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
@@ -460,8 +440,8 @@ function renderLevel(): void {
         ${homeBtn()}
       </div>
       <div class="text-center">
-        <div class="text-sm text-stone-400"><span class="hanja">${esc(d.title)}</span> · ${modeLabel}</div>
-        <div class="text-xl font-bold text-stone-900 mt-1">단위 선택</div>
+        <div class="text-sm t-sub"><span class="hanja">${esc(d.title)}</span> · ${modeLabel}</div>
+        <div class="text-xl font-bold t-ink mt-1">단위 선택</div>
       </div>
       <div class="flex flex-col gap-3">${rows}</div>
     </div>`;
@@ -490,7 +470,7 @@ function renderSeq(entering = false): void {
         ${backBtn(backLabel)}
         <div class="flex items-center gap-4">
           ${homeBtn()}
-          <span class="text-sm text-stone-400 tabular-nums">${S.seqIdx + 1} / ${cards.length}</span>
+          <span class="text-[13px] t-sub num">${S.seqIdx + 1} / ${cards.length}</span>
         </div>
       </div>
 
@@ -504,7 +484,7 @@ function renderSeq(entering = false): void {
           ${frontHtml}
         </div>
         ${S.seqFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm text-stone-300 text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
+          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
@@ -532,18 +512,9 @@ function renderAnki(entering = false): void {
 
   const ratingBtns = `
     <div class="flex gap-3 w-full">
-      <button data-action="anki-rate" data-arg="1"
-        class="flex-1 py-4 text-sm font-medium border border-red-200 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors">
-        1&nbsp;&nbsp;어려움
-      </button>
-      <button data-action="anki-rate" data-arg="2"
-        class="flex-1 py-4 text-sm font-medium border border-amber-200 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 transition-colors">
-        2&nbsp;&nbsp;보통
-      </button>
-      <button data-action="anki-rate" data-arg="3"
-        class="flex-1 py-4 text-sm font-medium border border-green-200 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors">
-        3&nbsp;&nbsp;쉬움
-      </button>
+      <button data-action="anki-rate" data-arg="1" class="rate-btn rate-hard">1&nbsp;&nbsp;어려움</button>
+      <button data-action="anki-rate" data-arg="2" class="rate-btn rate-mid">2&nbsp;&nbsp;보통</button>
+      <button data-action="anki-rate" data-arg="3" class="rate-btn rate-easy">3&nbsp;&nbsp;쉬움</button>
     </div>`;
 
   const cs = cardStyle(S.lv!.key);
@@ -563,7 +534,7 @@ function renderAnki(entering = false): void {
         ${backBtn(`${d.title} / ${S.lv!.label}`)}
         <div class="flex items-center gap-4">
           ${homeBtn()}
-          <span class="text-sm text-stone-400 tabular-nums">${done} / ${S.total}</span>
+          <span class="text-[13px] t-sub num">${done} / ${S.total}</span>
         </div>
       </div>
 
@@ -577,13 +548,13 @@ function renderAnki(entering = false): void {
           ${frontHtml}
         </div>
         ${isFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm text-stone-300 text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
+          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex flex-col items-center gap-3">
         ${S.side === 'back' ? ratingBtns : `
-          <div class="text-sm text-stone-300">정답을 확인한 뒤 난이도를 선택하세요</div>`}
+          <div class="text-sm t-faint">정답을 확인한 뒤 난이도를 선택하세요</div>`}
       </div>
     </div>`;
 }

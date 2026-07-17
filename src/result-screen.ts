@@ -10,52 +10,46 @@ export function renderResult(): void {
 
   const rows = failed.length > 0
     ? failed.map((c, i) => `
-        <tr class="border-b border-stone-100">
-          <td class="py-4 px-5 text-center text-stone-400 text-sm">${i + 1}</td>
-          <td class="hanja py-4 px-5 text-center text-2xl text-stone-900">${esc(c.front)}</td>
-          <td class="py-4 px-5 text-sm text-stone-500 leading-relaxed">${esc(c.reading)}${c.reading && c.back ? ' — ' : ''}${esc(c.back)}</td>
-          <td class="py-4 px-5 text-center text-sm font-bold text-red-500">${c.fail_count}</td>
+        <tr>
+          <td class="text-center t-faint text-[13px] num">${i + 1}</td>
+          <td class="hanja text-center text-[25px] t-ink">${esc(c.front)}</td>
+          <td class="text-[13.5px] t-sub leading-relaxed">${esc(c.reading)}${c.reading && c.back ? ' — ' : ''}${esc(c.back)}</td>
+          <td class="fails text-center num">${c.fail_count}</td>
         </tr>`)
         .join('')
-    : `<tr><td colspan="4" class="py-12 text-center text-stone-400 text-base">오답 없음 · 완벽합니다</td></tr>`;
+    : `<tr><td colspan="4" class="py-12 text-center t-sub text-base">오답 없음 · 완벽합니다</td></tr>`;
 
   $app().innerHTML = `
-    <div class="screen-enter w-full max-w-2xl flex flex-col gap-8">
+    <div class="screen-enter w-full max-w-2xl flex flex-col gap-7">
       <div class="flex items-center justify-between">
         ${backBtn(`${d.title} / ${S.lv!.label}`)}
         ${homeBtn()}
       </div>
       <div class="text-center">
-        <div class="text-3xl font-bold text-stone-900">학습 완료</div>
-        <div class="text-sm text-stone-400 mt-2">${S.total}장 완료 · 오답 ${failed.length}장</div>
-        <div class="flex justify-center gap-8 mt-5">
-          <div class="text-center">
-            <div class="text-2xl font-bold text-stone-800">${streak.count}일</div>
-            <div class="text-xs text-stone-400 mt-1">연속 학습</div>
-          </div>
-          <div class="w-px bg-stone-100"></div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-stone-800">${streak.todayCards}장</div>
-            <div class="text-xs text-stone-400 mt-1">오늘 학습</div>
-          </div>
-        </div>
+        <h2 class="text-[26px] font-extrabold t-ink">학습 완료</h2>
+        <div class="text-[13.5px] t-sub mt-2"><span class="num">${S.total}장</span> 완료 · 오답 <span class="num">${failed.length}장</span></div>
       </div>
-      <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="stat"><b class="num">${streak.count}<small>일</small></b><span>연속 학습</span></div>
+        <div class="stat"><b class="num">${streak.todayCards}<small>장</small></b><span>오늘 학습</span></div>
+        <div class="stat${failed.length > 0 ? ' bad' : ''}"><b class="num">${failed.length}<small>장</small></b><span>오답</span></div>
+      </div>
+      <div class="table-card">
         <table class="w-full border-collapse">
           <thead>
-            <tr class="border-b border-stone-100 bg-stone-50">
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">#</th>
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">한자</th>
-              <th class="py-4 px-5 text-left text-sm text-stone-400 font-medium">해석</th>
-              <th class="py-4 px-5 text-center text-sm text-stone-400 font-medium">오답</th>
+            <tr>
+              <th class="text-center">#</th>
+              <th class="text-center">한자</th>
+              <th class="text-left">해석</th>
+              <th class="text-center">오답</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div class="flex justify-center gap-8 text-sm text-stone-400">
-        <span>R — 다시 시작</span>
-        <span>Ctrl+Shift+R — 초기화</span>
+      <div class="flex justify-center gap-6 text-[12.5px] t-faint">
+        <span><kbd class="kbd">R</kbd> 다시 시작</span>
+        <span><kbd class="kbd">Ctrl⇧R</kbd> 초기화</span>
       </div>
     </div>`;
 }
