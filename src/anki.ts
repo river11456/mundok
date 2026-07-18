@@ -1,4 +1,4 @@
-import { S, persist, recordStudySession, saveLastSession } from './state';
+import { S, persist, recordStudySession, resetGrammarView, saveLastSession } from './state';
 import { reinsertAfterRating } from './anki-core';
 import { render } from './render';
 
@@ -8,6 +8,7 @@ export function rate(d: 1 | 2 | 3): void {
 
   const card = S.queue.shift()!;
   S.queue = reinsertAfterRating(S.queue, card, d);
+  resetGrammarView();   // 다음 카드로 이동 — 문법은 카드 단위
 
   persist();
   saveLastSession();

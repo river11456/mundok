@@ -1,4 +1,4 @@
-import { S, DOCS, curDoc, resetAnki, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { homeDocs, refsOf } from './docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
@@ -10,7 +10,7 @@ import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
-function navHome(): void  { S.grammarEditMode = false; S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
+function navHome(): void  { resetGrammarView(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
 function navMode(id: string): void  { S.docId = id; S.docOverlay = null; S.scr = 'mode';  render(); }
 
 /** 홈 표지 클릭/숫자키 — 참고문헌이 있으면 상세 오버레이, 없으면 바로 mode 화면. */
@@ -22,7 +22,7 @@ function openDoc(id: string): void {
 function closeOverlay(): void { S.docOverlay = null; render(); }
 function navLevel(m: Mode): void    { S.mode  = m;  S.scr = 'level'; render(); }
 function navBack(): void {
-  S.grammarEditMode = false;
+  resetGrammarView();   // 드릴다운 복귀 포함 — 카드 이동은 항상 문법 리셋
   if (S.scr === 'study' && popNav()) { render(); return; }
   if      (S.scr === 'mode')  navHome();
   else if (S.scr === 'level') navMode(S.docId!);
@@ -30,6 +30,7 @@ function navBack(): void {
 }
 
 function startStudy(lvIdx: number, seqStart = 0): void {
+  resetGrammarView();
   S.navStack = [];
   S.lv = curDoc().levels[lvIdx];
 
@@ -71,11 +72,11 @@ function restartStudy(): void {
 }
 
 function seqPrev(): void {
-  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; saveLastSession(); render(); }
+  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
 }
 
 function seqNext(): void {
-  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; saveLastSession(); render(); }
+  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
 }
 
 // ── Click delegation ──────────────────────────────────────
@@ -144,6 +145,7 @@ export function setupClick(): void {
         }
         if (!nextLevel || cardIdx < 0) break;
         pushNav();
+        resetGrammarView();   // 드릴다운 = 다른 카드로 이동
         S.lv         = nextLevel;
         S.mode       = 'seq';
         S.seqIdx     = cardIdx;

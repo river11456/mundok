@@ -21,7 +21,7 @@ export const S = {
   navStack:   [] as Array<{lv: Level; mode: Mode; seqIdx: number; seqFlipped: boolean; queue: Card[]; total: number; side: Side}>,
 
   grammarOn:       false,
-  grammarEditMode: false,
+  grammarEditMode: false,   // 문법 보기·편집은 카드 단위 — 카드 이동 시 resetGrammarView()
 
   /** 홈 문헌 상세 오버레이 — 열려 있으면 해당 docId */
   docOverlay: null as string | null,
@@ -206,6 +206,12 @@ export function recordStudySession(cardsCount: number): StreakData {
   };
   localStorage.setItem(STREAK_KEY, JSON.stringify(next));
   return next;
+}
+
+/** 문법 보기·편집 리셋 — 카드가 바뀌는 모든 시점에 호출 (카드마다 수동 켜기, 2026-07-18 B안). */
+export function resetGrammarView(): void {
+  S.grammarOn = false;
+  S.grammarEditMode = false;
 }
 
 export function pushNav(): void {

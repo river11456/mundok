@@ -161,14 +161,11 @@ function grammarPill(): string {
     </button>`;
 }
 
-/** 文法 편집 아이콘 (카드 도구, 문장 카드) — 저작 도구. 마커+밑줄 = 주석. */
+/** 文法 편집 아이콘 (카드 도구, 문장 카드) — 저작 도구. 文 = 하단 文法 필과 같은 어휘. */
 function grammarEditBtn(): string {
   return `
     <button data-action="toggle-grammar-edit" class="icon-btn${S.grammarEditMode ? ' on' : ''}" title="문법 편집 (S·V·O 주석)">
-      <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-        <path d="M8.5 2L11 4.5L6 9.5H3.5V7L8.5 2Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2.5 12H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-      </svg>
+      <span class="hanja select-none" style="font-size:15px;line-height:1">文</span>
     </button>`;
 }
 
