@@ -191,35 +191,48 @@ export function initAddCard(): void {
     </button>`;
   document.body.appendChild(bubble);
 
+  // 버블이 뜬 시점의 선택 텍스트 보관 — 버블을 누르는 순간 selection이 풀려도 모달에 전달
+  let bubbleText = '';
+
   document.getElementById('ac-bubble-btn')!.addEventListener('click', () => {
-    showModal(selectionText());
+    showModal(bubbleText || selectionText());
+  });
+  // 버블 press가 selection을 지우지 않게 (터치·마우스 공통)
+  bubble.addEventListener('pointerdown', e => e.preventDefault());
+
+  // ── 선택 감지 — selectionchange 하나로 마우스 드래그·터치 롱프레스 공통 처리 ──
+  //    (mouseup은 터치 선택 핸들 조작에서 오지 않는다 — 아이패드 저작 모드 대응)
+  let selTimer: ReturnType<typeof setTimeout> | undefined;
+  document.addEventListener('selectionchange', () => {
+    clearTimeout(selTimer);
+    selTimer = setTimeout(() => {
+      if (S.scr !== 'study' || S.grammarEditMode) { hideBubble(); return; }
+      const sel = window.getSelection();
+      // Only Range (drag), not Caret (plain click)
+      if (sel?.type !== 'Range') { hideBubble(); return; }
+      // Only show bubble when selection is inside the card front area
+      const cardFront = document.getElementById('card-front');
+      if (!cardFront) { hideBubble(); return; }
+      const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE
+        ? sel.anchorNode.parentElement : sel.anchorNode as Element | null;
+      if (!anchor || !cardFront.contains(anchor)) { hideBubble(); return; }
+      const text = selectionText();
+      if (!text) { hideBubble(); return; }
+      bubbleText = text;
+
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      const b    = document.getElementById('ac-bubble')!;
+      b.style.left = `${rect.left + rect.width / 2}px`;
+      // 터치는 선택 위에 네이티브 콜아웃(복사 등)이 뜨므로 아래쪽, 마우스는 위쪽 배치
+      b.style.top = matchMedia('(pointer: coarse)').matches
+        ? `${Math.min(window.innerHeight - 52, rect.bottom + 12)}px`
+        : `${Math.max(8, rect.top - 44)}px`;
+      b.classList.remove('hidden');
+    }, 200);
   });
 
-  // ── Drag-to-select detection ───────────────────────────
-  document.addEventListener('mouseup', (e) => {
-    if (S.scr !== 'study') { hideBubble(); return; }
-    if (S.grammarEditMode) { hideBubble(); return; }
-    if ((e.target as Element).closest('button, [data-action]')) { hideBubble(); return; }
-    const sel = window.getSelection();
-    // Only Range (drag), not Caret (plain click)
-    if (sel?.type !== 'Range') { hideBubble(); return; }
-    // Only show bubble when selection is inside the card front area
-    const cardFront = document.getElementById('card-front');
-    if (!cardFront) { hideBubble(); return; }
-    const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE
-      ? sel.anchorNode.parentElement : sel.anchorNode as Element | null;
-    if (!anchor || !cardFront.contains(anchor)) { hideBubble(); return; }
-    if (!selectionText()) { hideBubble(); return; }
-
-    const rect = sel.getRangeAt(0).getBoundingClientRect();
-    const b    = document.getElementById('ac-bubble')!;
-    b.style.left = `${rect.left + rect.width / 2}px`;
-    b.style.top  = `${Math.max(8, rect.top - 44)}px`;
-    b.classList.remove('hidden');
-  });
-
-  // Hide bubble on clicks outside it
-  document.addEventListener('mousedown', e => {
+  // Hide bubble on presses outside it
+  document.addEventListener('pointerdown', e => {
     if (!document.getElementById('ac-bubble')?.contains(e.target as Node)) {
       hideBubble();
     }

@@ -125,7 +125,7 @@ export function initGrammarEdit(): void {
     </div>`;
   document.body.appendChild(picker);
 
-  picker.addEventListener('mousedown', e => e.stopPropagation());
+  picker.addEventListener('pointerdown', e => e.stopPropagation());
 
   picker.addEventListener('click', e => {
     const btn = (e.target as Element).closest<HTMLElement>('[data-gp]');
@@ -133,8 +133,13 @@ export function initGrammarEdit(): void {
     if ((e.target as Element).closest('#gp-delete')) deleteOverlapping();
   });
 
-  // ── Drag detection ────────────────────────────────────────
-  document.addEventListener('mousedown', e => {
+  // ── Drag detection — pointer events로 마우스·터치·애플펜슬 공통 처리 ──
+  //    터치는 pointerdown 대상에 암묵 포인터 캡처가 걸려 move/up의 e.target이
+  //    고정되므로, 진행 중 셀 탐지는 좌표 기반 elementFromPoint를 쓴다.
+  const cellAt = (x: number, y: number): HTMLElement | null =>
+    document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-char-idx]') ?? null;
+
+  document.addEventListener('pointerdown', e => {
     if (!S.grammarEditMode || S.scr !== 'study') return;
     hidePicker();
     const ci = (e.target as Element).closest<HTMLElement>('[data-char-idx]');
@@ -142,22 +147,22 @@ export function initGrammarEdit(): void {
     _lastHoveredIdx = _dragStart;
   });
 
-  document.addEventListener('mousemove', e => {
+  document.addEventListener('pointermove', e => {
     if (!S.grammarEditMode || S.scr !== 'study' || _dragStart < 0) return;
-    const ci = (e.target as Element).closest<HTMLElement>('[data-char-idx]');
+    const ci = cellAt(e.clientX, e.clientY);
     if (ci) {
       _lastHoveredIdx = parseInt(ci.dataset.charIdx!);
       updateHighlight(_dragStart, _lastHoveredIdx);
     }
   });
 
-  document.addEventListener('mouseup', e => {
+  document.addEventListener('pointerup', e => {
     if (!S.grammarEditMode || S.scr !== 'study') return;
     if ((e.target as Element).closest('#gp-picker')) return;
     if (_dragStart < 0) return;
 
-    // 글자 사이 gap에서 마우스를 떼도 마지막으로 hover한 글자를 사용
-    const ci      = (e.target as Element).closest<HTMLElement>('[data-char-idx]');
+    // 글자 사이 gap에서 떼도 마지막으로 지나간 글자를 사용
+    const ci      = cellAt(e.clientX, e.clientY);
     const dragEnd = ci ? parseInt(ci.dataset.charIdx!) : _lastHoveredIdx;
 
     if (dragEnd < 0) { hidePicker(); _dragStart = -1; return; }
@@ -169,8 +174,8 @@ export function initGrammarEdit(): void {
     showPicker(start, end, e.clientX, e.clientY);
   });
 
-  // Close picker when clicking outside (edit mode에서는 drag-start listener가 처리)
-  document.addEventListener('mousedown', e => {
+  // Close picker when pressing outside (edit mode에서는 drag-start listener가 처리)
+  document.addEventListener('pointerdown', e => {
     if (S.grammarEditMode && S.scr === 'study') return;
     if (!(e.target as Element).closest('#gp-picker')) hidePicker();
   });

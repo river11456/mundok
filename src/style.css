@@ -205,6 +205,9 @@ button { touch-action: manipulation; }
   /* char 카드 하단 예약 — 뒤집어도 대형 한자 부동 (R6) */
   .char-hold { min-height: 150px; }
 
+  /* 문법 편집 그리드 — 터치 드래그가 페이지 스크롤로 새지 않게 (편집 중에만 존재) */
+  .grammar-edit-grid { touch-action: none; }
+
   /* 드릴다운 밑줄 — inline 스팬이라 글자 단위 줄바꿈 시 다음 줄로 이어진다 (R2).
      밑줄은 한자 글자 상자에 밀착, 음(.cc-rd)은 그 아래 (R3). */
   .drill {
