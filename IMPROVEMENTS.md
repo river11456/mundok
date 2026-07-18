@@ -43,13 +43,14 @@
 
 ### 4. 모바일 레이아웃 점검
 
-- [~] 보류 (2026-07-07, 사용자 지시로 후순위 연기)
-- **위치**: `index.html:34` (`<body class="min-h-screen flex items-center justify-center p-12">`)
-- **문제**:
-  - flex 센터링 + 콘텐츠가 화면보다 길면 **상단이 잘려 스크롤로도 접근 불가** (단락 카드·결과 테이블에서 발생 가능) — `margin: auto` 패턴이나 `safe center`로 해결
-  - `p-12`(3rem) 바디 여백 + 카드 `px-16 py-14`는 폰 화면에서 과다 → 반응형 축소
-  - 카드 추가(드래그 선택)·드릴다운 힌트(`title` hover)가 터치에서 어색 — 장기 과제로 분리 가능
-- **검증**: iPhone SE급 좁은 화면에서 전 화면 확인.
+- [x] 완료 (2026-07-18, v1.11.2~v1.14.0 — 서비스화 방침으로 보류 해제)
+- **위치**: `index.html` body / `src/style.css` / `src/events.ts`·`src/addcard.ts`·`src/grammar-edit.ts`
+- **문제** (원기록):
+  - flex 센터링 + 콘텐츠가 화면보다 길면 **상단이 잘려 스크롤로도 접근 불가** — `margin: auto` 패턴이나 `safe center`로 해결
+  - `p-12`(3rem) 바디 여백이 폰 화면에서 과다 → 반응형 축소
+  - 카드 추가(드래그 선택)·hover 의존이 터치에서 어색
+- **방법**: body·`#app`·`.modal-backdrop` 전부 auto 마진 safe center 전환 + `min-h-dvh` + 여백 `clamp(16~48px)`·safe-area(v1.11.2). 터치 조작(탭 플립·hover 게이팅·타깃 44px, v1.12.0), 선택 버블 selectionchange·문법 편집 pointer events(v1.13.0), 폰 브레이크포인트 ≤480px(v1.14.0).
+- **검증**: 테스트 49건·tsc·빌드·lint 통과. iPhone SE급·아이패드 실기기 육안 확인 잔여 (PROGRESS 참조).
 
 ---
 
