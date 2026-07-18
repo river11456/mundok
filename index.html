@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>文讀</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -27,6 +27,13 @@
     }
     /* 첫 페인트용 리터럴 — 토큰 정본은 src/style.css :root (--bg·--ink) */
     body { background: #F4F4F6; color: #1D1D1F; transition: background 0.4s ease; }
+    /* 본문 여백 — 폰 과다 여백 축소(clamp) + PWA 노치 safe-area. 첫 페인트 레이아웃이라 여기 정의 */
+    body {
+      padding: max(clamp(16px, 4vw, 48px), env(safe-area-inset-top))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-right))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-bottom))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-left));
+    }
     body.anki-mode { background: #EBF1F8; }
     /* 한자 텍스트 = 해서 전면 적용 (2026-07-18, 기존 "kai 본문 금지" 방침 폐기).
        폴백 사슬: 서브셋 결측 한자 → 로컬 LXGW WenKai(SC) → 명조(Noto Serif TC, 붓 획과 이질감 최소) → 한글·기타는 고딕.
@@ -46,8 +53,10 @@
     .stagger > *:nth-child(6) { animation-delay: 340ms; }
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-12">
-  <div id="app" class="w-full flex items-center justify-center"></div>
+<!-- 센터링은 #app의 auto 마진(safe center) — 콘텐츠가 화면보다 길면 마진이 0으로 해소돼
+     상단부터 정상 스크롤된다. flex items-center는 이 경우 상단을 잘라 스크롤 불가로 만든다. -->
+<body class="min-h-dvh flex">
+  <div id="app" class="w-full m-auto flex justify-center"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
