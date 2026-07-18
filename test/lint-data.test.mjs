@@ -77,6 +77,36 @@ test('word 레벨은 드릴다운 0건이어도 WARN 대상이 아니다(char �
   assert.equal(warns.length, 0);
 });
 
+test('독음 정렬 실패는 WARN (한자 2자 이상만)', () => {
+  const dj = doc({
+    word: [{ id: 'w1', text: '甲乙', reading: '갑을병', meaning: '', note: '' }],
+  });
+  const { errors, warns } = lintDoc(dj);
+  assert.equal(errors.length, 0);
+  assert.equal(warns.length, 1);
+  assert.match(warns[0], /독음 정렬 실패/);
+});
+
+test('한자 1자 카드의 훈+음 독음은 독음 정렬 WARN 대상이 아니다', () => {
+  const dj = doc({
+    word: [{ id: 'w1', text: '若', reading: '같을 약', meaning: '', note: '' }],
+  });
+  const { warns } = lintDoc(dj);
+  assert.equal(warns.filter(w => w.includes('독음 정렬')).length, 0);
+});
+
+test('현토·부호가 섞여도 정렬되면 독음 WARN이 아니다', () => {
+  const dj = doc({
+    sentence: [
+      { id: 's1', text: '甲乙이 丙丁을', reading: '갑을이 병정을', meaning: '', note: '' },
+      { id: 's2', text: '甲乙', reading: '갑을', meaning: '', note: '' },
+    ],
+    word: [{ id: 'w1', text: '甲乙', reading: '갑을', meaning: '', note: '' }],
+  });
+  const { warns } = lintDoc(dj);
+  assert.equal(warns.filter(w => w.includes('독음 정렬')).length, 0);
+});
+
 test('color 형식이 #RRGGBB가 아니면 ERROR', () => {
   const bad = { ...doc({}), color: 'red' };
   const { errors } = lintDoc(bad);

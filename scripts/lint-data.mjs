@@ -9,12 +9,14 @@
  *  WARN (정보): 잠재적 모호성
  *   - 같은 레벨 내 중복 텍스트 (edit/delete 가 양쪽에 적용될 수 있음)
  *   - 드릴다운 자동매칭 후보가 0인 문장/단락 (밑줄이 안 생김)
+ *   - 독음 정렬 실패 (design/char-cell.md R5) — 글자별 음 대신 아래 한 줄로 폴백됨
  *
  * 사용:  node scripts/lint-data.mjs
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import { alignReading, isHan } from '../src/reading-align.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR  = join(__dirname, '..', 'src', 'data');
@@ -124,6 +126,13 @@ export function lintDoc(dj) {
 
       // drill 링크 무결성
       if (c.drill) for (const d of c.drill) if (!allIds.has(d)) errors.push(`${docId}/${k} "${c.id}": drill 링크 깨짐 → "${d}" 없음`);
+
+      // 독음 정렬 (char-cell R5) — 실패 시 렌더러가 카드 아래 한 줄로 폴백.
+      //   char 레벨과 한자 1자 카드는 훈+음("봄 춘") 관행이라 검사하지 않는다.
+      if (k !== 'char' && c.reading && [...c.text].filter(isHan).length >= 2
+          && alignReading(c.text, c.reading) === null) {
+        warns.push(`${docId}/${k} "${c.id}": 독음 정렬 실패 "${trunc(c.text)}" — 한자 수·음절 수 불일치, 데이터 확인 필요`);
+      }
     }
 
     // 드릴다운 자동매칭 0건 — sentence/paragraph 만 검사.
@@ -201,7 +210,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     const dup  = warns.filter(w => w.includes('중복 텍스트')).length;
     const miss = warns.filter(w => w.includes('드릴다운 매칭 0건')).length;
     const font = warns.filter(w => w.startsWith('폰트:')).length;
-    console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss}, 폰트 ${font})`);
+    const rd   = warns.filter(w => w.includes('독음 정렬 실패')).length;
+    console.log(`⚠ WARN ${warns.length}건  (중복 텍스트 ${dup}, 드릴다운 0건 ${miss}, 폰트 ${font}, 독음 정렬 ${rd})`);
     warns.forEach(w => console.log(`   ${w}`));
   } else {
     console.log(`✅ WARN 0건`);

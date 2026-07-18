@@ -141,7 +141,31 @@
   .paragraph-body { font-size: clamp(17px, 2.8vw, 21px); font-weight: 400; line-height: 2.5; letter-spacing: .04em; }
   .bigchar { font-size: clamp(84px, 16vw, 124px); line-height: 1.15; }
 
-  /* 드릴다운 밑줄 */
+  /* 글자 셀 (design/char-cell.md) — 본문 렌더링 단위. 음·문법 레이블은 absolute라
+     셀 폭·줄바꿈에 영향 없음 → 음 토글 시 한자 배치 불변 (R1). line-height:1로
+     셀 높이를 글자 상자에 고정, 줄 간격은 컨테이너(line-height)가 결정한다. */
+  .cc { position: relative; display: inline-block; line-height: 1; white-space: pre; }
+  .cc-rd {
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 4px;
+    font-size: 11.5px; font-weight: 400; line-height: 1; letter-spacing: 0;
+    color: var(--faint); white-space: nowrap;
+    user-select: none; pointer-events: none;   /* 드래그 선택·클릭에서 음 제외 (R7) */
+  }
+  .cc-svo {
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    margin-bottom: 2px;
+    font-size: 10px; font-weight: 800; line-height: 1;
+    user-select: none; pointer-events: none;
+  }
+  /* 문법 편집 그리드의 음 — 표시 모드(.cc-rd)와 같은 표기, in-flow 변형 (R9) */
+  .cc-rd-e { font-size: 11.5px; line-height: 1; margin-top: 3px; color: var(--faint); user-select: none; }
+
+  /* char 카드 하단 예약 — 뒤집어도 대형 한자 부동 (R6) */
+  .char-hold { min-height: 150px; }
+
+  /* 드릴다운 밑줄 — inline 스팬이라 글자 단위 줄바꿈 시 다음 줄로 이어진다 (R2).
+     밑줄은 한자 글자 상자에 밀착, 음(.cc-rd)은 그 아래 (R3). */
   .drill {
     border-bottom: 2px solid rgba(0, 0, 0, .14);
     cursor: pointer;
@@ -420,6 +444,3 @@
 }
 
 @keyframes pop { from { transform: scale(.92) translateY(8px); opacity: 0; } }
-
-/* 독음 루비 — 고딕 사슬 상속, 흐린 보조색 (index.html의 ruby-position과 짝) */
-ruby rt { font-size: 11.5px; font-weight: 400; color: var(--faint); letter-spacing: 0; }

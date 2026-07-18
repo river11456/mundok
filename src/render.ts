@@ -3,7 +3,8 @@ import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
 import { isServerMode } from './storage';
 import { hideBubble } from './addcard';
 import { getAnnotations } from './grammar';
-import { findDrillSpans, spansByStart, spansByIndex, cpLen, type DrillCandidate } from './drill-match';
+import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match';
+import { alignReading } from './reading-align';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
 import { renderResult } from './result-screen';
 import type { Doc, GrammarAnnotation } from './types';
@@ -76,140 +77,79 @@ function drillCandidates(text: string): DrillCandidate[] {
   return nextKeys.flatMap(key => (doc.levels.find(l => l.key === key)?.cards ?? []).filter(c => text.includes(c.front)));
 }
 
-function renderGrammarSentence(
-  front: string,
-  reading: string,
-  annotations: GrammarAnnotation[],
-  isFlipped: boolean,
-  editMode: boolean,
-): string {
-  // 어노테이션도 없고 표시 모드면 → 일반 렌더링과 완전히 동일
-  if (!editMode && annotations.length === 0) {
-    return isFlipped && cpLen(front) === cpLen(reading) && reading
-      ? annotatedFront(front, reading)
-      : tokenizeHighlights(front);
+type FrontOpts = {
+  /** alignReading 결과 — null이면 글자별 음 불가(정렬 실패·char·독음 없음) */
+  reads:       (string | null)[] | null;
+  showReading: boolean;
+  annotations: GrammarAnnotation[];
+  editMode:    boolean;
+};
+
+/** 셀 하나의 문법(SVO 배경·구절 테두리) 클래스 — 표시·편집 그리드가 공유 */
+function slotClasses(s: SlotAnno | undefined): string {
+  let cls = '';
+  if (s?.svoBg) cls += ` ${s.svoBg}`;
+  if (s?.phraseTop) {
+    cls += ` border-t-2 ${s.phraseColor}`;
+    if (s.phraseLeft)  cls += ' border-l-2 rounded-tl-sm';
+    if (s.phraseRight) cls += ' border-r-2 rounded-tr-sm';
   }
+  return cls;
+}
 
-  const chars       = [...front];
-  const reads       = [...reading];
-  const perCharRead = isFlipped && reads.length === chars.length && reading;
-  const slotMap     = buildSlotMap(annotations);
-  const hasAnyLabel = annotations.some(a => a.type !== 'phrase');
-  const svoTailwind: Record<string, string> = {
-    S: 'svo-fg-S', V: 'svo-fg-V', O: 'svo-fg-O',
-  };
+/**
+ * 학습 카드 본문 렌더러 — 글자 셀 단위 (design/char-cell.md).
+ * 앞·뒷면이 같은 셀 구조를 공유하고 음(.cc-rd)·문법 레이블(.cc-svo)은 absolute
+ * → 음 토글·드릴 밑줄·문법 표시가 서로/한자 배치에 간섭하지 않는다 (R1~R3·R8).
+ */
+function renderFront(front: string, opts: FrontOpts): string {
+  const chars   = [...front];
+  const reads   = opts.showReading ? opts.reads : null;
+  const slotMap = opts.annotations.length ? buildSlotMap(opts.annotations) : null;
+  const svoFg: Record<string, string> = { S: 'svo-fg-S', V: 'svo-fg-V', O: 'svo-fg-O' };
 
-  // ── 편집 모드: flex 그리드, 글자별 드래그 가능 셀 ─────────
-  if (editMode) {
+  // ── 문법 편집: flex 그리드, 글자별 드래그 가능 셀 (grammar-edit.ts의 data-char-idx) ──
+  if (opts.editMode) {
+    const hasAnyLabel = opts.annotations.some(a => a.type !== 'phrase');
     const cells = chars.map((ch, i) => {
-      const s  = slotMap.get(i) ?? {};
-      const bg = s.svoBg ?? '';
-      let phraseCls = '';
-      if (s.phraseTop) {
-        phraseCls = `border-t-2 ${s.phraseColor}`;
-        if (s.phraseLeft)  phraseCls += ' border-l-2 rounded-tl-sm';
-        if (s.phraseRight) phraseCls += ' border-r-2 rounded-tr-sm';
-      }
-      const badge = s.svoType && s.isFirstSvo
-        ? `<span class="text-[10px] font-bold leading-none select-none ${svoTailwind[s.svoType]}">${s.svoType}</span>`
+      const s = slotMap?.get(i);
+      const badge = s?.svoType && s.isFirstSvo
+        ? `<span class="text-[10px] font-bold leading-none select-none ${svoFg[s.svoType]}">${s.svoType}</span>`
         : hasAnyLabel
           ? `<span class="text-[10px] leading-none select-none invisible">_</span>`
           : '';
-      const rdChar = perCharRead
-        ? `<span class="text-[11px] text-stone-400 leading-none mt-0.5 select-none">${esc(reads[i])}</span>`
+      const rd = reads
+        ? `<span class="cc-rd-e ${reads[i] ? '' : 'invisible'}">${esc(reads[i] ?? '·')}</span>`
         : '';
-      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none ${bg} ${phraseCls} cursor-pointer hover:bg-stone-100" data-char-idx="${i}">
+      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)} cursor-pointer hover:bg-stone-100" data-char-idx="${i}">
         ${badge}
         <span class="hanja text-2xl leading-none pointer-events-none">${esc(ch)}</span>
-        ${rdChar}
+        ${rd}
       </span>`;
     }).join('');
     return `<div class="grammar-edit-grid flex flex-wrap" style="gap:6px 2px">${cells}</div>`;
   }
 
-  // ── 표시 모드 ──────────────────────────────────────────────
+  // ── 표시: 드릴 스팬(inline) 안팎 모두 같은 글자 셀 ──
   const drillMap = spansByIndex(findDrillSpans(front, drillCandidates(front)));
 
-  const SVO_BG: Record<string, string> = {
-    S: 'var(--s-bg)', V: 'var(--v-bg)', O: 'var(--o-bg)',
-  };
-  const SVO_COLOR: Record<string, string> = {
-    S: 'var(--s-fg)', V: 'var(--v-fg)', O: 'var(--o-fg)',
-  };
-  const PHRASE_CLS: Record<string, string> = {
-    'border-indigo-400': 'border-t-2 border-indigo-400',
-    'border-purple-400': 'border-t-2 border-purple-400',
-    'border-teal-400':   'border-t-2 border-teal-400',
-  };
-
-  // SVO 어노테이션별 고유 키 맵 (char index → {key, ann})
-  type SvoEntry = { key: string; ann: GrammarAnnotation };
-  const svoSpanMap = new Map<number, SvoEntry>();
-  for (const ann of annotations.filter(a => a.type !== 'phrase')) {
-    const key = `${ann.start}-${ann.end}-${ann.type}`;
-    for (let k = ann.start; k < ann.end; k++) svoSpanMap.set(k, { key, ann });
-  }
-
-  // 글자별 읽기(독음) — SVO 배경/레이블은 wrapper span에서 처리
-  const charContent = (i: number): string => {
-    const ch = esc(chars[i]);
-    return perCharRead
-      ? `<ruby>${ch}<rt>${esc(reads[i])}</rt></ruby>`
-      : ch;
-  };
-
-  // 글자별 구절 클래스 매핑
-  const charPhraseCls = new Map<number, string>();
-  for (const ann of annotations.filter(a => a.type === 'phrase')) {
-    const col = slotMap.get(ann.start)?.phraseColor ?? 'border-indigo-400';
-    const cls = PHRASE_CLS[col] ?? PHRASE_CLS['border-indigo-400'];
-    for (let k = ann.start; k < ann.end; k++) charPhraseCls.set(k, cls);
-  }
-
-  // 상태 기계: phrase > SVO > drill 순으로 중첩
   let html = '';
-  let curPhraseCls: string | null = null;
-  let curSvoKey:    string | null = null;
-  let curDrillId:   string | null = null;
-
-  const closeDrill  = () => { if (curDrillId   !== null) { html += '</span>'; curDrillId   = null; } };
-  const closeSvo    = () => { if (curSvoKey    !== null) { html += '</span>'; curSvoKey    = null; } };
-  const closePhrase = () => { if (curPhraseCls !== null) { html += '</span>'; curPhraseCls = null; } };
-
-  let i = 0;
-  while (i < chars.length) {
-    const phraseCls = charPhraseCls.get(i) ?? null;
-    const svoEntry  = svoSpanMap.get(i) ?? null;
-    const svoKey    = svoEntry?.key ?? null;
-    const drill     = drillMap.get(i) ?? null;
-    const drillId   = drill?.id ?? null;
-
-    if (phraseCls !== curPhraseCls) {
-      closeDrill(); closeSvo(); closePhrase();
-      curPhraseCls = phraseCls;
-      if (phraseCls) html += `<span class="${phraseCls}">`;
+  let curDrill: string | null = null;
+  for (let i = 0; i < chars.length; i++) {
+    const sp = drillMap.get(i) ?? null;
+    if ((sp?.id ?? null) !== curDrill) {
+      if (curDrill !== null) html += '</span>';
+      curDrill = sp?.id ?? null;
+      if (sp) html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="drill">`;
     }
-    if (svoKey !== curSvoKey) {
-      closeDrill(); closeSvo();
-      curSvoKey = svoKey;
-      if (svoEntry) {
-        const { ann } = svoEntry;
-        const lbl = `<span style="position:absolute;bottom:100%;left:0;right:0;text-align:center;font-size:10px;font-weight:800;color:${SVO_COLOR[ann.type]};line-height:1;padding-bottom:2px;pointer-events:none">${ann.type}</span>`;
-        html += `<span style="position:relative;display:inline-block;vertical-align:baseline;background:${SVO_BG[ann.type]}">${lbl}`;
-      }
-    }
-    if (drillId !== curDrillId) {
-      closeDrill();
-      curDrillId = drillId;
-      if (drill) {
-        html += `<span data-action="drill-down" data-arg="${esc(drill.id)}" title="${esc(drill.back)}" class="drill">`;
-      }
-    }
-
-    html += charContent(i++);
+    const s = slotMap?.get(i);
+    const label = s?.svoType && s.isFirstSvo
+      ? `<span class="cc-svo ${svoFg[s.svoType]}">${s.svoType}</span>`
+      : '';
+    const rd = reads?.[i] ? `<span class="cc-rd">${esc(reads[i]!)}</span>` : '';
+    html += `<span class="cc${slotClasses(s)}">${esc(chars[i])}${label}${rd}</span>`;
   }
-  closeDrill(); closeSvo(); closePhrase();
-
+  if (curDrill !== null) html += '</span>';
   return html;
 }
 
@@ -242,48 +182,6 @@ export function render(): void {
 
 
 
-function tokenizeHighlights(text: string): string {
-  if (!S.lv) return esc(text);
-  const spans = findDrillSpans(text, drillCandidates(text));
-  if (spans.length === 0) return esc(text);
-
-  const chars = [...text];
-  let html = '';
-  let pos  = 0;
-  for (const sp of spans) {
-    html += esc(chars.slice(pos, sp.start).join(''));
-    html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="drill">${esc(sp.front)}</span>`;
-    pos = sp.end;
-  }
-  html += esc(chars.slice(pos).join(''));
-  return html;
-}
-
-function annotatedFront(front: string, reading: string): string {
-  const spans   = S.lv ? findDrillSpans(front, drillCandidates(front)) : [];
-  const byStart = spansByStart(spans);
-  const chars   = [...front];
-  const reads   = [...reading];
-
-  const charSpan = (ch: string, rd: string) =>
-    `<ruby>${esc(ch)}<rt>${esc(rd)}</rt></ruby>`;
-
-  let html = '';
-  let i = 0;
-  while (i < chars.length) {
-    const sp = byStart.get(i);
-    if (sp) {
-      const inner = chars.slice(sp.start, sp.end).map((ch, j) => charSpan(ch, reads[sp.start + j])).join('');
-      html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="inline-block drill">${inner}</span>`;
-      i = sp.end;
-    } else {
-      html += charSpan(chars[i], reads[i]);
-      i++;
-    }
-  }
-  return html;
-}
-
 function cardBack(card: { reading: string; back: string; note: string }, cs: CardStyle, showReading = true): string {
   return `
     <div class="card-back flex flex-col gap-3">
@@ -291,6 +189,11 @@ function cardBack(card: { reading: string; back: string; note: string }, cs: Car
       ${card.back    ? `<div class="meaning ${cs.backAlign}">${esc(card.back)}</div>` : ''}
       ${card.note    ? `<div class="text-sm t-sub ${cs.backAlign} leading-relaxed border-t border-[rgba(0,0,0,.05)] pt-3">${esc(card.note)}</div>` : ''}
     </div>`;
+}
+
+/** 카드 하단(정답/힌트) — char 카드는 높이를 예약해 뒤집어도 대형 한자가 부동 (R6) */
+function belowFront(inner: string, isChar: boolean): string {
+  return isChar ? `<div class="char-hold">${inner}</div>` : inner;
 }
 
 function cardActions(lvKey?: string): string {
@@ -525,11 +428,14 @@ function renderSeq(entering = false): void {
 
   const isSentGrammar = S.lv?.key === 'sentence' && S.grammarOn;
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
-  const frontHtml = isSentGrammar
-    ? renderGrammarSentence(card.front, card.reading, sentAnnotations, S.seqFlipped, S.grammarEditMode)
-    : (S.seqFlipped && cpLen(card.front) === cpLen(card.reading) && card.reading
-        ? annotatedFront(card.front, card.reading)
-        : tokenizeHighlights(card.front));
+  const isChar = S.lv!.key === 'char';
+  const reads  = isChar ? null : alignReading(card.front, card.reading);
+  const frontHtml = isChar ? esc(card.front) : renderFront(card.front, {
+    reads,
+    showReading:  S.seqFlipped,
+    annotations:  sentAnnotations,
+    editMode:     isSentGrammar && S.grammarEditMode,
+  });
 
   $app().innerHTML = `
     <div class="${entering ? 'screen-enter ' : ''}w-full ${cs.wrap} flex flex-col gap-6">
@@ -550,8 +456,8 @@ function renderSeq(entering = false): void {
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
-        ${S.seqFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
+        ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : `
+          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
@@ -589,11 +495,14 @@ function renderAnki(entering = false): void {
   const isSentGrammar   = S.lv?.key === 'sentence' && S.grammarOn;
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
   const isFlipped       = S.side === 'back';
-  const frontHtml = isSentGrammar
-    ? renderGrammarSentence(card.front, card.reading, sentAnnotations, isFlipped, S.grammarEditMode)
-    : (isFlipped && cpLen(card.front) === cpLen(card.reading) && card.reading
-        ? annotatedFront(card.front, card.reading)
-        : tokenizeHighlights(card.front));
+  const isChar = S.lv!.key === 'char';
+  const reads  = isChar ? null : alignReading(card.front, card.reading);
+  const frontHtml = isChar ? esc(card.front) : renderFront(card.front, {
+    reads,
+    showReading:  isFlipped,
+    annotations:  sentAnnotations,
+    editMode:     isSentGrammar && S.grammarEditMode,
+  });
 
   $app().innerHTML = `
     <div class="${entering ? 'screen-enter ' : ''}w-full ${cs.wrap} flex flex-col gap-6">
@@ -614,8 +523,8 @@ function renderAnki(entering = false): void {
         <div id="card-front" class="${cs.front} text-stone-900">
           ${frontHtml}
         </div>
-        ${isFlipped ? cardBack(card, cs, !(cpLen(card.front) === cpLen(card.reading) && card.reading)) : `
-          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`}
+        ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : `
+          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 

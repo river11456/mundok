@@ -14,6 +14,19 @@ function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
 }
 
+/**
+ * 드래그 선택 문자열 — 음(.cc-rd)·문법 레이블(.cc-svo)은 절대 포함하지 않는다 (R7).
+ * user-select:none과 별개로, 선택 범위를 복제해 해당 노드를 제거하고 읽는다
+ * (브라우저별 getSelection 동작 차이에 견고).
+ */
+function selectionText(): string {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return '';
+  const frag = sel.getRangeAt(0).cloneContents();
+  frag.querySelectorAll('.cc-rd, .cc-svo').forEach(el => el.remove());
+  return (frag.textContent ?? '').trim();
+}
+
 export function hideBubble(): void {
   document.getElementById('ac-bubble')?.classList.add('hidden');
 }
@@ -179,7 +192,7 @@ export function initAddCard(): void {
   document.body.appendChild(bubble);
 
   document.getElementById('ac-bubble-btn')!.addEventListener('click', () => {
-    showModal(window.getSelection()?.toString().trim() ?? '');
+    showModal(selectionText());
   });
 
   // ── Drag-to-select detection ───────────────────────────
@@ -196,8 +209,7 @@ export function initAddCard(): void {
     const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE
       ? sel.anchorNode.parentElement : sel.anchorNode as Element | null;
     if (!anchor || !cardFront.contains(anchor)) { hideBubble(); return; }
-    const text = sel.toString().trim();
-    if (!text) { hideBubble(); return; }
+    if (!selectionText()) { hideBubble(); return; }
 
     const rect = sel.getRangeAt(0).getBoundingClientRect();
     const b    = document.getElementById('ac-bubble')!;
