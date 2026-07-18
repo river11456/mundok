@@ -37,8 +37,8 @@ function docRow(docId: string, shelfId: string | null, idx: number, len: number)
   return `
     <div class="flex items-center gap-1.5 py-0.5">
       ${shelfId !== null ? `
-        <button data-ge="up" data-shelf="${esc(shelfId)}" data-idx="${idx}" class="icon-btn ${idx === 0 ? 'opacity-30 pointer-events-none' : ''}" title="위로">↑</button>
-        <button data-ge="down" data-shelf="${esc(shelfId)}" data-idx="${idx}" class="icon-btn ${idx === len - 1 ? 'opacity-30 pointer-events-none' : ''}" title="아래로">↓</button>` : ''}
+        <button data-ge="up" data-shelf="${esc(shelfId)}" data-idx="${idx}" class="icon-btn" title="위로" aria-label="위로" ${idx === 0 ? 'disabled' : ''}>↑</button>
+        <button data-ge="down" data-shelf="${esc(shelfId)}" data-idx="${idx}" class="icon-btn" title="아래로" aria-label="아래로" ${idx === len - 1 ? 'disabled' : ''}>↓</button>` : ''}
       <span class="text-sm t-ink flex-1">${esc(subOf(docId))}</span>
       <select data-ge="move" data-doc="${esc(docId)}"
         class="text-xs t-sub border border-[rgba(0,0,0,.08)] rounded-lg px-1.5 py-1 bg-white">${moveTargets(shelfId)}</select>
@@ -114,7 +114,7 @@ function ensureOverlay(): void {
   overlay = document.createElement('div');
   overlay.id = 'ge-overlay';
   overlay.className = 'modal-backdrop z-50 hidden';
-  overlay.innerHTML = `<div id="ge-panel" class="modal-surface px-7 py-6 w-full max-w-md mx-4 flex flex-col gap-4"></div>`;
+  overlay.innerHTML = `<div id="ge-panel" class="modal-surface px-7 py-6 w-full max-w-md mx-4 flex flex-col gap-4" role="dialog" aria-modal="true" aria-label="그룹 편집"></div>`;
   document.body.appendChild(overlay);
 
   overlay.addEventListener('click', e => {

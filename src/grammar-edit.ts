@@ -97,19 +97,19 @@ export function initGrammarEdit(): void {
   // ── Picker popup ──────────────────────────────────────────
   const picker = document.createElement('div');
   picker.id        = 'gp-picker';
-  picker.className = 'fixed hidden z-50 bg-white border border-stone-200 rounded-xl shadow-lg p-2 flex flex-col gap-1.5';
+  picker.className = 'fixed hidden z-50 bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-lg p-2 flex flex-col gap-1.5';
   picker.innerHTML = `
     <div class="flex gap-1.5">
       <button data-gp="S"
-        class="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+        class="px-3 py-1.5 text-xs font-bold text-[var(--s-fg)] bg-[var(--s-bg)] border border-[rgba(215,0,21,.25)] rounded-lg hover:bg-[rgba(255,59,48,.16)] transition-colors">
         S&nbsp;주어
       </button>
       <button data-gp="V"
-        class="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+        class="px-3 py-1.5 text-xs font-bold text-[var(--v-fg)] bg-[var(--v-bg)] border border-[rgba(0,64,221,.25)] rounded-lg hover:bg-[rgba(0,122,255,.18)] transition-colors">
         V&nbsp;동사
       </button>
       <button data-gp="O"
-        class="px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+        class="px-3 py-1.5 text-xs font-bold text-[var(--o-fg)] bg-[var(--o-bg)] border border-[rgba(29,122,51,.28)] rounded-lg hover:bg-[rgba(52,199,89,.2)] transition-colors">
         O&nbsp;목적어
       </button>
     </div>
@@ -119,7 +119,7 @@ export function initGrammarEdit(): void {
         구절 묶기
       </button>
       <button id="gp-delete"
-        class="flex-1 px-3 py-1.5 text-xs font-medium text-stone-500 border border-stone-200 rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
+        class="flex-1 px-3 py-1.5 text-xs font-medium t-sub border border-[var(--line)] rounded-lg hover:bg-[rgba(215,0,21,.05)] hover:text-[var(--fail)] hover:border-[rgba(215,0,21,.25)] transition-colors">
         삭제
       </button>
     </div>`;

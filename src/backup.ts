@@ -12,17 +12,17 @@ export function initBackup(): void {
   // ── 팝오버 ────────────────────────────────────────────────
   const pop = document.createElement('div');
   pop.id = 'bk-pop';
-  pop.className = 'fixed bottom-16 left-5 z-40 hidden bg-white border border-stone-200 rounded-xl shadow-lg p-2 flex flex-col gap-1 w-56';
+  pop.className = 'fixed bottom-16 left-5 z-40 hidden bg-[var(--surface)] border border-[var(--line)] rounded-xl shadow-lg p-2 flex flex-col gap-1 w-56';
   pop.innerHTML = `
     <button id="bk-export"
-      class="text-left px-3 py-2 text-xs text-stone-700 rounded-lg hover:bg-stone-100 transition-colors">
+      class="text-left px-3 py-2 text-xs t-sub rounded-lg hover:bg-[rgba(0,0,0,.05)] hover:text-[var(--ink)] transition-colors">
       ⤓ 내 데이터 내보내기 (백업)
     </button>
     <button id="bk-import"
-      class="text-left px-3 py-2 text-xs text-stone-700 rounded-lg hover:bg-stone-100 transition-colors">
+      class="text-left px-3 py-2 text-xs t-sub rounded-lg hover:bg-[rgba(0,0,0,.05)] hover:text-[var(--ink)] transition-colors">
       ⤒ 백업 파일에서 가져오기
     </button>
-    <p class="px-3 pt-1 pb-1 text-[10px] leading-snug text-stone-400">
+    <p class="px-3 pt-1 pb-1 text-[10px] leading-snug t-sub">
       추가·수정한 카드와 학습 기록은 이 브라우저에만 저장됩니다. 기기를 바꾸거나 기록을 지우기 전에 백업하세요.
     </p>`;
   document.body.appendChild(pop);
@@ -37,9 +37,10 @@ export function initBackup(): void {
   // ── FAB (좌하단, ? 버튼과 겹치지 않게) ──────────────────────
   const fab = document.createElement('button');
   fab.id = 'bk-fab';
-  fab.className = 'fixed bottom-5 left-5 w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-500 hover:text-stone-700 text-sm flex items-center justify-center transition-colors z-40';
+  fab.className = 'fixed bottom-5 left-5 w-8 h-8 rounded-full bg-[rgba(0,0,0,.07)] hover:bg-[rgba(0,0,0,.12)] t-sub hover:text-[var(--ink)] text-sm flex items-center justify-center transition-colors z-40';
   fab.textContent = '⤓';
   fab.title = '데이터 백업';
+  fab.setAttribute('aria-label', '데이터 백업');
   document.body.appendChild(fab);
 
   const hide = () => pop.classList.add('hidden');

@@ -128,38 +128,38 @@ export function initAddCard(): void {
   const opts = TYPE_LABELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
   overlay.innerHTML = `
-    <div id="ac-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
-      <div class="text-sm font-bold text-stone-900">카드 추가</div>
+    <div id="ac-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 추가">
+      <div class="text-sm font-bold t-ink">카드 추가</div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">타입</label>
+        <label class="text-xs t-sub">타입</label>
         <select id="ac-type"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 bg-white focus:outline-none focus:border-stone-500">${opts}</select>
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink bg-white focus:outline-none focus:border-[var(--accent)]">${opts}</select>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">한자</label>
+        <label class="text-xs t-sub">한자</label>
         <div class="flex gap-2">
           <input id="ac-front"
-            class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
+            class="flex-1 border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
           <button id="ac-search"
-            class="px-3 py-2 text-xs text-stone-500 border border-stone-200 rounded-lg hover:border-stone-400 hover:text-stone-700 transition-colors whitespace-nowrap">검색</button>
+            class="px-3 py-2 text-xs t-sub border border-[var(--line)] rounded-lg hover:border-[rgba(0,0,0,.25)] hover:text-[var(--ink)] transition-colors whitespace-nowrap">검색</button>
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">음</label>
+        <label class="text-xs t-sub">음</label>
         <input id="ac-reading"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">설명</label>
+        <label class="text-xs t-sub">설명</label>
         <textarea id="ac-back" rows="2"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500 resize-none"></textarea>
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)] resize-none"></textarea>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">메모 (선택)</label>
+        <label class="text-xs t-sub">메모 (선택)</label>
         <input id="ac-note"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
       </div>
-      <div id="ac-error" class="text-xs text-red-500 hidden"></div>
+      <div id="ac-error" class="text-xs text-[var(--fail)] hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ac-cancel"
           class="btn-ghost">취소</button>

@@ -10,9 +10,11 @@
   --faint: #AEB0B6;
   --line: rgba(0, 0, 0, .08);
   --line-soft: rgba(0, 0, 0, .05);
-  --accent: #2E7CF6;
-  --accent-deep: #1D66DB;
+  --accent: #2E7CF6;        /* 비텍스트 액센트 전용 — 프로그레스·활성 표시·포커스 링 (배경 대비 3.6:1, 텍스트 배경 금지) */
+  --accent-deep: #1D66DB;   /* 주 버튼 배경·액센트 텍스트 (흰 글자 5.3:1) */
+  --accent-deeper: #1857BC; /* 주 버튼 호버 (흰 글자 6.7:1) */
   --fail: #D70015;
+  --warn: #B25000;
   --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 20px rgba(0, 0, 0, .05);
   --spring: cubic-bezier(.34, 1.56, .64, 1);
   /* 문법 주석 S/V/O — 글자 레이블 동반 필수 (색 단독 사용 금지) */
@@ -21,20 +23,35 @@
   --o-fg: #1D7A33; --o-bg: rgba(52, 199, 89, .13);
 }
 
+/* 키보드 포커스 링 — hover만 정의된 컨트롤의 :focus-visible 공통 처리.
+   폼 입력은 focus:outline-none + focus:border-[var(--accent)]가 우선한다. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
 /* ═══ 공용 컴포넌트 (Phase 2 2단계) ═══ */
 @layer components {
   /* 주 액션 — 파랑 채움 알약 */
   .btn-primary {
     padding: 10px 18px;
     border-radius: 999px;
-    background: var(--accent);
+    background: var(--accent-deep);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
-    box-shadow: 0 3px 10px rgba(46, 124, 246, .3);
+    box-shadow: 0 3px 10px rgba(29, 102, 219, .3);
     transition: transform .2s var(--spring), background .2s;
   }
-  .btn-primary:hover { transform: translateY(-1px); background: var(--accent-deep); }
+  .btn-primary:hover { transform: translateY(-1px); background: var(--accent-deeper); }
 
   /* 보조 액션 — 테두리 알약 */
   .btn-ghost {
@@ -59,7 +76,8 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
     transition: border-color .2s, color .2s, transform .2s var(--spring);
   }
-  .nav-btn:hover { border-color: rgba(29, 102, 219, .45); color: var(--ink); transform: translateY(-1px); }
+  .nav-btn:hover:not(:disabled) { border-color: rgba(29, 102, 219, .45); color: var(--ink); transform: translateY(-1px); }
+  .nav-btn:disabled { opacity: .3; }
 
   /* 뒤로가기 텍스트 버튼 */
   .btn-back {
@@ -85,7 +103,8 @@
     border-radius: 8px;
     transition: background .15s, color .15s;
   }
-  .icon-btn:hover { background: rgba(0, 0, 0, .05); color: var(--ink); }
+  .icon-btn:hover:not(:disabled) { background: rgba(0, 0, 0, .05); color: var(--ink); }
+  .icon-btn:disabled { opacity: .3; }
 
   /* 학습 카드 서피스 */
   .card-surface {
@@ -149,7 +168,7 @@
     position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
     margin-top: 8px;                           /* 드릴 밑줄과 분리 (2026-07-18 피드백) */
     font-size: 11.5px; font-weight: 400; line-height: 1; letter-spacing: 0;
-    color: var(--faint); white-space: nowrap;
+    color: var(--sub); white-space: nowrap;
     user-select: none; pointer-events: none;   /* 드래그 선택·클릭에서 음 제외 (R7) */
   }
   /* 음 표시 중 줄 간격 확장 (R1 — 세로만, 줄마다 일정하게) — 글자 아래 여백을
@@ -162,7 +181,7 @@
     user-select: none; pointer-events: none;
   }
   /* 문법 편집 그리드의 음 — 표시 모드(.cc-rd)와 같은 표기, in-flow 변형 (R9) */
-  .cc-rd-e { font-size: 11.5px; line-height: 1; margin-top: 3px; color: var(--faint); user-select: none; }
+  .cc-rd-e { font-size: 11.5px; line-height: 1; margin-top: 3px; color: var(--sub); user-select: none; }
 
   /* char 카드 하단 예약 — 뒤집어도 대형 한자 부동 (R6) */
   .char-hold { min-height: 150px; }
@@ -246,7 +265,7 @@
   .rate-btn:hover { transform: translateY(-1px); }
   .rate-hard { color: var(--fail); border-color: rgba(215, 0, 21, .25); }
   .rate-hard:hover { background: rgba(215, 0, 21, .06); }
-  .rate-mid { color: #B25000; border-color: rgba(178, 80, 0, .25); }
+  .rate-mid { color: var(--warn); border-color: rgba(178, 80, 0, .25); }
   .rate-mid:hover { background: rgba(178, 80, 0, .07); }
   .rate-easy { color: var(--o-fg); border-color: rgba(29, 122, 51, .28); }
   .rate-easy:hover { background: rgba(52, 199, 89, .10); }
@@ -324,12 +343,12 @@
   .hero-title .lv { font-size: 13px; color: var(--sub); }
   .hero-sub { font-size: 12.5px; color: var(--sub); margin-top: 5px; }
   .hero-btn {
-    padding: 11px 20px; border-radius: 999px; background: var(--accent); color: #fff;
+    padding: 11px 20px; border-radius: 999px; background: var(--accent-deep); color: #fff;
     font-size: 13.5px; font-weight: 700; flex-shrink: 0;
     transition: transform .2s var(--spring), background .2s;
-    box-shadow: 0 3px 10px rgba(46, 124, 246, .35);
+    box-shadow: 0 3px 10px rgba(29, 102, 219, .35);
   }
-  .hero-btn:hover { transform: translateY(-2px); background: var(--accent-deep); }
+  .hero-btn:hover { transform: translateY(-2px); background: var(--accent-deeper); }
 
   /* 선반(그룹) */
   .shelf-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -384,7 +403,7 @@
   .case-wrap:hover .stack i:nth-child(3) { transform: translate(4px, -3.5px) rotate(1.2deg); }
   .book-label { text-align: center; }
   .book-label .k { font-size: 12.5px; color: var(--sub); font-weight: 600; }
-  .home-foot { font-size: 11.5px; color: var(--faint); line-height: 1.7; }
+  .home-foot { font-size: 11.5px; color: var(--sub); line-height: 1.7; }
   .home-foot .ver { margin-top: 6px; letter-spacing: .04em; }
 
   /* 문헌 상세 오버레이 (겹침 무더기 클릭 — 목록창 기능 겸용) */

@@ -121,7 +121,7 @@ function renderFront(front: string, opts: FrontOpts): string {
       const rd = reads
         ? `<span class="cc-rd-e ${reads[i] ? '' : 'invisible'}">${esc(reads[i] ?? '·')}</span>`
         : '';
-      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)} cursor-pointer hover:bg-stone-100" data-char-idx="${i}">
+      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}">
         ${badge}
         <span class="hanja text-2xl leading-none pointer-events-none">${esc(ch)}</span>
         ${rd}
@@ -158,7 +158,8 @@ function grammarMenuBtn(): string {
   const active = S.grammarOn || S.grammarEditMode;
   return `
   <div class="gram-wrap relative">
-    <button data-action="toggle-grammar-menu" class="icon-btn${active ? ' on' : ''}" title="문법 (G: 표시 토글)">
+    <button data-action="toggle-grammar-menu" class="icon-btn${active ? ' on' : ''}" title="문법 (G: 표시 토글)"
+      aria-label="문법 메뉴" aria-haspopup="true" aria-expanded="${S.grammarMenu}">
       <span class="hanja select-none" style="font-size:15px;line-height:1">文</span>
     </button>
     ${S.grammarMenu ? `
@@ -210,13 +211,13 @@ function belowFront(inner: string, isChar: boolean): string {
 function cardActions(lvKey?: string): string {
   return `
   <div class="absolute top-4 right-4 flex gap-1 items-center">
-    <button data-action="edit-card" class="icon-btn" title="카드 수정">
+    <button data-action="edit-card" class="icon-btn" title="카드 수정" aria-label="카드 수정">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
     ${lvKey === 'sentence' ? grammarMenuBtn() : ''}
-    <button data-action="delete-card" class="icon-btn icon-btn-danger" title="카드 삭제">
+    <button data-action="delete-card" class="icon-btn icon-btn-danger" title="카드 삭제" aria-label="카드 삭제">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         <path d="M5 4V3C5 2.4 5.4 2 6 2H8C8.6 2 9 2.4 9 3V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -293,8 +294,8 @@ function docOverlayHtml(docId: string): string {
   const recent = getDocLastStudied(docId);
   return `
   <div class="doc-overlay" data-action="overlay-backdrop">
-    <div class="detail">
-      <button data-action="close-overlay" class="close" title="닫기">
+    <div class="detail" role="dialog" aria-modal="true" aria-label="${esc(d.title)} 상세">
+      <button data-action="close-overlay" class="close" title="닫기" aria-label="닫기">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
       <div class="detail-head">
@@ -340,7 +341,8 @@ function renderHome(): void {
     return `
     <div>
       <div class="shelf-head">
-        <button data-action="toggle-shelf" data-arg="${sh.id}" class="shelf-toggle" title="${isCollapsed ? '펼치기' : '접기'}">
+        <button data-action="toggle-shelf" data-arg="${sh.id}" class="shelf-toggle" title="${isCollapsed ? '펼치기' : '접기'}"
+          aria-label="${esc(sh.name)} ${isCollapsed ? '펼치기' : '접기'}" aria-expanded="${!isCollapsed}">
           <svg class="chev" style="transform:rotate(${isCollapsed ? 0 : 90}deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>
@@ -459,28 +461,27 @@ function renderSeq(entering = false): void {
         </div>
       </div>
 
-      <div class="progress-track w-full">
+      <div class="progress-track w-full" role="progressbar" aria-label="진행률"
+        aria-valuemin="0" aria-valuemax="${cards.length}" aria-valuenow="${S.seqIdx + 1}">
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
 
       <div class="card-surface">
         ${cardActions(S.lv?.key)}
-        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} text-stone-900">
+        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
         ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : `
           <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
-        ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
+        ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex justify-between items-center">
-        <button data-action="seq-prev"
-          class="nav-btn ${S.seqIdx === 0 ? 'opacity-30 pointer-events-none' : ''}">
+        <button data-action="seq-prev" class="nav-btn" ${S.seqIdx === 0 ? 'disabled' : ''}>
           ← 이전
         </button>
         <kbd class="kbd">Space</kbd>
-        <button data-action="seq-next"
-          class="nav-btn ${S.seqIdx === cards.length - 1 ? 'opacity-30 pointer-events-none' : ''}">
+        <button data-action="seq-next" class="nav-btn" ${S.seqIdx === cards.length - 1 ? 'disabled' : ''}>
           다음 →
         </button>
       </div>
@@ -527,18 +528,19 @@ function renderAnki(entering = false): void {
         </div>
       </div>
 
-      <div class="progress-track w-full">
+      <div class="progress-track w-full" role="progressbar" aria-label="진행률"
+        aria-valuemin="0" aria-valuemax="${S.total}" aria-valuenow="${done}">
         <div class="progress-fill" style="width:${pct}%"></div>
       </div>
 
       <div class="card-surface">
         ${cardActions(S.lv?.key)}
-        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} text-stone-900">
+        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
         ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : `
           <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
-        ${S.grammarEditMode ? `<div class="text-xs text-center text-amber-600 pt-3 border-t border-stone-100 mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
+        ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
       <div class="flex flex-col items-center gap-3">

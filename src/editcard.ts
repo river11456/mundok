@@ -132,11 +132,11 @@ function showCoEditModal(origText: string, newText: string, targets: CoTarget[])
     const after = t.card.front.split(origText).join(newText);
     const n     = ceOccur(t.card.front, origText);
     return `
-      <label class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 cursor-pointer">
-        <input type="checkbox" id="ce-chk-${i}" checked class="mt-1 accent-stone-900" />
+      <label class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[rgba(0,0,0,.03)] cursor-pointer">
+        <input type="checkbox" id="ce-chk-${i}" checked class="mt-1 accent-[var(--accent)]" />
         <div class="flex flex-col gap-1 min-w-0 flex-1">
-          <div class="text-[11px] text-stone-400">${CE_LEVEL_LABEL[t.level.key] ?? t.level.key} · ${ecEsc(t.card.id)} · ${n}곳</div>
-          <div class="hanja text-sm text-stone-800 leading-relaxed break-words">${ceHighlight(after, newText, 'bg-green-100 text-green-700 rounded px-0.5')}</div>
+          <div class="text-[11px] t-faint">${CE_LEVEL_LABEL[t.level.key] ?? t.level.key} · ${ecEsc(t.card.id)} · ${n}곳</div>
+          <div class="hanja text-sm t-ink leading-relaxed break-words">${ceHighlight(after, newText, 'bg-[var(--o-bg)] text-[var(--o-fg)] rounded px-0.5')}</div>
         </div>
       </label>`;
   }).join('');
@@ -190,30 +190,30 @@ export function initEditCard(): void {
   overlay.className = 'modal-backdrop z-50 hidden';
 
   overlay.innerHTML = `
-    <div id="ec-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4">
-      <div class="text-sm font-bold text-stone-900">카드 수정</div>
+    <div id="ec-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 수정">
+      <div class="text-sm font-bold t-ink">카드 수정</div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">한자</label>
+        <label class="text-xs t-sub">한자</label>
         <input id="ec-text"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
-        <div class="text-xs text-amber-500 leading-relaxed mt-0.5">⚠ 이 항목을 바꾸면 이 글자를 포함하는 문장·단락 카드와의 연결이 끊길 수 있습니다. 수정을 권장하지 않습니다.</div>
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
+        <div class="text-xs text-[var(--warn)] leading-relaxed mt-0.5">⚠ 이 항목을 바꾸면 이 글자를 포함하는 문장·단락 카드와의 연결이 끊길 수 있습니다. 수정을 권장하지 않습니다.</div>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">음</label>
+        <label class="text-xs t-sub">음</label>
         <input id="ec-reading"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">설명</label>
+        <label class="text-xs t-sub">설명</label>
         <textarea id="ec-back" rows="2"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500 resize-none"></textarea>
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)] resize-none"></textarea>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-xs text-stone-400">메모 (선택)</label>
+        <label class="text-xs t-sub">메모 (선택)</label>
         <input id="ec-note"
-          class="border border-stone-200 rounded-lg px-3 py-2 text-sm text-stone-900 focus:outline-none focus:border-stone-500" />
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
       </div>
-      <div id="ec-error" class="text-xs text-red-500 hidden"></div>
+      <div id="ec-error" class="text-xs text-[var(--fail)] hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ec-cancel"
           class="btn-ghost">취소</button>
@@ -233,14 +233,14 @@ export function initEditCard(): void {
   ce.id = 'ce-overlay';
   ce.className = 'modal-backdrop z-[60] hidden';
   ce.innerHTML = `
-    <div id="ce-modal" class="modal-surface px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]">
-      <div class="text-sm font-bold text-stone-900">연결된 카드도 함께 수정</div>
-      <div id="ce-sub" class="text-xs text-stone-500 leading-relaxed"></div>
-      <div class="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2 leading-relaxed">
+    <div id="ce-modal" class="modal-surface px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]" role="dialog" aria-modal="true" aria-label="연결된 카드 함께 수정">
+      <div class="text-sm font-bold t-ink">연결된 카드도 함께 수정</div>
+      <div id="ce-sub" class="text-xs t-sub leading-relaxed"></div>
+      <div class="text-[11px] text-[var(--warn)] bg-[rgba(178,80,0,.06)] rounded-lg px-3 py-2 leading-relaxed">
         ⚠ 독음은 자동으로 맞춰지지 않으니 적용 후 확인하세요. 길이가 다른 치환은 문법 주석 위치가 밀릴 수 있습니다.
       </div>
       <div id="ce-list" class="flex flex-col gap-0.5 overflow-y-auto -mx-1 px-1" style="max-height:42vh"></div>
-      <div id="ce-error" class="text-xs text-red-500 hidden"></div>
+      <div id="ce-error" class="text-xs text-[var(--fail)] hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ce-skip"
           class="btn-ghost">건너뛰기</button>
