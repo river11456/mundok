@@ -204,6 +204,13 @@ export function setupKeyboard(): void {
       if (i >= 0 && i < lvs.length) startStudy(i);
 
     } else if (S.scr === 'study') {
+      // 문법 표시 토글 (문장 카드) — 하단 文法 필과 동일 동작
+      if ((e.key === 'g' || e.key === 'G') && S.lv?.key === 'sentence') {
+        S.grammarOn = !S.grammarOn;
+        if (!S.grammarOn) S.grammarEditMode = false;
+        render();
+        return;
+      }
       if (S.mode === 'seq') {
         if (e.code === 'Space') {
           e.preventDefault();

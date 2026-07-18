@@ -19,6 +19,7 @@ export function initShortcutHelp(): void {
           <tr><td></td><td class="kbd mr-2">1 / 2 / 3</td><td>어려움 / 보통 / 쉬움</td></tr>
           <tr><td></td><td class="kbd mr-2">R</td><td>다시 시작 (결과 화면)</td></tr>
           <tr><td colspan="3" class="pt-2 pb-1 text-stone-300 text-xs">전체</td></tr>
+          <tr><td></td><td class="kbd mr-2">G</td><td>문법 표시 (문장 카드)</td></tr>
           <tr><td></td><td class="kbd mr-2">Esc</td><td>뒤로가기</td></tr>
           <tr><td></td><td class="kbd mr-2">?</td><td>단축키 도움말</td></tr>
           <tr><td></td><td class="kbd mr-2 text-stone-400" style="font-size:10px">Ctrl⇧R</td><td>안키 기록 초기화</td></tr>

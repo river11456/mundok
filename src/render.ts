@@ -153,13 +153,23 @@ function renderFront(front: string, opts: FrontOpts): string {
   return html;
 }
 
-function grammarButtons(): string {
+/** 文法 표시 토글 필 (하단, 문장 카드) — 학습 표시 토글. 단축키 G. (2026-07-18 A안) */
+function grammarPill(): string {
   return `
-    <span class="seg">
-      <span class="seg-lab hanja select-none">文法</span>
-      <button data-action="toggle-grammar" title="문법 표시" class="${S.grammarOn ? 'on' : ''}">보기</button>
-      <button data-action="toggle-grammar-edit" title="문법 편집" class="${S.grammarEditMode ? 'on' : ''}">편집</button>
-    </span>`;
+    <button data-action="toggle-grammar" title="문법 표시 (G)" class="gram-pill${S.grammarOn ? ' on' : ''}">
+      <span class="hanja select-none">文法</span><span class="gram-key select-none">G</span>
+    </button>`;
+}
+
+/** 文法 편집 아이콘 (카드 도구, 문장 카드) — 저작 도구. 마커+밑줄 = 주석. */
+function grammarEditBtn(): string {
+  return `
+    <button data-action="toggle-grammar-edit" class="icon-btn${S.grammarEditMode ? ' on' : ''}" title="문법 편집 (S·V·O 주석)">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+        <path d="M8.5 2L11 4.5L6 9.5H3.5V7L8.5 2Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.5 12H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+    </button>`;
 }
 
 let _prevScr = '';
@@ -199,12 +209,12 @@ function belowFront(inner: string, isChar: boolean): string {
 function cardActions(lvKey?: string): string {
   return `
   <div class="absolute top-4 right-4 flex gap-1 items-center">
-    ${lvKey === 'sentence' ? grammarButtons() : ''}
     <button data-action="edit-card" class="icon-btn" title="카드 수정">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
+    ${lvKey === 'sentence' ? grammarEditBtn() : ''}
     <button data-action="delete-card" class="icon-btn icon-btn-danger" title="카드 삭제">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -467,7 +477,10 @@ function renderSeq(entering = false): void {
           class="nav-btn ${S.seqIdx === 0 ? 'opacity-30 pointer-events-none' : ''}">
           ← 이전
         </button>
-        <kbd class="kbd">Space</kbd>
+        <div class="flex items-center gap-2.5">
+          ${S.lv!.key === 'sentence' ? grammarPill() : ''}
+          <kbd class="kbd">Space</kbd>
+        </div>
         <button data-action="seq-next"
           class="nav-btn ${S.seqIdx === cards.length - 1 ? 'opacity-30 pointer-events-none' : ''}">
           다음 →
@@ -533,6 +546,7 @@ function renderAnki(entering = false): void {
       <div class="flex flex-col items-center gap-3">
         ${S.side === 'back' ? ratingBtns : `
           <div class="text-sm t-faint">정답을 확인한 뒤 난이도를 선택하세요</div>`}
+        ${S.lv!.key === 'sentence' ? grammarPill() : ''}
       </div>
     </div>`;
 }
