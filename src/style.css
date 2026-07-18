@@ -136,8 +136,9 @@
   .num { font-variant-numeric: tabular-nums; }
 
   /* 학습 본문 스케일 (문장/단락) · char 대형 */
-  .sentence-body { font-size: clamp(20px, 3.4vw, 27px); font-weight: 500; line-height: 2.6; letter-spacing: .05em; }
-  .paragraph-body { font-size: clamp(17px, 2.8vw, 21px); font-weight: 500; line-height: 2.5; letter-spacing: .04em; }
+  /* 해서(WenKai)는 Regular 단일 웨이트 — 500 이상 지정 시 가짜 볼드로 획이 뭉개진다 */
+  .sentence-body { font-size: clamp(20px, 3.4vw, 27px); font-weight: 400; line-height: 2.6; letter-spacing: .05em; }
+  .paragraph-body { font-size: clamp(17px, 2.8vw, 21px); font-weight: 400; line-height: 2.5; letter-spacing: .04em; }
   .bigchar { font-size: clamp(84px, 16vw, 124px); line-height: 1.15; }
 
   /* 드릴다운 밑줄 */

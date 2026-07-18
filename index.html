@@ -13,9 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    /* 해서(제첨·워드마크·char 대형 한자 전용) — 콘텐츠 한자만 서브셋해 self-host (scripts/subset-font.mjs) */
+    /* 해서(한자 본문 전체) — 콘텐츠 한자만 서브셋해 self-host (scripts/subset-font.mjs) */
     @font-face {
       font-family: 'LXGW WenKai TC';
       src: url('fonts/wenkai-tc-sub.woff2') format('woff2');
@@ -28,10 +28,10 @@
     /* 첫 페인트용 리터럴 — 토큰 정본은 src/style.css :root (--bg·--ink) */
     body { background: #F4F4F6; color: #1D1D1F; transition: background 0.4s ease; }
     body.anki-mode { background: #EBF1F8; }
-    /* 한자 텍스트 — body와 동일한 고딕 사슬(KR→TC→SC 같은 뼈대 폴백, 벽자에도 획 스타일 유지). 명조 전면 제거 */
-    .hanja { font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', -apple-system, 'Apple SD Gothic Neo', sans-serif; }
-    /* 해서 — 홈 워드마크·표지 제첨·char 카드 대형 한자 전용 (16px 미만·학습 본문 금지) */
-    .kai { font-family: 'LXGW WenKai TC', 'LXGW WenKai', 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', sans-serif; font-weight: 400; }
+    /* 한자 텍스트 = 해서 전면 적용 (2026-07-18, 기존 "kai 본문 금지" 방침 폐기).
+       폴백 사슬: 서브셋 결측 한자 → 로컬 LXGW WenKai(SC) → 명조(Noto Serif TC, 붓 획과 이질감 최소) → 한글·기타는 고딕.
+       원본 폰트 미지원 한자는 subset-font.mjs 가 빌드 시점에 감지·경고한다 (font-cmap.mjs). */
+    .hanja, .kai { font-family: 'LXGW WenKai TC', 'LXGW WenKai', 'Noto Serif TC', 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', sans-serif; font-weight: 400; }
     @keyframes screenIn {
       from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
