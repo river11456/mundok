@@ -83,6 +83,12 @@ function seqNext(): void {
 export function setupClick(): void {
   document.getElementById('app')!.addEventListener('click', e => {
     const btn = (e.target as Element).closest<HTMLElement>('[data-action]');
+    // 文 메뉴 바깥 클릭 → 닫기 (닫은 뒤 클릭된 액션은 계속 처리)
+    if (S.grammarMenu && !(e.target as Element).closest('.gram-wrap')) {
+      S.grammarMenu = false;
+      render();
+      if (!btn) return;
+    }
     if (!btn) return;
     const arg = btn.dataset.arg;
 
@@ -123,14 +129,20 @@ export function setupClick(): void {
         deleteCard(S.docId!, S.lv!.key, card.id, card.front);
         break;
       }
+      case 'toggle-grammar-menu':
+        S.grammarMenu = !S.grammarMenu;
+        render();
+        break;
       case 'toggle-grammar':
         S.grammarOn = !S.grammarOn;
         if (!S.grammarOn) S.grammarEditMode = false;
+        S.grammarMenu = false;
         render();
         break;
       case 'toggle-grammar-edit':
         S.grammarEditMode = !S.grammarEditMode;
         if (S.grammarEditMode) S.grammarOn = true;
+        S.grammarMenu = false;
         render();
         break;
       case 'drill-down': {
@@ -181,6 +193,7 @@ export function setupKeyboard(): void {
 
     if (e.key === 'Escape') {
       if (isShortcutHelpOpen()) { hideShortcutHelp(); return; }
+      if (S.grammarMenu) { S.grammarMenu = false; render(); return; }
       if (S.scr === 'home' && S.docOverlay) { closeOverlay(); return; }
       navBack();
       return;

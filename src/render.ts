@@ -153,20 +153,24 @@ function renderFront(front: string, opts: FrontOpts): string {
   return html;
 }
 
-/** 文法 표시 토글 필 (하단, 문장 카드) — 학습 표시 토글. 단축키 G. (2026-07-18 A안) */
-function grammarPill(): string {
+/** 文 아이콘 + 확장 메뉴 (카드 도구, 문장 카드) — 표시·편집 두 항목. 표시 단축키 G. */
+function grammarMenuBtn(): string {
+  const active = S.grammarOn || S.grammarEditMode;
   return `
-    <button data-action="toggle-grammar" title="문법 표시 (G)" class="gram-pill${S.grammarOn ? ' on' : ''}">
-      <span class="hanja select-none">文法</span><span class="gram-key select-none">G</span>
-    </button>`;
-}
-
-/** 文法 편집 아이콘 (카드 도구, 문장 카드) — 저작 도구. 文 = 하단 文法 필과 같은 어휘. */
-function grammarEditBtn(): string {
-  return `
-    <button data-action="toggle-grammar-edit" class="icon-btn${S.grammarEditMode ? ' on' : ''}" title="문법 편집 (S·V·O 주석)">
+  <div class="gram-wrap relative">
+    <button data-action="toggle-grammar-menu" class="icon-btn${active ? ' on' : ''}" title="문법 (G: 표시 토글)">
       <span class="hanja select-none" style="font-size:15px;line-height:1">文</span>
-    </button>`;
+    </button>
+    ${S.grammarMenu ? `
+    <div class="gram-menu">
+      <button data-action="toggle-grammar" class="gram-item${S.grammarOn ? ' on' : ''}">
+        <span>문법 표시</span><span class="gram-key select-none">G</span>
+      </button>
+      <button data-action="toggle-grammar-edit" class="gram-item${S.grammarEditMode ? ' on' : ''}">
+        <span>문법 편집</span>
+      </button>
+    </div>` : ''}
+  </div>`;
 }
 
 let _prevScr = '';
@@ -211,7 +215,7 @@ function cardActions(lvKey?: string): string {
         <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    ${lvKey === 'sentence' ? grammarEditBtn() : ''}
+    ${lvKey === 'sentence' ? grammarMenuBtn() : ''}
     <button data-action="delete-card" class="icon-btn icon-btn-danger" title="카드 삭제">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M2.5 4H11.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
@@ -474,10 +478,7 @@ function renderSeq(entering = false): void {
           class="nav-btn ${S.seqIdx === 0 ? 'opacity-30 pointer-events-none' : ''}">
           ← 이전
         </button>
-        <div class="flex items-center gap-2.5">
-          ${S.lv!.key === 'sentence' ? grammarPill() : ''}
-          <kbd class="kbd">Space</kbd>
-        </div>
+        <kbd class="kbd">Space</kbd>
         <button data-action="seq-next"
           class="nav-btn ${S.seqIdx === cards.length - 1 ? 'opacity-30 pointer-events-none' : ''}">
           다음 →
@@ -543,7 +544,6 @@ function renderAnki(entering = false): void {
       <div class="flex flex-col items-center gap-3">
         ${S.side === 'back' ? ratingBtns : `
           <div class="text-sm t-faint">정답을 확인한 뒤 난이도를 선택하세요</div>`}
-        ${S.lv!.key === 'sentence' ? grammarPill() : ''}
       </div>
     </div>`;
 }

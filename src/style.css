@@ -184,29 +184,36 @@
   .svo-fg-V { color: var(--v-fg); }
   .svo-fg-O { color: var(--o-fg); }
 
-  /* 文法 학습 토글 필 (카드 하단) — 편집은 카드 도구의 마커 아이콘 (2026-07-18 A안) */
-  .gram-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 5px 12px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
+  /* 文 아이콘 확장 메뉴 (2026-07-18) — 문법 표시·편집 두 항목 */
+  .gram-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+    min-width: 150px;
     background: var(--surface);
-    font-size: 12.5px;
-    color: var(--sub);
-    transition: background .15s, color .15s, border-color .15s;
+    border: 1px solid var(--line-soft);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 5px;
+    display: flex; flex-direction: column; gap: 2px;
+    animation: menuIn .16s ease both;
   }
-  .gram-pill:hover { border-color: rgba(29, 102, 219, .35); color: var(--ink); }
-  .gram-pill.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .gram-pill .gram-key {
+  @keyframes menuIn { from { opacity: 0; transform: translateY(-4px) scale(.97); } }
+  .gram-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    padding: 8px 11px;
+    border-radius: 9px;
+    font-size: 12.5px; color: var(--sub);
+    text-align: left;
+    transition: background .15s, color .15s;
+  }
+  .gram-item:hover { background: rgba(0, 0, 0, .04); color: var(--ink); }
+  .gram-item.on { color: var(--accent-deep); background: rgba(46, 124, 246, .08); font-weight: 600; }
+  .gram-key {
     font-size: 10px; line-height: 1; padding: 2px 5px;
     border: 1px solid var(--line); border-radius: 5px;
     color: var(--faint); background: rgba(0, 0, 0, .02);
   }
-  .gram-pill.on .gram-key {
-    border-color: rgba(255, 255, 255, .4); color: rgba(255, 255, 255, .85); background: rgba(255, 255, 255, .12);
-  }
 
-  /* 카드 도구 아이콘 활성 상태 (문법 편집 중) */
+  /* 카드 도구 아이콘 활성 상태 (문법 표시/편집 중) */
   .icon-btn.on { color: var(--accent-deep); background: rgba(46, 124, 246, .10); }
 
   /* 위험 액션 아이콘 버튼 (삭제 등) */
