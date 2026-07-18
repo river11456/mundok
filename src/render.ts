@@ -430,6 +430,7 @@ function renderSeq(entering = false): void {
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
   const isChar = S.lv!.key === 'char';
   const reads  = isChar ? null : alignReading(card.front, card.reading);
+  const rdOn   = S.seqFlipped && reads !== null;
   const frontHtml = isChar ? esc(card.front) : renderFront(card.front, {
     reads,
     showReading:  S.seqFlipped,
@@ -453,7 +454,7 @@ function renderSeq(entering = false): void {
 
       <div class="card-surface">
         ${cardActions(S.lv?.key)}
-        <div id="card-front" class="${cs.front} text-stone-900">
+        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} text-stone-900">
           ${frontHtml}
         </div>
         ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : `
@@ -497,6 +498,7 @@ function renderAnki(entering = false): void {
   const isFlipped       = S.side === 'back';
   const isChar = S.lv!.key === 'char';
   const reads  = isChar ? null : alignReading(card.front, card.reading);
+  const rdOn   = isFlipped && reads !== null;
   const frontHtml = isChar ? esc(card.front) : renderFront(card.front, {
     reads,
     showReading:  isFlipped,
@@ -520,7 +522,7 @@ function renderAnki(entering = false): void {
 
       <div class="card-surface">
         ${cardActions(S.lv?.key)}
-        <div id="card-front" class="${cs.front} text-stone-900">
+        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} text-stone-900">
           ${frontHtml}
         </div>
         ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : `
