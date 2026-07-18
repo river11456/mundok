@@ -44,7 +44,7 @@ const OB_SLIDES: { title: string; html: string }[] = [
       <p class="text-sm t-sub leading-relaxed mt-5 text-center">
         문장·단락 카드에서 <span class="border-b border-[var(--sub)]">밑줄 친 한자</span>를 클릭하면<br>
         해당 글자·단어 카드로 바로 이동합니다.<br>
-        <span class="font-mono text-xs bg-[rgba(0,0,0,.05)] px-1.5 py-0.5 rounded">Esc</span> 로 원래 카드로 돌아옵니다.
+        <span class="font-mono text-xs bg-[rgba(0,0,0,.05)] px-1.5 py-0.5 rounded">Esc</span> 키나 왼쪽 위 뒤로가기로 원래 카드로 돌아옵니다.
       </p>`,
   },
   {

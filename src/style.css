@@ -30,6 +30,25 @@
   outline-offset: 2px;
 }
 
+/* 키보드 전용 힌트(kbd·숫자 배지·Esc 안내) — hover 불가(터치) 기기에서 숨김 */
+@media (hover: none) {
+  .kb-only { display: none; }
+}
+
+/* 터치 촉감 — 탭 하이라이트 제거, 연속 탭(카드 플립)의 더블탭 줌 방지 */
+html { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+
+/* 터치 타깃 확대 — 44px 목표. 자주 탭하는 작은 컨트롤만 (레이아웃 영향 최소화) */
+@media (pointer: coarse) {
+  .card-surface { touch-action: manipulation; }
+  .icon-btn { padding: 13px 12px; }
+  .nav-btn { padding: 13px 26px; }
+  .gram-item { padding: 12px 14px; }
+  .detail .close { padding: 15px; top: 6px; right: 6px; }
+  .shelf-toggle { padding: 12px; margin: -10px -8px; } /* 히트 영역만 확장, 헤더 레이아웃 유지 */
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;
@@ -51,7 +70,7 @@
     box-shadow: 0 3px 10px rgba(29, 102, 219, .3);
     transition: transform .2s var(--spring), background .2s;
   }
-  .btn-primary:hover { transform: translateY(-1px); background: var(--accent-deeper); }
+  @media (hover: hover) { .btn-primary:hover { transform: translateY(-1px); background: var(--accent-deeper); } }
 
   /* 보조 액션 — 테두리 알약 */
   .btn-ghost {
@@ -63,7 +82,7 @@
     font-weight: 600;
     transition: border-color .15s, color .15s;
   }
-  .btn-ghost:hover { border-color: rgba(29, 102, 219, .45); color: var(--ink); }
+  @media (hover: hover) { .btn-ghost:hover { border-color: rgba(29, 102, 219, .45); color: var(--ink); } }
 
   /* 내비게이션 알약 (이전/다음 등) — 서피스 배경 */
   .nav-btn {
@@ -76,7 +95,7 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
     transition: border-color .2s, color .2s, transform .2s var(--spring);
   }
-  .nav-btn:hover:not(:disabled) { border-color: rgba(29, 102, 219, .45); color: var(--ink); transform: translateY(-1px); }
+  @media (hover: hover) { .nav-btn:hover:not(:disabled) { border-color: rgba(29, 102, 219, .45); color: var(--ink); transform: translateY(-1px); } }
   .nav-btn:disabled { opacity: .3; }
 
   /* 뒤로가기 텍스트 버튼 */
@@ -90,7 +109,7 @@
     border-radius: 999px;
     transition: background .15s;
   }
-  .btn-back:hover { background: rgba(46, 124, 246, .08); }
+  @media (hover: hover) { .btn-back:hover { background: rgba(46, 124, 246, .08); } }
 
   /* 아이콘(+짧은 라벨) 버튼 */
   .icon-btn {
@@ -103,7 +122,7 @@
     border-radius: 8px;
     transition: background .15s, color .15s;
   }
-  .icon-btn:hover:not(:disabled) { background: rgba(0, 0, 0, .05); color: var(--ink); }
+  @media (hover: hover) { .icon-btn:hover:not(:disabled) { background: rgba(0, 0, 0, .05); color: var(--ink); } }
   .icon-btn:disabled { opacity: .3; }
 
   /* 학습 카드 서피스 */
@@ -193,7 +212,7 @@
     cursor: pointer;
     transition: border-color .15s, background .15s;
   }
-  .drill:hover { border-color: var(--accent); background: rgba(46, 124, 246, .06); }
+  @media (hover: hover) { .drill:hover { border-color: var(--accent); background: rgba(46, 124, 246, .06); } }
 
   /* 문법 S/V/O — 반드시 글자 레이블 동반 (색 단독 사용 금지) */
   .svo-bg-S { background: var(--s-bg); }
@@ -224,7 +243,7 @@
     text-align: left;
     transition: background .15s, color .15s;
   }
-  .gram-item:hover { background: rgba(0, 0, 0, .04); color: var(--ink); }
+  @media (hover: hover) { .gram-item:hover { background: rgba(0, 0, 0, .04); color: var(--ink); } }
   .gram-item.on { color: var(--accent-deep); background: rgba(46, 124, 246, .08); font-weight: 600; }
   .gram-key {
     font-size: 10px; line-height: 1; padding: 2px 5px;
@@ -236,7 +255,7 @@
   .icon-btn.on { color: var(--accent-deep); background: rgba(46, 124, 246, .10); }
 
   /* 위험 액션 아이콘 버튼 (삭제 등) */
-  .icon-btn-danger:hover { color: var(--fail); background: rgba(215, 0, 21, .06); }
+  @media (hover: hover) { .icon-btn-danger:hover { color: var(--fail); background: rgba(215, 0, 21, .06); } }
 
   /* 선택 타일 (모드/레벨 카드 버튼) */
   .tile {
@@ -248,8 +267,10 @@
     box-shadow: var(--shadow);
     transition: transform .2s var(--spring), border-color .2s, box-shadow .2s;
   }
-  .tile:hover { transform: translateY(-2px); border-color: rgba(29, 102, 219, .35); box-shadow: 0 8px 24px rgba(0, 0, 0, .08); }
-  .tile:hover .chev { color: var(--sub); }
+  @media (hover: hover) {
+    .tile:hover { transform: translateY(-2px); border-color: rgba(29, 102, 219, .35); box-shadow: 0 8px 24px rgba(0, 0, 0, .08); }
+    .tile:hover .chev { color: var(--sub); }
+  }
 
   /* 안키 난이도 버튼 */
   .rate-btn {
@@ -262,13 +283,15 @@
     background: var(--surface);
     transition: transform .2s var(--spring), background .15s;
   }
-  .rate-btn:hover { transform: translateY(-1px); }
   .rate-hard { color: var(--fail); border-color: rgba(215, 0, 21, .25); }
-  .rate-hard:hover { background: rgba(215, 0, 21, .06); }
   .rate-mid { color: var(--warn); border-color: rgba(178, 80, 0, .25); }
-  .rate-mid:hover { background: rgba(178, 80, 0, .07); }
   .rate-easy { color: var(--o-fg); border-color: rgba(29, 122, 51, .28); }
-  .rate-easy:hover { background: rgba(52, 199, 89, .10); }
+  @media (hover: hover) {
+    .rate-btn:hover { transform: translateY(-1px); }
+    .rate-hard:hover { background: rgba(215, 0, 21, .06); }
+    .rate-mid:hover { background: rgba(178, 80, 0, .07); }
+    .rate-easy:hover { background: rgba(52, 199, 89, .10); }
+  }
 
   /* 카드 뒷면 (정답 영역) */
   .card-back { border-top: 1px solid var(--line-soft); padding-top: 22px; }
@@ -348,7 +371,7 @@
     transition: transform .2s var(--spring), background .2s;
     box-shadow: 0 3px 10px rgba(29, 102, 219, .35);
   }
-  .hero-btn:hover { transform: translateY(-2px); background: var(--accent-deeper); }
+  @media (hover: hover) { .hero-btn:hover { transform: translateY(-2px); background: var(--accent-deeper); } }
 
   /* 선반(그룹) */
   .shelf-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -360,7 +383,7 @@
     margin-left: auto; font-size: 11.5px; color: var(--faint); padding: 3px 10px;
     border: 1px solid var(--line-soft); border-radius: 999px; transition: color .15s, border-color .15s;
   }
-  .shelf-head .edit:hover { color: var(--ink); border-color: rgba(0, 0, 0, .2); }
+  @media (hover: hover) { .shelf-head .edit:hover { color: var(--ink); border-color: rgba(0, 0, 0, .2); } }
   .covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 16px; }
   .book { display: flex; flex-direction: column; gap: 9px; }
   .cover {
@@ -369,7 +392,7 @@
     box-shadow: 0 3px 10px rgba(0, 0, 0, .09);
     transition: transform .22s var(--spring), box-shadow .22s;
   }
-  .cover:hover { transform: translateY(-4px) rotate(-.6deg); box-shadow: 0 10px 22px rgba(0, 0, 0, .16); }
+  @media (hover: hover) { .cover:hover { transform: translateY(-4px) rotate(-.6deg); box-shadow: 0 10px 22px rgba(0, 0, 0, .16); } }
   .cover .slip {
     position: absolute; top: 9px; left: 9px; writing-mode: vertical-rl; text-orientation: upright;
     background: #FFFFFF; border: 1px solid rgba(0, 0, 0, .08); border-radius: 3px;
@@ -398,9 +421,11 @@
   .case-wrap .stack i:nth-child(2) { transform: translate(6px, -5px) rotate(-1.6deg); }
   .case-wrap .stack i:nth-child(3) { transform: translate(3px, -2.5px) rotate(.8deg); }
   .case-wrap .cover { position: relative; z-index: 1; }
-  .case-wrap:hover .stack i:nth-child(1) { transform: translate(12px, -11px) rotate(3.6deg); }
-  .case-wrap:hover .stack i:nth-child(2) { transform: translate(8px, -7px) rotate(-2.4deg); }
-  .case-wrap:hover .stack i:nth-child(3) { transform: translate(4px, -3.5px) rotate(1.2deg); }
+  @media (hover: hover) {
+    .case-wrap:hover .stack i:nth-child(1) { transform: translate(12px, -11px) rotate(3.6deg); }
+    .case-wrap:hover .stack i:nth-child(2) { transform: translate(8px, -7px) rotate(-2.4deg); }
+    .case-wrap:hover .stack i:nth-child(3) { transform: translate(4px, -3.5px) rotate(1.2deg); }
+  }
   .book-label { text-align: center; }
   .book-label .k { font-size: 12.5px; color: var(--sub); font-weight: 600; }
   .home-foot { font-size: 11.5px; color: var(--sub); line-height: 1.7; }
@@ -423,7 +448,7 @@
     position: absolute; top: 14px; right: 14px; color: var(--faint); padding: 7px;
     border-radius: 99px; display: flex; transition: background .15s, color .15s;
   }
-  .detail .close:hover { background: rgba(0, 0, 0, .05); color: var(--ink); }
+  @media (hover: hover) { .detail .close:hover { background: rgba(0, 0, 0, .05); color: var(--ink); } }
   .detail-head { display: flex; gap: 20px; align-items: center; }
   .detail-cover {
     width: 88px; aspect-ratio: 3 / 4.1; flex-shrink: 0; border-radius: 5px 10px 10px 5px;
@@ -449,7 +474,7 @@
     background: var(--cbg, #EDEAE3); width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, .09);
     transition: transform .22s var(--spring), box-shadow .22s;
   }
-  .dref-cover:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, .15); }
+  @media (hover: hover) { .dref-cover:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0, 0, 0, .15); } }
   .dref-cover .slip {
     position: absolute; top: 7px; left: 7px; writing-mode: vertical-rl; text-orientation: upright;
     background: #fff; border: 1px solid rgba(0, 0, 0, .08); border-radius: 2px;

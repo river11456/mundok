@@ -165,7 +165,7 @@ function grammarMenuBtn(): string {
     ${S.grammarMenu ? `
     <div class="gram-menu">
       <button data-action="toggle-grammar" class="gram-item${S.grammarOn ? ' on' : ''}">
-        <span>문법 표시</span><span class="gram-key select-none">G</span>
+        <span>문법 표시</span><span class="gram-key select-none kb-only">G</span>
       </button>
       <button data-action="toggle-grammar-edit" class="gram-item${S.grammarEditMode ? ' on' : ''}">
         <span>문법 편집</span>
@@ -206,6 +206,15 @@ function cardBack(card: { reading: string; back: string; note: string }, cs: Car
 /** 카드 하단(정답/힌트) — char 카드는 높이를 예약해 뒤집어도 대형 한자가 부동 (R6) */
 function belowFront(inner: string, isChar: boolean): string {
   return isChar ? `<div class="char-hold">${inner}</div>` : inner;
+}
+
+/** 앞면 하단 "정답 보기" — 탭·클릭 실 버튼(터치 필수 경로), Space 병기는 키보드 기기만 */
+function revealHint(): string {
+  return `
+    <div class="flex items-center justify-center gap-3">
+      <button data-action="flip" class="btn-ghost">정답 보기</button>
+      <span class="kb-only text-sm t-faint"><kbd class="kbd">Space</kbd></span>
+    </div>`;
 }
 
 function cardActions(lvKey?: string): string {
@@ -269,7 +278,7 @@ function coverHtml(d: Doc, key: number | undefined): string {
   const coverBtn = `
     <button data-action="open-doc" data-arg="${d.id}" class="cover" style="--cbg:${docColor(d)}">
       <span class="slip kai hanja">${esc(d.title)}</span>
-      ${key !== undefined && key <= 9 ? `<span class="key num">${key}</span>` : ''}
+      ${key !== undefined && key <= 9 ? `<span class="key num kb-only">${key}</span>` : ''}
       <span class="cmeta num">${docTotalCards(d)}장</span>
       ${recent ? `<span class="recent">${esc(recent)}</span>` : ''}
     </button>`;
@@ -319,14 +328,14 @@ function docOverlayHtml(docId: string): string {
           ${refs.map((r, i) => `
           <div class="dref">
             <button data-action="overlay-ref" data-arg="${r.id}" class="dref-cover" style="--cbg:${docColor(r)}">
-              <span class="slip kai hanja">${esc(r.title)}</span><span class="key num">${i + 1}</span>
+              <span class="slip kai hanja">${esc(r.title)}</span><span class="key num kb-only">${i + 1}</span>
               <span class="cmeta num">${docTotalCards(r)}장</span>
             </button>
             <div class="k">${esc(r.sub)}</div>
           </div>`).join('')}
         </div>
       </div>` : ''}
-      <div class="detail-foot">Esc 또는 바깥을 클릭하면 닫힙니다</div>
+      <div class="detail-foot kb-only">Esc 또는 바깥을 클릭하면 닫힙니다</div>
     </div>
   </div>`;
 }
@@ -388,13 +397,13 @@ function renderMode(): void {
           <div class="text-3xl t-faint mb-4">→</div>
           <div class="text-base font-bold t-ink">순차 재생</div>
           <div class="text-sm t-sub mt-1.5 leading-relaxed">전체를 순서대로</div>
-          <div class="mt-4 flex gap-1.5"><kbd class="kbd">Space</kbd><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd></div>
+          <div class="mt-4 flex gap-1.5 kb-only"><kbd class="kbd">Space</kbd><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd></div>
         </button>
         <button data-action="nav-level" data-arg="anki" class="tile p-8">
           <div class="text-3xl t-faint mb-4">↺</div>
           <div class="text-base font-bold t-ink">안키 모드</div>
           <div class="text-sm t-sub mt-1.5 leading-relaxed">모르는 것 집중 반복</div>
-          <div class="mt-4 flex gap-1.5"><kbd class="kbd">Space</kbd><kbd class="kbd">1</kbd><kbd class="kbd">2</kbd><kbd class="kbd">3</kbd></div>
+          <div class="mt-4 flex gap-1.5 kb-only"><kbd class="kbd">Space</kbd><kbd class="kbd">1</kbd><kbd class="kbd">2</kbd><kbd class="kbd">3</kbd></div>
         </button>
       </div>
     </div>`;
@@ -471,8 +480,7 @@ function renderSeq(entering = false): void {
         <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
-        ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : `
-          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
+        ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : revealHint(), isChar)}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 
@@ -480,7 +488,7 @@ function renderSeq(entering = false): void {
         <button data-action="seq-prev" class="nav-btn" ${S.seqIdx === 0 ? 'disabled' : ''}>
           ← 이전
         </button>
-        <kbd class="kbd">Space</kbd>
+        <kbd class="kbd kb-only">Space</kbd>
         <button data-action="seq-next" class="nav-btn" ${S.seqIdx === cards.length - 1 ? 'disabled' : ''}>
           다음 →
         </button>
@@ -538,8 +546,7 @@ function renderAnki(entering = false): void {
         <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
-        ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : `
-          <div class="text-sm t-faint text-center"><kbd class="kbd">Space</kbd> 키로 정답 보기</div>`, isChar)}
+        ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : revealHint(), isChar)}
         ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
       </div>
 

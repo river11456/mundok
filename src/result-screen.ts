@@ -47,9 +47,12 @@ export function renderResult(): void {
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div class="flex justify-center gap-6 text-[12.5px] t-faint">
-        <span><kbd class="kbd">R</kbd> 다시 시작</span>
-        <span><kbd class="kbd">Ctrl⇧R</kbd> 초기화</span>
+      <div class="flex flex-col items-center gap-4">
+        <button data-action="restart" class="btn-primary">다시 시작</button>
+        <div class="kb-only flex justify-center gap-6 text-[12.5px] t-faint">
+          <span><kbd class="kbd">R</kbd> 다시 시작</span>
+          <span><kbd class="kbd">Ctrl⇧R</kbd> 초기화</span>
+        </div>
       </div>
     </div>`;
 }

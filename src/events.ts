@@ -79,6 +79,19 @@ function seqNext(): void {
   if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
 }
 
+/** 카드 플립 — Space 키·카드 탭·"정답 보기" 버튼 공통. 안키는 앞→뒤 단방향(평가로만 진행). */
+function flipCard(): void {
+  if (S.mode === 'seq') {
+    S.seqFlipped = !S.seqFlipped;
+    // 뒷면(뜻)을 실제로 확인한 시점을 "학습했다"로 간주 — 안키 모드의 rate() 시점과 대응
+    if (S.seqFlipped) touchLastStudied();
+    render();
+  } else if (S.side === 'front') {
+    S.side = 'back';
+    render();
+  }
+}
+
 // ── Click delegation ──────────────────────────────────────
 export function setupClick(): void {
   document.getElementById('app')!.addEventListener('click', e => {
@@ -89,7 +102,15 @@ export function setupClick(): void {
       render();
       if (!btn) return;
     }
-    if (!btn) return;
+    if (!btn) {
+      // 카드 본문 탭 = 플립 (터치 기본 조작) — 드래그 선택(카드 추가)·문법 편집 중에는 제외
+      if (S.scr === 'study' && !S.grammarEditMode
+          && (window.getSelection()?.isCollapsed ?? true)
+          && (e.target as Element).closest('.card-surface')) {
+        flipCard();
+      }
+      return;
+    }
     const arg = btn.dataset.arg;
 
     switch (btn.dataset.action) {
@@ -117,6 +138,7 @@ export function setupClick(): void {
       case 'edit-groups': showGroupEdit();              break;
       case 'seq-prev':    seqPrev();                             break;
       case 'seq-next':    seqNext();                             break;
+      case 'flip':        flipCard();                            break;
       case 'restart':     restartStudy();                        break;
       case 'anki-rate':   rate(parseInt(arg!) as 1|2|3);        break;
       case 'edit-card': {
@@ -227,17 +249,11 @@ export function setupKeyboard(): void {
         return;
       }
       if (S.mode === 'seq') {
-        if (e.code === 'Space') {
-          e.preventDefault();
-          S.seqFlipped = !S.seqFlipped;
-          // 뒷면(뜻)을 실제로 확인한 시점을 "학습했다"로 간주 — 안키 모드의 rate() 시점과 대응
-          if (S.seqFlipped) touchLastStudied();
-          render();
-        }
+        if (e.code === 'Space') { e.preventDefault(); flipCard(); }
         else if (e.key === 'ArrowRight' || e.key === 'Enter') seqNext();
         else if (e.key === 'ArrowLeft') seqPrev();
       } else {
-        if (S.side === 'front' && e.code === 'Space') { e.preventDefault(); S.side = 'back'; render(); }
+        if (S.side === 'front' && e.code === 'Space') { e.preventDefault(); flipCard(); }
         else if (S.side === 'back') {
           if (e.key === '1') rate(1);
           else if (e.key === '2') rate(2);
