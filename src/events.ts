@@ -159,9 +159,10 @@ export function setupClick(): void {
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && isGroupEditOpen()) { hideGroupEdit(); return; }
-    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay'].some(
-      id => !document.getElementById(id)?.classList.contains('hidden')
-    );
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay'].some(id => {
+      const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
+      return el !== null && !el.classList.contains('hidden');
+    });
     if (modalOpen || isOnboardingOpen()) return;
 
     // Hard reset (anki only)
