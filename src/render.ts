@@ -392,7 +392,7 @@ function renderMode(): void {
         <div class="hanja text-2xl t-ink">${esc(d.title)}</div>
         <div class="text-sm t-sub mt-1">${esc(d.sub)}</div>
       </div>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid sm:grid-cols-2 gap-4">
         <button data-action="nav-level" data-arg="seq" class="tile p-8">
           <div class="text-3xl t-faint mb-4">→</div>
           <div class="text-base font-bold t-ink">순차 재생</div>
@@ -506,9 +506,9 @@ function renderAnki(entering = false): void {
 
   const ratingBtns = `
     <div class="flex gap-3 w-full">
-      <button data-action="anki-rate" data-arg="1" class="rate-btn rate-hard">1&nbsp;&nbsp;어려움</button>
-      <button data-action="anki-rate" data-arg="2" class="rate-btn rate-mid">2&nbsp;&nbsp;보통</button>
-      <button data-action="anki-rate" data-arg="3" class="rate-btn rate-easy">3&nbsp;&nbsp;쉬움</button>
+      <button data-action="anki-rate" data-arg="1" class="rate-btn rate-hard"><span class="kb-only">1&nbsp;&nbsp;</span>어려움</button>
+      <button data-action="anki-rate" data-arg="2" class="rate-btn rate-mid"><span class="kb-only">2&nbsp;&nbsp;</span>보통</button>
+      <button data-action="anki-rate" data-arg="3" class="rate-btn rate-easy"><span class="kb-only">3&nbsp;&nbsp;</span>쉬움</button>
     </div>`;
 
   const cs = cardStyle(S.lv!.key);

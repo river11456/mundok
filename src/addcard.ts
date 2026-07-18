@@ -128,7 +128,7 @@ export function initAddCard(): void {
   const opts = TYPE_LABELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
   overlay.innerHTML = `
-    <div id="ac-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 추가">
+    <div id="ac-modal" class="modal-surface px-5 py-6 sm:px-8 sm:py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 추가">
       <div class="text-sm font-bold t-ink">카드 추가</div>
       <div class="flex flex-col gap-1">
         <label class="text-xs t-sub">타입</label>

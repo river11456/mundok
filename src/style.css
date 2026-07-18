@@ -108,6 +108,7 @@ button { touch-action: manipulation; }
     padding: 7px 12px 7px 8px;
     border-radius: 999px;
     transition: background .15s;
+    min-width: 0; /* 좁은 화면에서 라벨(문헌/레벨명) truncate 허용 */
   }
   @media (hover: hover) { .btn-back:hover { background: rgba(46, 124, 246, .08); } }
 
@@ -512,6 +513,21 @@ button { touch-action: manipulation; }
     animation: pop .28s var(--spring);
     margin-top: auto;
     margin-bottom: auto;
+  }
+
+  /* ── 폰 폭 조정 (C2 — 학습 플로우 기준, 데스크톱·패드 무영향) ── */
+  @media (max-width: 480px) {
+    .home { gap: 22px; }
+    .home-head { flex-wrap: wrap; }
+    .wordmark { font-size: clamp(40px, 11vw, 56px); }
+    .hero { flex-wrap: wrap; padding: 16px; gap: 12px 14px; }
+    .hero-btn { width: 100%; text-align: center; }
+    .card-surface { border-radius: 18px; gap: 22px; }
+    .stat { padding: 14px 10px 12px; }
+    .stat b { font-size: 22px; }
+    .table-card th { padding: 11px 12px; }
+    .table-card td { padding: 12px; }
+    .detail { padding: 22px 18px 18px; }
   }
 }
 

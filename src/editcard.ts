@@ -190,7 +190,7 @@ export function initEditCard(): void {
   overlay.className = 'modal-backdrop z-50 hidden';
 
   overlay.innerHTML = `
-    <div id="ec-modal" class="modal-surface px-8 py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 수정">
+    <div id="ec-modal" class="modal-surface px-5 py-6 sm:px-8 sm:py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 수정">
       <div class="text-sm font-bold t-ink">카드 수정</div>
       <div class="flex flex-col gap-1">
         <label class="text-xs t-sub">한자</label>
@@ -233,7 +233,7 @@ export function initEditCard(): void {
   ce.id = 'ce-overlay';
   ce.className = 'modal-backdrop z-[60] hidden';
   ce.innerHTML = `
-    <div id="ce-modal" class="modal-surface px-7 py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]" role="dialog" aria-modal="true" aria-label="연결된 카드 함께 수정">
+    <div id="ce-modal" class="modal-surface px-5 py-6 sm:px-7 sm:py-7 w-full max-w-md flex flex-col gap-4 mx-4 max-h-[85vh]" role="dialog" aria-modal="true" aria-label="연결된 카드 함께 수정">
       <div class="text-sm font-bold t-ink">연결된 카드도 함께 수정</div>
       <div id="ce-sub" class="text-xs t-sub leading-relaxed"></div>
       <div class="text-[11px] text-[var(--warn)] bg-[rgba(178,80,0,.06)] rounded-lg px-3 py-2 leading-relaxed">
