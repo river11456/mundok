@@ -366,14 +366,14 @@ function renderHome(): void {
       <div class="home-head">
         <div>
           <div class="wordmark kai hanja">文讀</div>
-          <div class="tagline">한의학 한문 학습</div>
+          <div class="tagline">편하고 효율적인 한의학 한문 학습</div>
         </div>
         ${streak.count > 0 ? `<div class="streak-pill">연속 학습 <b class="num">${streak.count}</b>일</div>` : ''}
       </div>
       ${heroHtml()}
       ${shelves}
       <div class="home-foot">
-        모든 해석은 한의예과 1-1 써머리 기준으로 작성되었습니다. 생성형 AI가 편집에 참여하였으므로 일부 내용이 부정확할 수 있습니다. 공부하면서 직접 확인하고 수정하며 사용하세요.
+        해석 작성에 생성형 AI가 참여해 일부 내용이 부정확할 수 있습니다. 원문과 수업 자료로 직접 확인하며 학습해 주세요.
         <div class="ver">v${version} · KJH</div>
       </div>
     </div>
