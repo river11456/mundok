@@ -1,6 +1,7 @@
 import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
+import { showCatalog } from './catalog';
 import { deleteUserDoc } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
@@ -143,6 +144,7 @@ export function setupClick(): void {
       case 'resume':      resumeStudy();                break;
       case 'edit-groups': showGroupEdit();              break;
       case 'new-doc':     showDocCreate();              break;
+      case 'open-catalog': showCatalog();               break;
       case 'doc-append':    if (S.docOverlay) showDocAppend(S.docOverlay); break;
       case 'doc-edit-info': if (S.docOverlay) showDocEdit(S.docOverlay);   break;
       case 'doc-delete': {
@@ -215,7 +217,7 @@ export function setupClick(): void {
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && isGroupEditOpen()) { hideGroupEdit(); return; }
-    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay'].some(id => {
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay', 'ct-overlay'].some(id => {
       const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
       return el !== null && !el.classList.contains('hidden');
     });

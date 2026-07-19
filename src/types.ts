@@ -96,6 +96,7 @@ export interface DocJSON {
   order?: number;    // 홈 화면 정렬 우선순위 (작을수록 앞). 없으면 파일명 가나다순 뒤에 배치.
   color?: string;    // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
   updatedAt?: string; // 마지막 수정 시각(ISO) — 사용자 문헌에서 사용, 미래 동기화 비교 키
+  version?: number;   // 카탈로그 문헌의 개정 번호 (기본 1) — 올리면 설치자에게 업데이트 표시
   source?: { catalogId: string; version: number };  // 카탈로그에서 받은 문헌의 출처 메타
   levels: Partial<Record<LevelKey, CardJSON[]>>;
 }

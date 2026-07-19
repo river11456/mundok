@@ -358,7 +358,13 @@ function renderHome(): void {
         <span class="add-plus">+</span><span class="add-label">새 문헌</span>
       </button>
       <div class="book-label"><div class="k">&nbsp;</div></div>
-    </div>`;
+    </div>${isServerMode() ? '' : `
+    <div class="book">
+      <button data-action="open-catalog" class="cover add" aria-label="문헌 받기">
+        <span class="add-plus">⤓</span><span class="add-label">문헌 받기</span>
+      </button>
+      <div class="book-label"><div class="k">&nbsp;</div></div>
+    </div>`}`;
 
   const shelves = shelfData.map((sh, i) => {
     const isCollapsed = collapsed.has(sh.id);

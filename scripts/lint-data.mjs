@@ -175,6 +175,25 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     warns.push('_groups.json 없음 — 홈 화면이 미분류 단일 선반으로 표시됩니다');
   }
 
+  // 카탈로그 문헌 (catalog/*.json — 다운로드 배포분) — 같은 규칙으로 검사
+  const CATALOG_DIR = join(__dirname, '..', 'catalog');
+  let catalogCount = 0;
+  try {
+    for (const file of readdirSync(CATALOG_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()) {
+      const dj = JSON.parse(readFileSync(join(CATALOG_DIR, file), 'utf-8'));
+      catalogCount++;
+      if (`${dj.id}.json` !== file) errors.push(`catalog/${file}: id "${dj.id}"가 파일명과 다름`);
+      if (dj.version !== undefined && (!Number.isInteger(dj.version) || dj.version < 1)) {
+        errors.push(`catalog/${file}: version은 1 이상 정수여야 함 (${JSON.stringify(dj.version)})`);
+      }
+      const { errors: e, warns: w } = lintDoc(dj);
+      errors.push(...e.map(m => `[catalog] ${m}`));
+      warns.push(...w.map(m => `[catalog] ${m}`));
+    }
+  } catch {
+    /* catalog/ 없으면 카탈로그 미운영 — 정상 */
+  }
+
   // 폰트 커버리지 — 콘텐츠 한자가 self-host WenKai 서브셋에 전부 있는지.
   // 서브셋에 없는 글자 중 missing.txt(원본 폰트 자체 미지원, subset-font.mjs 가 기록)에 있으면
   // 재실행으로 해결 안 되는 글자 → 명조 폴백 안내로 구분한다.
@@ -196,7 +215,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     warns.push('폰트: WenKai 서브셋 미생성 (public/fonts/) → npm run font:subset 실행');
   }
 
-  console.log(`\n콘텐츠 lint — 문헌 ${files.length}개\n`);
+  console.log(`\n콘텐츠 lint — 문헌 ${files.length}개${catalogCount ? ` + 카탈로그 ${catalogCount}개` : ''}\n`);
   if (errors.length) {
     console.log(`❌ ERROR ${errors.length}건:`);
     errors.forEach(e => console.log(`   ${e}`));

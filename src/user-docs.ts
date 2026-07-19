@@ -130,6 +130,19 @@ export function appendUserTexts(docId: string, type: LevelKey, texts: string[]):
   return withDoc(docId, d => addTexts(d, type, texts).length);
 }
 
+/**
+ * 카탈로그 문헌 설치·업데이트 — 같은 id가 있으면 통째로 교체.
+ * 카탈로그가 카드 id를 유지하므로 교체해도 학습기록(id 기반)은 살아남는다.
+ */
+export function installCatalogDoc(dj: DocJSON, source: { catalogId: string; version: number }): void {
+  const docs = loadUserDocs();
+  const doc: DocJSON = { ...dj, source, updatedAt: new Date().toISOString() };
+  const idx = docs.findIndex(d => d.id === dj.id);
+  if (idx >= 0) docs[idx] = doc;
+  else docs.push(doc);
+  save(docs);
+}
+
 // ── 카드 CRUD (LocalStore가 사용자 문헌일 때 위임) ────────────────────────
 
 export function userAddCard(
