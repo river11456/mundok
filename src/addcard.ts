@@ -14,29 +14,12 @@ function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
 }
 
-/**
- * 드래그 선택 문자열 — 음(.cc-rd)·문법 레이블(.cc-svo)은 절대 포함하지 않는다 (R7).
- * user-select:none과 별개로, 선택 범위를 복제해 해당 노드를 제거하고 읽는다
- * (브라우저별 getSelection 동작 차이에 견고).
- */
-function selectionText(): string {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return '';
-  const frag = sel.getRangeAt(0).cloneContents();
-  frag.querySelectorAll('.cc-rd, .cc-svo').forEach(el => el.remove());
-  return (frag.textContent ?? '').trim();
-}
-
-export function hideBubble(): void {
-  document.getElementById('ac-bubble')?.classList.add('hidden');
-}
-
 function hideModal(): void {
   $('ac-overlay').classList.add('hidden');
 }
 
-function showModal(text: string): void {
-  hideBubble();
+/** 카드 추가 모달 — 셀 선택(cell-select.ts)이 확정한 텍스트를 프리필해 연다. */
+export function showAddCardModal(text: string): void {
   const nextType = text.length === 1 ? 'char' : (S.lv ? (DRILL_NEXT[S.lv.key] ?? 'word') : 'word');
   $<HTMLSelectElement>('ac-type').value   = nextType;
   $<HTMLInputElement>('ac-front').value   = text;
@@ -177,65 +160,6 @@ export function initAddCard(): void {
   document.getElementById('ac-search')!.addEventListener('click', () => {
     const q = $<HTMLInputElement>('ac-front').value.trim();
     if (q) window.open(`https://hanja.dict.naver.com/search?query=${encodeURIComponent(q)}`, '_blank');
-  });
-
-  // ── Selection bubble ───────────────────────────────────
-  const bubble = document.createElement('div');
-  bubble.id = 'ac-bubble';
-  bubble.className = 'fixed hidden z-40';
-  bubble.style.transform = 'translateX(-50%)';
-  bubble.innerHTML = `
-    <button id="ac-bubble-btn"
-      class="btn-primary px-3 py-1.5 text-xs shadow-lg whitespace-nowrap">
-      + 카드 추가
-    </button>`;
-  document.body.appendChild(bubble);
-
-  // 버블이 뜬 시점의 선택 텍스트 보관 — 버블을 누르는 순간 selection이 풀려도 모달에 전달
-  let bubbleText = '';
-
-  document.getElementById('ac-bubble-btn')!.addEventListener('click', () => {
-    showModal(bubbleText || selectionText());
-  });
-  // 버블 press가 selection을 지우지 않게 (터치·마우스 공통)
-  bubble.addEventListener('pointerdown', e => e.preventDefault());
-
-  // ── 선택 감지 — selectionchange 하나로 마우스 드래그·터치 롱프레스 공통 처리 ──
-  //    (mouseup은 터치 선택 핸들 조작에서 오지 않는다 — 아이패드 저작 모드 대응)
-  let selTimer: ReturnType<typeof setTimeout> | undefined;
-  document.addEventListener('selectionchange', () => {
-    clearTimeout(selTimer);
-    selTimer = setTimeout(() => {
-      if (S.scr !== 'study' || S.grammarEditMode) { hideBubble(); return; }
-      const sel = window.getSelection();
-      // Only Range (drag), not Caret (plain click)
-      if (sel?.type !== 'Range') { hideBubble(); return; }
-      // Only show bubble when selection is inside the card front area
-      const cardFront = document.getElementById('card-front');
-      if (!cardFront) { hideBubble(); return; }
-      const anchor = sel.anchorNode?.nodeType === Node.TEXT_NODE
-        ? sel.anchorNode.parentElement : sel.anchorNode as Element | null;
-      if (!anchor || !cardFront.contains(anchor)) { hideBubble(); return; }
-      const text = selectionText();
-      if (!text) { hideBubble(); return; }
-      bubbleText = text;
-
-      const rect = sel.getRangeAt(0).getBoundingClientRect();
-      const b    = document.getElementById('ac-bubble')!;
-      b.style.left = `${rect.left + rect.width / 2}px`;
-      // 터치는 선택 위에 네이티브 콜아웃(복사 등)이 뜨므로 아래쪽, 마우스는 위쪽 배치
-      b.style.top = matchMedia('(pointer: coarse)').matches
-        ? `${Math.min(window.innerHeight - 52, rect.bottom + 12)}px`
-        : `${Math.max(8, rect.top - 44)}px`;
-      b.classList.remove('hidden');
-    }, 200);
-  });
-
-  // Hide bubble on presses outside it
-  document.addEventListener('pointerdown', e => {
-    if (!document.getElementById('ac-bubble')?.contains(e.target as Node)) {
-      hideBubble();
-    }
   });
 
   // Keyboard: Escape closes modal

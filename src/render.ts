@@ -1,7 +1,7 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession, collapsedShelves } from './state';
 import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
 import { isServerMode } from './storage';
-import { hideBubble } from './addcard';
+import { resetCellSelect } from './cell-select';
 import { getAnnotations } from './grammar';
 import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match';
 import { alignReading } from './reading-align';
@@ -147,7 +147,7 @@ function renderFront(front: string, opts: FrontOpts): string {
       ? `<span class="cc-svo ${svoFg[s.svoType]}">${s.svoType}</span>`
       : '';
     const rd = reads?.[i] ? `<span class="cc-rd">${esc(reads[i]!)}</span>` : '';
-    html += `<span class="cc${slotClasses(s)}">${esc(chars[i])}${label}${rd}</span>`;
+    html += `<span class="cc${slotClasses(s)}" data-i="${i}">${esc(chars[i])}${label}${rd}</span>`;
   }
   if (curDrill !== null) html += '</span>';
   return html;
@@ -177,7 +177,7 @@ function grammarMenuBtn(): string {
 let _prevScr = '';
 
 export function render(): void {
-  hideBubble();
+  resetCellSelect();
   document.body.classList.toggle('anki-mode', S.mode === 'anki');
   const entering = S.scr !== _prevScr;
   _prevScr = S.scr;

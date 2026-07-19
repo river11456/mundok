@@ -6,6 +6,7 @@ import { isOnboardingOpen } from './onboarding';
 import { showGroupEdit, hideGroupEdit, isGroupEditOpen } from './group-edit';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
+import { consumeSuppressedClick, dismissCellSelect } from './cell-select';
 import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
@@ -95,6 +96,8 @@ function flipCard(): void {
 // ── Click delegation ──────────────────────────────────────
 export function setupClick(): void {
   document.getElementById('app')!.addEventListener('click', e => {
+    // 셀 선택 제스처(드래그·해제 탭)의 잔향 클릭 — 플립·드릴 오발동 방지
+    if (consumeSuppressedClick()) return;
     const btn = (e.target as Element).closest<HTMLElement>('[data-action]');
     // 文 메뉴 바깥 클릭 → 닫기 (닫은 뒤 클릭된 액션은 계속 처리)
     if (S.grammarMenu && !(e.target as Element).closest('.gram-wrap')) {
@@ -103,9 +106,9 @@ export function setupClick(): void {
       if (!btn) return;
     }
     if (!btn) {
-      // 카드 본문 탭 = 플립 (터치 기본 조작) — 드래그 선택(카드 추가)·문법 편집 중에는 제외
+      // 카드 본문 탭 = 플립 (터치 기본 조작) — 문법 편집 중에는 제외
+      // (셀 선택 중 탭은 위 consumeSuppressedClick이 걸러낸다)
       if (S.scr === 'study' && !S.grammarEditMode
-          && (window.getSelection()?.isCollapsed ?? true)
           && (e.target as Element).closest('.card-surface')) {
         flipCard();
       }
@@ -215,6 +218,7 @@ export function setupKeyboard(): void {
 
     if (e.key === 'Escape') {
       if (isShortcutHelpOpen()) { hideShortcutHelp(); return; }
+      if (dismissCellSelect()) return;   // 셀 선택 해제가 뒤로가기보다 우선
       if (S.grammarMenu) { S.grammarMenu = false; render(); return; }
       if (S.scr === 'home' && S.docOverlay) { closeOverlay(); return; }
       navBack();

@@ -209,6 +209,17 @@ button { touch-action: manipulation; }
   /* 문법 편집 그리드 — 터치 드래그가 페이지 스크롤로 새지 않게 (편집 중에만 존재) */
   .grammar-edit-grid { touch-action: none; }
 
+  /* 셀 선택 (카드 추가 저작, cell-select.ts) — 네이티브 텍스트 선택 대체.
+     pan-y: 세로 팬은 스크롤에 양보, 가로 긋기·홀드 스윕만 포인터 이벤트로 받는다.
+     콜아웃·네이티브 선택은 원천 차단 (음 제외 트릭 R7 불필요해짐). */
+  #card-front {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: pan-y;
+  }
+  .cc.sel { background: rgba(46, 124, 246, .16); border-radius: 3px; }
+
   /* 드릴다운 밑줄 — inline 스팬이라 글자 단위 줄바꿈 시 다음 줄로 이어진다 (R2).
      밑줄은 한자 글자 상자에 밀착, 음(.cc-rd)은 그 아래 (R3). */
   .drill {

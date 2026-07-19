@@ -52,7 +52,7 @@ const OB_SLIDES: { title: string; html: string }[] = [
     html: `
       <div class="flex flex-col gap-3 text-sm">
         ${[
-          ['추가','카드 앞면 텍스트를 드래그(터치는 길게 눌러 선택)하면 "+ 카드 추가" 버블이 나타납니다'],
+          ['추가','앞면 한자를 긋거나(터치는 살짝 눌렀다 끌기) 한 글자를 잠깐 누르면 "+ 카드 추가" 버블이 나타납니다'],
           ['수정·삭제','카드 우상단 아이콘 버튼으로 수정하거나 삭제할 수 있습니다'],
         ].map(([label, desc]) =>
           `<div class="flex items-start gap-3">
