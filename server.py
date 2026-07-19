@@ -133,7 +133,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self):
-        if self.path == '/api/add-card':
+        if self.path == '/api/create-doc':
+            self._create_doc()
+        elif self.path == '/api/add-card':
             self._add_card()
         elif self.path == '/api/delete-card':
             self._delete_card()
@@ -148,6 +150,43 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _body(self):
         return json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
+
+    def _create_doc(self):
+        """새 문헌 파일 생성 — src/data/<id>.json. id는 부제(한글)→제목에서 유도.
+        texts가 있으면 해당 레벨 카드로 채운다 (빈 문자열·중복 제외)."""
+        try:
+            body  = self._body()
+            title = (body.get('title') or '').strip()
+            sub   = (body.get('sub') or '').strip()
+            color = (body.get('color') or '').strip()
+            ctype = body.get('type', 'sentence')
+            texts = body.get('texts') or []
+            if not title:
+                raise ValueError('제목이 비어 있습니다')
+            if ctype not in LEVEL_ORDER:
+                raise ValueError(f'알 수 없는 레벨: {ctype}')
+            doc_id = (sub or title).replace(' ', '')
+            if not doc_id or doc_id.startswith('_') or any(ch in doc_id for ch in '/\\.'):
+                raise ValueError(f'문헌 id로 쓸 수 없는 이름: {doc_id!r}')
+            with doc_lock:
+                if os.path.exists(doc_path(doc_id)):
+                    raise ValueError(f'이미 존재하는 문헌: {doc_id}')
+                doc = {'id': doc_id, 'title': title, 'sub': sub or title, 'levels': {}}
+                if color:
+                    doc['color'] = color
+                cards = ensure_level(doc, ctype)
+                seen = set()
+                for t in texts:
+                    t = (t or '').strip()
+                    if not t or t in seen:
+                        continue
+                    seen.add(t)
+                    cards.append({'id': next_id(cards, ctype), 'text': t,
+                                  'reading': '', 'meaning': '', 'note': ''})
+                save_doc(doc_id, doc)
+            self._json(200, {'ok': True, 'id': doc_id})
+        except Exception as e:
+            self._json(500, {'ok': False, 'error': str(e)})
 
     def _add_card(self):
         try:

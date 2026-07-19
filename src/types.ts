@@ -24,6 +24,7 @@ export interface Doc {
   title: string;
   sub: string;
   color?: string;   // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
+  userDoc?: boolean; // 사용자 생성 문헌 (localStorage user-docs) — 홈 '내 문헌' 선반·편집 UI 노출
   levels: Level[];
 }
 
@@ -94,6 +95,8 @@ export interface DocJSON {
   sub:    string;
   order?: number;    // 홈 화면 정렬 우선순위 (작을수록 앞). 없으면 파일명 가나다순 뒤에 배치.
   color?: string;    // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
+  updatedAt?: string; // 마지막 수정 시각(ISO) — 사용자 문헌에서 사용, 미래 동기화 비교 키
+  source?: { catalogId: string; version: number };  // 카탈로그에서 받은 문헌의 출처 메타
   levels: Partial<Record<LevelKey, CardJSON[]>>;
 }
 

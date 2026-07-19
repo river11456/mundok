@@ -5,6 +5,7 @@ import { initOnboarding } from './onboarding';
 import { setupClick, setupKeyboard } from './events';
 import { initAddCard } from './addcard';
 import { initCellSelect } from './cell-select';
+import { initDocCreate } from './doc-create';
 import { initEditCard } from './editcard';
 import { initDocs } from './docs';
 import { initGrammarEdit } from './grammar-edit';
@@ -32,6 +33,7 @@ async function init() {
   await initDocs();        // store 초기화 + 콘텐츠 병합
   initAddCard();
   initCellSelect();
+  initDocCreate();
   initEditCard();
   initGrammarEdit();
   initShortcutHelp();

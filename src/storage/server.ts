@@ -1,9 +1,13 @@
-import type { Store } from './types';
+import type { NewDocInput, Store } from './types';
 import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation } from '../types';
 
-/** server.py의 CRUD API로 POST. 실패 시 throw, 성공 시 응답 바디 반환. */
-async function post<T extends { ok: boolean; error?: string }>(path: string, body: unknown): Promise<T> {
-  (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
+/**
+ * server.py의 CRUD API로 POST. 실패 시 throw, 성공 시 응답 바디 반환.
+ * skipReload=false면 뒤따르는 재빌드의 라이브 리로드를 막지 않는다
+ * (새 문헌 생성처럼 베이킹 반영이 필요한 경우).
+ */
+async function post<T extends { ok: boolean; error?: string }>(path: string, body: unknown, skipReload = true): Promise<T> {
+  if (skipReload) (window as any).__hanjaSkipReloads = ((window as any).__hanjaSkipReloads || 0) + 1;
   const res  = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -24,6 +28,12 @@ export class ServerStore implements Store {
 
   async loadDelta(): Promise<UserData | null> {
     return null;
+  }
+
+  async createDoc(input: NewDocInput): Promise<string> {
+    // 리로드 스킵 안 함 — 재빌드가 새 문헌을 베이킹하면 그대로 새로고침되어야 한다
+    const data = await post<{ ok: boolean; id: string }>('/api/create-doc', input, false);
+    return data.id;
   }
 
   async addCard(a: UserAddition): Promise<string> {

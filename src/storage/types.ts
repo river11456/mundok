@@ -1,4 +1,13 @@
-import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation } from '../types';
+import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, LevelKey } from '../types';
+
+/** 문헌 추가 마법사 입력 — texts가 비면 빈 문헌 */
+export interface NewDocInput {
+  title:  string;
+  sub:    string;
+  color?: string;
+  type:   LevelKey;   // 초기 본문 카드 레벨 (sentence | paragraph)
+  texts:  string[];
+}
 
 /**
  * 저장 계층 추상화 — 앱 본체는 이 인터페이스로만 영속화를 호출한다.
@@ -21,6 +30,13 @@ export interface Store {
    * - LocalStore  : localStorage에 누적된 UserData
    */
   loadDelta(): Promise<UserData | null>;
+
+  /**
+   * 새 문헌 생성. 반환값: 생성된 docId.
+   * - ServerStore : src/data/<id>.json 파일 생성 (id는 부제→제목에서 유도)
+   * - LocalStore  : localStorage user-docs에 추가 (id는 u1, u2, …)
+   */
+  createDoc(input: NewDocInput): Promise<string>;
 
   /** 반환값: 새로 부여된(또는 기존과 중복된) 카드 id */
   addCard(addition: UserAddition): Promise<string>;

@@ -1,5 +1,9 @@
-import type { Store } from './types';
+import type { NewDocInput, Store } from './types';
 import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation } from '../types';
+import {
+  createUserDoc, isUserDoc,
+  userAddCard, userEditCard, userDeleteCard, userSaveGrammar,
+} from '../user-docs';
 
 /** localStorage에 저장되는 사용자 편집 델타의 키 */
 export const LOCAL_KEY = 'hanja-v2/userdata';
@@ -31,6 +35,7 @@ function save(d: UserData): void {
 /**
  * 정적 배포용 저장소. 사용자 편집을 브라우저 localStorage에 누적한다.
  * server.py의 CRUD 병합 로직(_add_card/_edit_card/_delete_card)과 동일한 규칙.
+ * 사용자 생성 문헌(user-docs)은 델타가 아니라 문헌 객체를 id 기반으로 직접 수정한다.
  */
 export class LocalStore implements Store {
   readonly kind = 'local' as const;
@@ -39,7 +44,17 @@ export class LocalStore implements Store {
     return load();
   }
 
+  async createDoc(input: NewDocInput): Promise<string> {
+    return createUserDoc(
+      { title: input.title, sub: input.sub, color: input.color },
+      input.type, input.texts,
+    ).id;
+  }
+
   async addCard(a: UserAddition): Promise<string> {
+    if (isUserDoc(a.docId)) {
+      return userAddCard(a.docId, a.type, { text: a.text, reading: a.reading, meaning: a.meaning, note: a.note });
+    }
     const d = load();
     d.additions.push(a);
     save(d);
@@ -47,6 +62,10 @@ export class LocalStore implements Store {
   }
 
   async editCard(e: UserEdit): Promise<void> {
+    if (isUserDoc(e.docId)) {
+      userEditCard(e.docId, e.type, e.id, { text: e.text, reading: e.reading, meaning: e.meaning, note: e.note });
+      return;
+    }
     const d = load();
     // 사용자가 추가한 카드면 그 add를 직접 갱신, 아니면 edits에 기록(중복 제거)
     const add = d.additions.find(x => x.docId === e.docId && x.type === e.type && x.text === e.origText);
@@ -60,6 +79,10 @@ export class LocalStore implements Store {
   }
 
   async deleteCard(del: UserDeletion): Promise<void> {
+    if (isUserDoc(del.docId)) {
+      userDeleteCard(del.docId, del.type, del.id);
+      return;
+    }
     const d = load();
     const before = d.additions.length;
     d.additions = d.additions.filter(a => !(a.docId === del.docId && a.type === del.type && a.text === del.text));
@@ -71,7 +94,11 @@ export class LocalStore implements Store {
     save(d);
   }
 
-  async saveGrammar(docId: string, _cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void> {
+  async saveGrammar(docId: string, cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void> {
+    if (isUserDoc(docId)) {
+      userSaveGrammar(docId, cardId, annotations);
+      return;
+    }
     const d = load();
     d.grammar = (d.grammar ?? []).filter(g => !(g.docId === docId && g.cardFront === cardFront));
     if (annotations.length > 0) d.grammar!.push({ docId, cardFront, annotations });

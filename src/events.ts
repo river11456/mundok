@@ -1,5 +1,7 @@
 import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
-import { homeDocs, refsOf } from './docs';
+import { homeDocs, refsOf, syncUserDocs } from './docs';
+import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
+import { deleteUserDoc } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
@@ -14,9 +16,10 @@ import type { Mode } from './types';
 function navHome(): void  { resetGrammarView(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
 function navMode(id: string): void  { S.docId = id; S.docOverlay = null; S.scr = 'mode';  render(); }
 
-/** 홈 표지 클릭/숫자키 — 참고문헌이 있으면 상세 오버레이, 없으면 바로 mode 화면. */
+/** 홈 표지 클릭/숫자키 — 참고문헌 보유·사용자 문헌은 상세 오버레이, 아니면 바로 mode 화면. */
 function openDoc(id: string): void {
-  if (refsOf(id).length > 0) { S.docOverlay = id; render(); }
+  const d = DOCS.find(x => x.id === id);
+  if (refsOf(id).length > 0 || d?.userDoc) { S.docOverlay = id; render(); }
   else navMode(id);
 }
 
@@ -139,6 +142,20 @@ export function setupClick(): void {
       case 'toggle-shelf': toggleShelf(arg!); render(); break;
       case 'resume':      resumeStudy();                break;
       case 'edit-groups': showGroupEdit();              break;
+      case 'new-doc':     showDocCreate();              break;
+      case 'doc-append':    if (S.docOverlay) showDocAppend(S.docOverlay); break;
+      case 'doc-edit-info': if (S.docOverlay) showDocEdit(S.docOverlay);   break;
+      case 'doc-delete': {
+        const id  = S.docOverlay;
+        const doc = id ? DOCS.find(x => x.id === id) : undefined;
+        if (!id || !doc?.userDoc) break;
+        if (!confirm(`'${doc.title}' 문헌을 삭제합니다.\n\n카드와 학습 기록이 모두 지워지며 복구할 수 없습니다. 계속하시겠습니까?`)) break;
+        deleteUserDoc(id);
+        syncUserDocs();
+        S.docOverlay = null;
+        render();
+        break;
+      }
       case 'seq-prev':    seqPrev();                             break;
       case 'seq-next':    seqNext();                             break;
       case 'flip':        flipCard();                            break;
@@ -198,7 +215,7 @@ export function setupClick(): void {
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && isGroupEditOpen()) { hideGroupEdit(); return; }
-    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay'].some(id => {
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay'].some(id => {
       const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
       return el !== null && !el.classList.contains('hidden');
     });
