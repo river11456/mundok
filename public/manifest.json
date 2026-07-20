@@ -1,6 +1,6 @@
 {
-  "name": "文讀",
-  "short_name": "文讀",
+  "name": "문독",
+  "short_name": "문독",
   "description": "한의학 한문 학습 웹앱",
   "start_url": ".",
   "scope": ".",
