@@ -208,12 +208,11 @@ function belowFront(inner: string, isChar: boolean): string {
   return isChar ? `<div class="char-hold">${inner}</div>` : inner;
 }
 
-/** 앞면 하단 "정답 보기" — 탭·클릭 실 버튼(터치 필수 경로), Space 병기는 키보드 기기만 */
+/** 앞면 하단 "정답 보기" — 탭·클릭 실 버튼. Space 키캡 병기는 하단 네비의 Space 버튼과 중복이라 제거 */
 function revealHint(): string {
   return `
-    <div class="flex items-center justify-center gap-3">
+    <div class="flex items-center justify-center">
       <button data-action="flip" class="btn-ghost">정답 보기</button>
-      <span class="kb-only text-sm t-faint"><kbd class="kbd">Space</kbd></span>
     </div>`;
 }
 
@@ -517,7 +516,7 @@ function renderSeq(entering = false): void {
         <button data-action="seq-prev" class="nav-btn" ${S.seqIdx === 0 ? 'disabled' : ''}>
           ← 이전
         </button>
-        <kbd class="kbd kb-only">Space</kbd>
+        <button data-action="flip" class="nav-btn kb-only">Space</button>
         <button data-action="seq-next" class="nav-btn" ${S.seqIdx === cards.length - 1 ? 'disabled' : ''}>
           다음 →
         </button>
