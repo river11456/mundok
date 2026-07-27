@@ -9,7 +9,7 @@ export function initShortcutHelp(): void {
       <table class="w-full text-xs t-sub border-separate" style="border-spacing:0 6px">
         <tbody>
           <tr><td class="t-faint pr-4 whitespace-nowrap">홈</td><td class="kbd mr-2">1–N</td><td>문헌 선택</td></tr>
-          <tr><td class="t-faint pr-4">문헌</td><td class="kbd mr-2">Enter</td><td>안키 시작 (⇧Enter 순차)</td></tr>
+          <tr><td class="t-faint pr-4">문헌</td><td class="kbd mr-2">Enter</td><td>순차 시작 (⇧Enter 안키)</td></tr>
           <tr><td class="t-faint pr-4"></td><td class="kbd mr-2">1–N</td><td>참고문헌 선택</td></tr>
           <tr><td class="t-faint pr-4">단위</td><td class="kbd mr-2">1–N</td><td>단위 선택</td></tr>
           <tr><td colspan="3" class="pt-2 pb-1 t-faint text-xs">순차 모드</td></tr>

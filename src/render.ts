@@ -311,8 +311,8 @@ function docOverlayHtml(docId: string): string {
           <div class="detail-title kai hanja">${esc(d.title)}</div>
           <div class="detail-sub">${esc(d.sub)} · <span class="num">${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
           <div class="detail-actions">
-            <button data-action="overlay-mode" data-arg="anki" class="btn-primary">안키 모드</button>
-            <button data-action="overlay-mode" data-arg="seq" class="btn-ghost">순차 재생</button>
+            <button data-action="overlay-mode" data-arg="seq" class="btn-primary">순차 재생</button>
+            <button data-action="overlay-mode" data-arg="anki" class="btn-ghost">안키 모드</button>
           </div>
         </div>
       </div>
@@ -339,7 +339,7 @@ function docOverlayHtml(docId: string): string {
           </div>`).join('')}
         </div>
       </div>` : ''}
-      <div class="detail-foot kb-only"><kbd class="kbd">Enter</kbd> 안키 · <kbd class="kbd">⇧Enter</kbd> 순차 · <kbd class="kbd">Esc</kbd> 닫기</div>
+      <div class="detail-foot kb-only"><kbd class="kbd">Enter</kbd> 순차 · <kbd class="kbd">⇧Enter</kbd> 안키 · <kbd class="kbd">Esc</kbd> 닫기</div>
     </div>
   </div>`;
 }

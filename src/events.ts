@@ -249,9 +249,9 @@ export function setupKeyboard(): void {
     if (S.scr === 'home') {
       const i = +e.key - 1;
       if (S.docOverlay) {
-        if (e.key === 'Enter') {   // Enter=안키(주 버튼), ⇧Enter=순차
+        if (e.key === 'Enter') {   // Enter=순차(주 버튼), ⇧Enter=안키
           e.preventDefault();
-          startOverlayMode(e.shiftKey ? 'seq' : 'anki');
+          startOverlayMode(e.shiftKey ? 'anki' : 'seq');
           return;
         }
         const refs = refsOf(S.docOverlay);   // 오버레이 안에서는 참고문헌 숫자 배지 우선
