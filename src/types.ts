@@ -1,4 +1,4 @@
-export type Screen = 'home' | 'mode' | 'level' | 'study';
+export type Screen = 'home' | 'level' | 'study';
 export type Mode   = 'seq' | 'anki';
 export type Side   = 'front' | 'back' | 'result';
 

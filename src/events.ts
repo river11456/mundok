@@ -15,22 +15,32 @@ import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
 function navHome(): void  { resetGrammarView(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
-function navMode(id: string): void  { S.docId = id; S.docOverlay = null; S.scr = 'mode';  render(); }
 
-/** 홈 표지 클릭/숫자키 — 참고문헌 보유·사용자 문헌은 상세 오버레이, 아니면 바로 mode 화면. */
+/** 문헌 열기 = 상세 오버레이 — 홈 표지·참고문헌·level 뒤로가기 공통 단일 창구. */
 function openDoc(id: string): void {
-  const d = DOCS.find(x => x.id === id);
-  if (refsOf(id).length > 0 || d?.userDoc) { S.docOverlay = id; render(); }
-  else navMode(id);
+  S.scr = 'home';
+  S.mode = null;
+  S.docId = id;
+  S.docOverlay = id;
+  render();
 }
 
 function closeOverlay(): void { S.docOverlay = null; render(); }
 function navLevel(m: Mode): void    { S.mode  = m;  S.scr = 'level'; render(); }
+
+/** 오버레이에서 모드 시작 — mode 화면 없이 바로 단위 선택으로. */
+function startOverlayMode(m: Mode): void {
+  const id = S.docOverlay;
+  if (!id) return;
+  S.docId = id;
+  S.docOverlay = null;
+  navLevel(m);
+}
+
 function navBack(): void {
   resetGrammarView();   // 드릴다운 복귀 포함 — 카드 이동은 항상 문법 리셋
   if (S.scr === 'study' && popNav()) { render(); return; }
-  if      (S.scr === 'mode')  navHome();
-  else if (S.scr === 'level') navMode(S.docId!);
+  if      (S.scr === 'level') openDoc(S.docId!);
   else if (S.scr === 'study') navLevel(S.mode!);
 }
 
@@ -123,7 +133,6 @@ export function setupClick(): void {
     switch (btn.dataset.action) {
       case 'nav-home':    navHome();                    break;
       case 'nav-back':    navBack();                    break;
-      case 'nav-mode':    navMode(arg!);                break;
       case 'nav-level':   navLevel(arg! as Mode);       break;
       case 'start-study': startStudy(parseInt(arg!));   break;
       case 'open-doc':    openDoc(arg!);                break;
@@ -131,15 +140,8 @@ export function setupClick(): void {
       case 'overlay-backdrop':
         if (e.target === btn) closeOverlay();           // 바깥(백드롭 자체) 클릭만 닫기
         break;
-      case 'overlay-mode': {
-        const id = S.docOverlay;
-        if (!id) break;
-        S.docId = id;
-        S.docOverlay = null;
-        navLevel(arg! as Mode);                          // mode 화면 생략 → 바로 단위 선택
-        break;
-      }
-      case 'overlay-ref': navMode(arg!);                break;
+      case 'overlay-mode': startOverlayMode(arg! as Mode); break;
+      case 'overlay-ref':  openDoc(arg!);               break;
       case 'toggle-shelf': toggleShelf(arg!); render(); break;
       case 'resume':      resumeStudy();                break;
       case 'edit-groups': showGroupEdit();              break;
@@ -247,16 +249,17 @@ export function setupKeyboard(): void {
     if (S.scr === 'home') {
       const i = +e.key - 1;
       if (S.docOverlay) {
+        if (e.key === 'Enter') {   // Enter=안키(주 버튼), ⇧Enter=순차
+          e.preventDefault();
+          startOverlayMode(e.shiftKey ? 'seq' : 'anki');
+          return;
+        }
         const refs = refsOf(S.docOverlay);   // 오버레이 안에서는 참고문헌 숫자 배지 우선
-        if (refs[i]) navMode(refs[i].id);
+        if (refs[i]) openDoc(refs[i].id);
         return;
       }
       const doc = homeDocs()[i];   // 서가 표시 순서(참고문헌 제외)와 일치
       if (doc) openDoc(doc.id);
-
-    } else if (S.scr === 'mode') {
-      if (e.key === '1') navLevel('seq');
-      else if (e.key === '2') navLevel('anki');
 
     } else if (S.scr === 'level') {
       const i = +e.key - 1;

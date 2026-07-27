@@ -183,7 +183,6 @@ export function render(): void {
   _prevScr = S.scr;
   switch (S.scr) {
     case 'home':  renderHome();           break;
-    case 'mode':  renderMode();           break;
     case 'level': renderLevel();          break;
     case 'study':
       if (S.mode === 'seq') renderSeq(entering);
@@ -340,7 +339,7 @@ function docOverlayHtml(docId: string): string {
           </div>`).join('')}
         </div>
       </div>` : ''}
-      <div class="detail-foot kb-only">Esc 또는 바깥을 클릭하면 닫힙니다</div>
+      <div class="detail-foot kb-only"><kbd class="kbd">Enter</kbd> 안키 · <kbd class="kbd">⇧Enter</kbd> 순차 · <kbd class="kbd">Esc</kbd> 닫기</div>
     </div>
   </div>`;
 }
@@ -408,35 +407,6 @@ function renderHome(): void {
     ${S.docOverlay ? docOverlayHtml(S.docOverlay) : ''}`;
 }
 
-function renderMode(): void {
-  const d = curDoc();
-  $app().innerHTML = `
-    <div class="screen-enter w-full max-w-lg flex flex-col gap-10">
-      <div class="flex items-center justify-between">
-        ${backBtn('목록')}
-        ${homeBtn()}
-      </div>
-      <div class="text-center">
-        <div class="hanja text-2xl t-ink">${esc(d.title)}</div>
-        <div class="text-sm t-sub mt-1">${esc(d.sub)}</div>
-      </div>
-      <div class="grid sm:grid-cols-2 gap-4">
-        <button data-action="nav-level" data-arg="seq" class="tile p-8">
-          <div class="text-3xl t-faint mb-4">→</div>
-          <div class="text-base font-bold t-ink">순차 재생</div>
-          <div class="text-sm t-sub mt-1.5 leading-relaxed">전체를 순서대로</div>
-          <div class="mt-4 flex gap-1.5 kb-only"><kbd class="kbd">Space</kbd><kbd class="kbd">←</kbd><kbd class="kbd">→</kbd></div>
-        </button>
-        <button data-action="nav-level" data-arg="anki" class="tile p-8">
-          <div class="text-3xl t-faint mb-4">↺</div>
-          <div class="text-base font-bold t-ink">안키 모드</div>
-          <div class="text-sm t-sub mt-1.5 leading-relaxed">모르는 것 집중 반복</div>
-          <div class="mt-4 flex gap-1.5 kb-only"><kbd class="kbd">Space</kbd><kbd class="kbd">1</kbd><kbd class="kbd">2</kbd><kbd class="kbd">3</kbd></div>
-        </button>
-      </div>
-    </div>`;
-}
-
 function renderLevel(): void {
   const d = curDoc();
   const modeLabel = S.mode === 'seq' ? '순차 재생' : '안키 모드';
@@ -456,7 +426,7 @@ function renderLevel(): void {
   $app().innerHTML = `
     <div class="screen-enter w-full max-w-lg flex flex-col gap-10">
       <div class="flex items-center justify-between">
-        ${backBtn(modeLabel)}
+        ${backBtn(d.title)}
         ${homeBtn()}
       </div>
       <div class="text-center">

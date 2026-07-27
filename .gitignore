@@ -13,3 +13,6 @@ __pycache__/
 
 # 빌드 산출물 — CI(GitHub Actions)가 빌드하므로 커밋하지 않음
 dist/
+
+# 원본 PDF는 git에서 분리 (관리자 로컬 ~/Documents/문독-원본PDF/)
+*.pdf
