@@ -28,10 +28,13 @@ export default defineConfig({
         mkdirSync(outDir, { recursive: true });
         const docs: object[] = [];
         const files = existsSync(srcDir)
-          ? readdirSync(srcDir).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()
+          ? readdirSync(srcDir).filter(f => f.endsWith('.json') && !f.startsWith('_'))
           : [];
-        for (const f of files) {
-          const dj = JSON.parse(readFileSync(new URL(f, srcDir), 'utf-8'));
+        // order 필드 우선(작을수록 앞, 없으면 맨 뒤) → 동률은 id 가나다순 (src/docs.ts 정렬과 동일 패턴)
+        const entries = files
+          .map(f => ({ f, dj: JSON.parse(readFileSync(new URL(f, srcDir), 'utf-8')) }))
+          .sort((a, b) => (a.dj.order ?? Infinity) - (b.dj.order ?? Infinity) || a.dj.id.localeCompare(b.dj.id));
+        for (const { f, dj } of entries) {
           copyFileSync(new URL(f, srcDir), new URL(f, outDir));
           let cards = 0;
           for (const arr of Object.values(dj.levels ?? {})) cards += (arr as unknown[]).length;
