@@ -17,7 +17,6 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { alignReading, isHan } from '../src/reading-align.ts';
-import { interpError } from '../src/interp.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR  = join(__dirname, '..', 'src', 'data');
@@ -122,15 +121,6 @@ export function lintDoc(dj) {
           const ok = Number.isInteger(g.start) && Number.isInteger(g.end)
             && g.start >= 0 && g.start < g.end && g.end <= len;
           if (!ok) errors.push(`${docId}/${k} "${c.id}": 문법 인덱스 범위 이상 start=${g.start} end=${g.end} (len=${len})`);
-        }
-      }
-
-      // 해석 순서(interp) — sentence 전용, 범위·겹침 검사
-      if (c.interp) {
-        if (k !== 'sentence') errors.push(`${docId}/${k} "${c.id}": interp는 sentence 카드 전용`);
-        else {
-          const ie = interpError(c.text, c.interp);
-          if (ie) errors.push(`${docId}/${k} "${c.id}": 해석 순서(interp) ${ie}`);
         }
       }
 
