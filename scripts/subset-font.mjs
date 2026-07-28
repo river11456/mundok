@@ -2,7 +2,8 @@
 /**
  * WenKai(해서) 서브셋 생성 — 콘텐츠 한자만 뽑아 self-host용 woff2를 만든다.
  *
- * 대상 글자: lint-data.mjs 의 collectHanChars() (전 레벨 카드 text + title + sub + 워드마크)
+ * 대상 글자: src/data(베이킹) + catalog(다운로드 배포분) 문헌 전체 —
+ *   lint-data.mjs 의 collectHanChars() (전 레벨 카드 text + title + sub + 워드마크)
  * 원본 폰트: LXGW WenKai TC Regular (OFL-1.1) — .fontcache/ 에 없으면 GitHub 릴리스에서 다운로드
  * 산출물(커밋 대상):
  *   public/fonts/wenkai-tc-sub.woff2        — index.html @font-face 가 참조
@@ -24,6 +25,7 @@ import { readCmapCoverage } from './font-cmap.mjs';
 const __dirname  = dirname(fileURLToPath(import.meta.url));
 const ROOT       = join(__dirname, '..');
 const DATA_DIR   = join(ROOT, 'src', 'data');
+const CATALOG_DIR = join(ROOT, 'catalog');
 const CACHE_DIR  = join(ROOT, '.fontcache');
 const OUT_DIR    = join(ROOT, 'public', 'fonts');
 const SRC_TTF    = join(CACHE_DIR, 'LXGWWenKaiTC-Regular.ttf');
@@ -32,8 +34,13 @@ const OUT_WOFF2   = join(OUT_DIR, 'wenkai-tc-sub.woff2');
 const OUT_CHARS   = join(OUT_DIR, 'wenkai-tc-sub.chars.txt');
 const OUT_MISSING = join(OUT_DIR, 'wenkai-tc-sub.missing.txt');
 
-const djs = readdirSync(DATA_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()
-  .map(f => JSON.parse(readFileSync(join(DATA_DIR, f), 'utf-8')));
+const readDocs = dir => existsSync(dir)
+  ? readdirSync(dir).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()
+      .map(f => JSON.parse(readFileSync(join(dir, f), 'utf-8')))
+  : [];
+
+// 베이킹 문헌(src/data) + 카탈로그 문헌(catalog, 다운로드 배포분) 한자를 합쳐서 서브셋한다.
+const djs = [...readDocs(DATA_DIR), ...readDocs(CATALOG_DIR)];
 const wanted = [...collectHanChars(djs)].sort();
 
 if (!existsSync(SRC_TTF)) {
