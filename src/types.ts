@@ -103,17 +103,26 @@ export interface CardJSON {
   grammar?: GrammarAnnotation[];  // 카드 내장 문법 주석 (cardFront 키 불필요)
   interp?:  InterpChunk[];        // 해석 순서 청크 (sentence 전용) — 배열 순서 = 해석 순서
   drill?:   string[];             // 명시적 드릴다운 대상 카드 id. 없으면 자동 substring 매칭.
+  editedAt?: number;              // 유저 수정 시각(epoch ms) — 카탈로그 업데이트 머지가 이 카드를 보존 (SPEC C6)
+  status?:  'draft';              // 사진 인제스트 초안 표시 (Phase 6 예약 — SPEC 2.3)
 }
 
 export interface DocJSON {
   id:     string;    // = 파일명 (기존 docId·localStorage 키 호환)
+  schemaVersion?: number;  // 데이터 모델 버전 — v2 쓰기 경로가 3을 스탬프. 부재 = v1 산출물 (SPEC 2.3)
   title:  string;
   sub:    string;
   order?: number;    // 홈 화면 정렬 우선순위 (작을수록 앞). 없으면 파일명 가나다순 뒤에 배치.
   color?: string;    // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
   updatedAt?: string; // 마지막 수정 시각(ISO) — 사용자 문헌에서 사용, 미래 동기화 비교 키
   version?: number;   // 카탈로그 문헌의 개정 번호 (기본 1) — 올리면 설치자에게 업데이트 표시
-  source?: { catalogId: string; version: number };  // 카탈로그에서 받은 문헌의 출처 메타
+  source?: {          // 카탈로그에서 받은 문헌의 출처 메타 — "어디서 왔나 + 업데이트 확인용" 꼬리표 (SPEC 공리 3)
+    catalogId:   string;
+    version:     number;
+    installedAt?: string;   // 설치 시각(ISO)
+    removed?:    string[];  // 유저가 삭제한 카탈로그 카드 id — 업데이트 머지가 재도입하지 않음 (C6)
+  };
+  origin?: { work?: string; author?: string; pages?: string };  // 원전 메타 (SPEC 2.3 — 승격 시 매니페스트에서 승계)
   levels: Partial<Record<LevelKey, CardJSON[]>>;
 }
 
