@@ -3,7 +3,7 @@ import { LEVEL_ORDER, LEVEL_LABEL } from './types';
 import { initGrammar } from './grammar';
 import { initStore } from './storage';
 import { migrateV1IfNeeded, migrateProgressIfNeeded } from './migrate-v1';
-import { loadUserDocs } from './user-docs';
+import { loadUserDocs, installCatalogDoc } from './user-docs';
 import collectionsJson from '../catalog/_collections.json';
 
 // v1 베이킹 8문헌 — 마이그레이션 전용 번들 (S0에서 카탈로그에 동일 사본·카드 id 고정).
@@ -124,6 +124,17 @@ function collectGrammar(): GrammarEntry[] {
     }
   }
   return out;
+}
+
+/**
+ * 온보딩 스타터 (C8) — 뜻·문법·해석 순서가 채워진 대표 문헌을 원클릭 설치.
+ * 이미 있으면 아무것도 안 한다. 번들 사본을 쓰므로 오프라인에서도 동작.
+ */
+export function installStarterDoc(): void {
+  const starter = 불치이병치미병 as DocJSON;
+  if (loadUserDocs().some(d => d.id === starter.id)) return;
+  installCatalogDoc(starter, { catalogId: starter.id, version: starter.version ?? 1 });
+  syncUserDocs();
 }
 
 export async function initDocs(): Promise<void> {

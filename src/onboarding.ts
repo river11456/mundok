@@ -1,5 +1,7 @@
 // ── Onboarding ────────────────────────────────────────────
 import { isOnboardingSeen, markOnboardingSeen } from './state';
+import { installStarterDoc } from './docs';
+import { render } from './render';
 
 const OB_SLIDES: { title: string; html: string }[] = [
   {
@@ -62,6 +64,17 @@ const OB_SLIDES: { title: string; html: string }[] = [
         ).join('')}
       </div>`,
   },
+  {
+    title: '샘플 문헌으로 시작하기',
+    html: `
+      <p class="text-sm t-sub leading-relaxed text-center">
+        뜻·문법·해석 순서가 채워진 대표 문헌으로<br>바로 학습을 시작해 보세요.<br>
+        더 많은 문헌은 홈의 <b class="t-ink">문헌 받기</b>에 있습니다.
+      </p>
+      <div class="flex justify-center mt-5">
+        <button id="ob-starter" class="btn-primary"><span class="hanja">不治已病治未病</span> 담기</button>
+      </div>`,
+  },
 ];
 
 let _obIdx = 0;
@@ -119,6 +132,16 @@ export function initOnboarding(): void {
 
   const panel = overlay.querySelector<HTMLElement>('#ob-panel')!;
   panel.addEventListener('click', e => e.stopPropagation());
+
+  // 스타터 설치 (C8) — 슬라이드가 리렌더돼도 살아있게 패널에 위임
+  panel.addEventListener('click', e => {
+    const btn = (e.target as Element).closest<HTMLButtonElement>('#ob-starter');
+    if (!btn || btn.disabled) return;
+    installStarterDoc();
+    render();   // 온보딩 뒤 홈 서가에 표지 반영
+    btn.textContent = '담았습니다 ✓';
+    btn.disabled = true;
+  });
   overlay.addEventListener('click', () => {
     markOnboardingSeen();
     hideOnboarding();
