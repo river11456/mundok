@@ -14,6 +14,14 @@ export interface Card {
 
 export type LevelKey = 'char' | 'word' | 'sentence' | 'paragraph';
 
+export const LEVEL_ORDER: readonly LevelKey[] = ['char', 'word', 'sentence', 'paragraph'];
+export const LEVEL_LABEL: Record<LevelKey, string> = {
+  char:      '개별 글자',
+  word:      '단어 단위',
+  sentence:  '문장 단위',
+  paragraph: '단락 단위',
+};
+
 export interface Level {
   key: LevelKey;
   label: string;
@@ -25,7 +33,8 @@ export interface Doc {
   title: string;
   sub: string;
   color?: string;   // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
-  userDoc?: boolean; // 사용자 생성 문헌 (localStorage user-docs) — 홈 '내 문헌' 선반·편집 UI 노출
+  order?: number;   // 정렬 우선순위 (카탈로그 order 승계) — 미분류 선반 정렬에 사용
+  userDoc?: boolean; // 직접 생성 문헌 (source 없음) — 홈 '내 문헌' 선반 배치 기준
   levels: Level[];
 }
 

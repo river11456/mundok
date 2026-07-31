@@ -135,3 +135,47 @@ export function buildV3Docs(
 
   return out;
 }
+
+// ── localStorage 배선 ─────────────────────────────────────────────────────
+//   베이킹 8문헌 JSON import는 docs.ts가 담당한다 (Node 테스트가 이 모듈을
+//   import하는데, Node ESM은 순수 JSON import를 지원하지 않아 여기 둘 수 없음).
+
+const V1_PREFIX        = 'hanja-v2/';
+const V1_USERDATA_KEY  = 'hanja-v2/userdata';
+const V1_USER_DOCS_KEY = 'hanja-v2/user-docs';
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasV1Keys(): boolean {
+  for (let i = 0; i < localStorage.length; i++) {
+    if (localStorage.key(i)?.startsWith(V1_PREFIX)) return true;
+  }
+  return false;
+}
+
+/**
+ * v1 → v3 1회 마이그레이션 (SPEC 9절). 앱 초기화 최초에 호출.
+ * - mundok-v3/docs가 이미 있으면 아무것도 안 함
+ * - v1 흔적(hanja-v2/*)이 있으면: 베이킹 8문헌(baked)+델타+user-docs를 유저 공간으로 변환
+ * - v1 흔적이 없으면(신규 사용자): 빈 유저 공간 — 콘텐츠는 카탈로그·온보딩 스타터로
+ * - 구 hanja-v2/* 키는 보존한다 (검증 기간 후 제거 — 롤백 보험)
+ */
+export function migrateV1IfNeeded(baked: DocJSON[]): void {
+  if (localStorage.getItem(V3_DOCS_KEY) !== null) return;
+  const docs = hasV1Keys()
+    ? buildV3Docs(
+        baked,
+        readJson<UserData>(V1_USERDATA_KEY),
+        readJson<DocJSON[]>(V1_USER_DOCS_KEY) ?? [],
+        new Date().toISOString(),
+      )
+    : [];
+  localStorage.setItem(V3_DOCS_KEY, JSON.stringify(docs));
+}

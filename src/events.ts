@@ -6,7 +6,6 @@ import { deleteUserDoc } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
-import { showGroupEdit, hideGroupEdit, isGroupEditOpen } from './group-edit';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { consumeSuppressedClick, dismissCellSelect } from './cell-select';
@@ -145,7 +144,6 @@ export function setupClick(): void {
       case 'overlay-ref':  openDoc(arg!);               break;
       case 'toggle-shelf': toggleShelf(arg!); render(); break;
       case 'resume':      resumeStudy();                break;
-      case 'edit-groups': showGroupEdit();              break;
       case 'new-doc':     showDocCreate();              break;
       case 'open-catalog': showCatalog();               break;
       case 'doc-append':    if (S.docOverlay) showDocAppend(S.docOverlay); break;
@@ -153,7 +151,7 @@ export function setupClick(): void {
       case 'doc-delete': {
         const id  = S.docOverlay;
         const doc = id ? DOCS.find(x => x.id === id) : undefined;
-        if (!id || !doc?.userDoc) break;
+        if (!id || !doc) break;
         if (!confirm(`'${doc.title}' 문헌을 삭제합니다.\n\n카드와 학습 기록이 모두 지워지며 복구할 수 없습니다. 계속하시겠습니까?`)) break;
         deleteUserDoc(id);
         syncUserDocs();
@@ -230,7 +228,6 @@ export function setupClick(): void {
 // ── Keyboard ──────────────────────────────────────────────
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && isGroupEditOpen()) { hideGroupEdit(); return; }
     const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay', 'ct-overlay'].some(id => {
       const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
       return el !== null && !el.classList.contains('hidden');

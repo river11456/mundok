@@ -1,4 +1,4 @@
-import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey } from '../types';
+import type { UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey } from '../types';
 
 /** 문헌 추가 마법사 입력 — texts가 비면 빈 문헌 */
 export interface NewDocInput {
@@ -13,29 +13,17 @@ export interface NewDocInput {
  * 저장 계층 추상화 — 앱 본체는 이 인터페이스로만 영속화를 호출한다.
  *
  * 구현체:
- *   - ServerStore : 관리자 저작용. server.py(파일 userdata.json)에 기록.
- *   - LocalStore  : 정적 배포용. 브라우저 localStorage에 기록.
+ *   - LocalStore : 브라우저 localStorage(mundok-v3/). 유일한 구현.
  *   - (미래) BackendStore : 서버 API + 계정 동기화. 이 파일 하나만 추가하면 됨.
  *
- * 콘텐츠 흐름:
- *   CSV(베이스) → 빌드에 베이킹된 관리자 userdata.json → loadDelta()(사용자 로컬 편집분)
+ * v2: 모든 문헌이 유저 공간에서 동등하므로 편집은 카드 id 단일 경로다 (SPEC 3.2).
+ * UserEdit.origText / UserDeletion.text 는 v1 델타 시절의 잔재 필드 — 무시된다.
  */
 export interface Store {
   /** 진단·메시지용 식별자 */
-  readonly kind: 'server' | 'local';
+  readonly kind: 'local';
 
-  /**
-   * 빌드에 베이킹된 관리자 콘텐츠 위에 덧입힐 "사용자 델타"를 반환.
-   * - ServerStore : null (관리자 기록이 곧 베이킹 콘텐츠라 별도 델타 없음)
-   * - LocalStore  : localStorage에 누적된 UserData
-   */
-  loadDelta(): Promise<UserData | null>;
-
-  /**
-   * 새 문헌 생성. 반환값: 생성된 docId.
-   * - ServerStore : src/data/<id>.json 파일 생성 (id는 부제→제목에서 유도)
-   * - LocalStore  : localStorage user-docs에 추가 (id는 u1, u2, …)
-   */
+  /** 새 문헌 생성. 반환값: 생성된 docId (`u-…`). */
   createDoc(input: NewDocInput): Promise<string>;
 
   /** 반환값: 새로 부여된(또는 기존과 중복된) 카드 id */

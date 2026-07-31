@@ -1,6 +1,5 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession, collapsedShelves } from './state';
 import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
-import { isServerMode } from './storage';
 import { resetCellSelect } from './cell-select';
 import { stopInterpPlay } from './interp-play';
 import { getAnnotations } from './grammar';
@@ -355,12 +354,11 @@ function docOverlayHtml(docId: string): string {
       <div class="lv-chips">
         ${d.levels.map(lv => `<span class="lv-chip"><b class="num">${lv.cards.length}</b>${esc(lv.label)}</span>`).join('')}
       </div>
-      ${d.userDoc ? `
       <div class="detail-user-actions">
         <button data-action="doc-append" class="btn-ghost">본문 추가</button>
         <button data-action="doc-edit-info" class="btn-ghost">정보 수정</button>
         <button data-action="doc-delete" class="btn-ghost danger">문헌 삭제</button>
-      </div>` : ''}
+      </div>
       ${refs.length ? `
       <div class="detail-refs">
         <h3>참고문헌 ${refs.length}</h3>
@@ -392,15 +390,15 @@ function renderHome(): void {
         <span class="add-plus">+</span><span class="add-label">새 문헌</span>
       </button>
       <div class="book-label"><div class="k">&nbsp;</div></div>
-    </div>${isServerMode() ? '' : `
+    </div>
     <div class="book">
       <button data-action="open-catalog" class="cover add" aria-label="문헌 받기">
         <span class="add-plus">⤓</span><span class="add-label">문헌 받기</span>
       </button>
       <div class="book-label"><div class="k">&nbsp;</div></div>
-    </div>`}`;
+    </div>`;
 
-  const shelves = shelfData.map((sh, i) => {
+  const shelves = shelfData.map(sh => {
     const isCollapsed = collapsed.has(sh.id);
     return `
     <div>
@@ -410,7 +408,6 @@ function renderHome(): void {
           <svg class="chev" style="transform:rotate(${isCollapsed ? 0 : 90}deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>
-        ${i === 0 && isServerMode() ? `<button data-action="edit-groups" class="edit">그룹 편집</button>` : ''}
       </div>
       ${isCollapsed ? '' : `<div class="covers">${sh.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('')}${sh.id === '_user' ? addTile : ''}</div>`}
     </div>`;
@@ -419,7 +416,7 @@ function renderHome(): void {
   // '내 문헌' 선반이 없으면(사용자 문헌 0개) 새 문헌 타일만 담은 섹션을 맨 아래에
   const newDocSection = shelfData.some(sh => sh.id === '_user') ? '' : `
     <div>
-      <div class="shelf-head"><h2>${isServerMode() ? '새 문헌' : '내 문헌'}</h2></div>
+      <div class="shelf-head"><h2>내 문헌</h2></div>
       <div class="covers">${addTile}</div>
     </div>`;
 

@@ -1,5 +1,5 @@
 import { render } from './render';
-import { DOCS, syncUserDocs, COVER_PALETTE } from './docs';
+import { syncUserDocs, COVER_PALETTE } from './docs';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
 import { esc } from './render-shared';
 import type { DocJSON } from './types';
@@ -101,7 +101,6 @@ function stateFor(e: CatalogEntry): { label: string; disabled: boolean } {
       : { label: '업데이트', disabled: false };
   }
   if (mine) return { label: '이미 있음', disabled: true };                     // 동일 id의 사용자 문헌
-  if (DOCS.some(d => d.id === e.id && !d.userDoc)) return { label: '내장됨', disabled: true };
   return { label: '받기', disabled: false };
 }
 
@@ -128,7 +127,7 @@ async function install(id: string, btn: HTMLButtonElement): Promise<void> {
   const entry = entries?.find(e => e.id === id);
   if (!entry) return;
   const updating = stateFor(entry).label === '업데이트';
-  if (updating && !confirm('업데이트하면 이 문헌에 직접 수정한 내용은 사라집니다. (학습 기록은 유지) 계속할까요?')) return;
+  if (updating && !confirm('새 버전으로 업데이트합니다. 직접 수정한 카드와 학습 기록은 유지됩니다. 계속할까요?')) return;
 
   btn.disabled = true;
   btn.textContent = '받는 중…';
@@ -139,10 +138,11 @@ async function install(id: string, btn: HTMLButtonElement): Promise<void> {
     if (dj.id !== id || typeof dj.title !== 'string' || typeof dj.levels !== 'object' || dj.levels === null) {
       throw new Error('문헌 파일 형식이 올바르지 않습니다');
     }
-    installCatalogDoc(dj, { catalogId: id, version: entry.version });
+    const kept = installCatalogDoc(dj, { catalogId: id, version: entry.version });
     syncUserDocs();
     renderList();   // '설치됨'으로 갱신
     render();       // 뒤 홈 화면에 새 표지 반영
+    if (updating && kept > 0) alert(`업데이트 완료 — ${kept}장은 직접 수정분을 유지했습니다.`);
   } catch (err) {
     alert(err instanceof Error ? `받기에 실패했습니다: ${err.message}` : '받기에 실패했습니다.');
     renderList();

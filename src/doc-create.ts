@@ -1,6 +1,6 @@
 import { S } from './state';
 import { render } from './render';
-import { store, isServerMode } from './storage';
+import { store } from './storage';
 import { DOCS, COVER_PALETTE, syncUserDocs } from './docs';
 import { splitClassical } from './doc-text';
 import { appendUserTexts, updateUserDocMeta } from './user-docs';
@@ -8,11 +8,10 @@ import { esc } from './render-shared';
 import type { LevelKey } from './types';
 
 /**
- * 문헌 추가 마법사 + 사용자 문헌 정보 수정 모달 (dc-overlay).
- *  - create: 제목·부제·표지색 + 본문 붙여넣기(선택) → 분할 미리보기 → 생성.
- *            정적 모드는 user-docs로, 관리자 모드는 server.py가 src/data/*.json 생성.
- *  - append: 기존 사용자 문헌에 본문 추가 (같은 마법사 재사용)
- *  - edit:   사용자 문헌 제목·부제·표지색 수정
+ * 문헌 추가 마법사 + 문헌 정보 수정 모달 (dc-overlay).
+ *  - create: 제목·부제·표지색 + 본문 붙여넣기(선택) → 분할 미리보기 → 유저 공간에 생성.
+ *  - append: 기존 문헌에 본문 추가 (같은 마법사 재사용)
+ *  - edit:   문헌 제목·부제·표지색 수정 (모든 문헌 — 공리 3)
  */
 
 type DcMode = 'create' | 'append' | 'edit';
@@ -129,13 +128,9 @@ async function finalize(): Promise<void> {
         texts: chunks,
       });
       hide();
-      if (isServerMode()) {
-        // 재빌드 → 라이브 리로드가 새 문헌을 반영한다 (skipReload 안 함)
-      } else {
-        syncUserDocs();
-        S.docOverlay = id;   // 새 문헌 상세를 바로 열어 다음 행동(본문 추가·학습) 유도
-        render();
-      }
+      syncUserDocs();
+      S.docOverlay = id;   // 새 문헌 상세를 바로 열어 다음 행동(본문 추가·학습) 유도
+      render();
     }
   } catch (e) {
     // 빈 문헌 생성은 A단계에서 바로 finalize되므로 보이는 단계 쪽에 표시

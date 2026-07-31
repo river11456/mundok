@@ -12,7 +12,7 @@ import { initGrammarEdit } from './grammar-edit';
 import { initBackup } from './backup';
 
 async function registerServiceWorker() {
-  // 개발 모드(server.py + vite watch)에서는 등록하지 않음 — 라이브 리로드와 충돌 방지
+  // 개발 모드(vite dev)에서는 등록하지 않음 — 라이브 리로드와 충돌 방지
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
   try {
     await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);

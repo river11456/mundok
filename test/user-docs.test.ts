@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { splitClassical } from '../src/doc-text.ts';
-import { nextUserDocId, nextCardId, addTexts } from '../src/user-docs.ts';
-import type { DocJSON } from '../src/types.ts';
+import { newUserDocId, nextCardId, addTexts, mergeCatalogUpdate } from '../src/user-docs.ts';
+import type { CardJSON, DocJSON } from '../src/types.ts';
 
 // ── splitClassical — 붙여넣기 마법사 분할 규칙 ─────────────────────────────
 
@@ -42,10 +42,12 @@ test('종결 부호 없는 단일 텍스트는 통째로 한 장', () => {
 
 // ── user-docs 순수 로직 ───────────────────────────────────────────────────
 
-test('nextUserDocId — 단조 증가, 무관한 id 무시', () => {
-  assert.equal(nextUserDocId([]), 'u1');
-  assert.equal(nextUserDocId(['u1', 'u2']), 'u3');
-  assert.equal(nextUserDocId(['u2', 'u9', '편작육불치']), 'u10');
+test('newUserDocId — u-난수6자 형식, 기존 id와 충돌하지 않음', () => {
+  for (let i = 0; i < 20; i++) {
+    const id = newUserDocId(['u1', 'u-aaaaaa', '편작육불치']);
+    assert.match(id, /^u-[a-z0-9]{6}$/);
+    assert.notEqual(id, 'u-aaaaaa');
+  }
 });
 
 test('nextCardId — server.py next_id와 동일 규칙', () => {
@@ -70,4 +72,56 @@ test('addTexts — 카드 추가, 빈 문자열·중복 건너뜀, levels 자동
   assert.deepEqual(doc.levels.sentence!.map(c => c.text), ['甲乙。', '丙丁。']);
   // 이어서 추가하면 id가 이어짐
   assert.deepEqual(addTexts(doc, 'sentence', ['戊己。']), ['s3']);
+});
+
+// ── mergeCatalogUpdate (C6) — 카드 id 단위 업데이트 머지 ──────────────────
+
+function mCard(id: string, text: string, extra: Partial<CardJSON> = {}): CardJSON {
+  return { id, text, reading: '', meaning: '', note: '', ...extra };
+}
+
+function installed(cards: CardJSON[], removed?: string[]): DocJSON {
+  return {
+    id: 'd', title: '舊', sub: '구', levels: { sentence: cards },
+    source: { catalogId: 'd', version: 1, ...(removed ? { removed } : {}) },
+  };
+}
+
+function upstream(cards: CardJSON[]): DocJSON {
+  return { id: 'd', title: '新', sub: '신', levels: { sentence: cards } };
+}
+
+test('머지 — 수정 안 한 카드는 상류 개정으로 교체된다', () => {
+  const mine   = installed([mCard('s1', '甲')]);
+  const theirs = upstream([mCard('s1', '甲改')]);
+  const { doc, kept } = mergeCatalogUpdate(mine, theirs);
+  assert.equal(doc.levels.sentence![0].text, '甲改');
+  assert.equal(kept, 0);
+});
+
+test('머지 — editedAt 카드는 유저 것이 보존되고 kept로 집계된다', () => {
+  const mine   = installed([mCard('s1', '甲내수정', { editedAt: 123 }), mCard('s2', '乙')]);
+  const theirs = upstream([mCard('s1', '甲改'), mCard('s2', '乙改')]);
+  const { doc, kept } = mergeCatalogUpdate(mine, theirs);
+  assert.deepEqual(doc.levels.sentence!.map(c => c.text), ['甲내수정', '乙改']);
+  assert.equal(kept, 1);
+});
+
+test('머지 — 유저 삭제 카드(source.removed)는 재도입되지 않는다', () => {
+  const mine   = installed([mCard('s2', '乙')], ['s1']);
+  const theirs = upstream([mCard('s1', '甲'), mCard('s2', '乙改')]);
+  const { doc } = mergeCatalogUpdate(mine, theirs);
+  assert.deepEqual(doc.levels.sentence!.map(c => c.id), ['s2']);
+});
+
+test('머지 — 유저 추가 카드(상류에 없는 id)는 뒤에 보존된다', () => {
+  const mine   = installed([mCard('s1', '甲'), mCard('s9', '내카드', { editedAt: 1 })]);
+  const theirs = upstream([mCard('s1', '甲改'), mCard('s2', '乙신규')]);
+  const { doc } = mergeCatalogUpdate(mine, theirs);
+  assert.deepEqual(doc.levels.sentence!.map(c => c.id), ['s1', 's2', 's9']);
+});
+
+test('머지 — 문헌 메타는 상류를 따른다', () => {
+  const { doc } = mergeCatalogUpdate(installed([]), upstream([mCard('s1', '甲')]));
+  assert.equal(doc.title, '新');
 });
