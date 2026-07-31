@@ -1,253 +1,295 @@
-# SPEC.md — 文讀 기능·데이터 명세 (as-is)
+# SPEC.md — 文讀 v2 명세
 
-> **기준**: v1.19.2 + 미커밋 작업(해석 순서 `interp`). 2026-07-29 전수 조사 — 교재 스테이징은 2026-07-31 정리됨(4.1절).
+> **기준**: 2026-07-31 v2 아키텍처 확정 (이 문서는 **to-be 명세**다).
+> 현행 코드(v1.20.0)는 이 문서와 다르며, 그 간극은 9절 마이그레이션이 해소한다. **2.0.0 릴리스와 함께 이 문서가 as-is가 된다.**
+> 구판 SPEC(v1 as-is 전수 조사, 2026-07-29~31)은 git 히스토리 — 구조 문제 P1~P12의 문제의식은 10절 매핑표로 계승.
 >
 > **문서 역할 구분** — 겹치지 않게 유지할 것:
 > | 문서 | 답하는 질문 |
 > |---|---|
-> | **SPEC.md** (이 문서) | 지금 **무엇이 있는가** + 무엇을 고칠 것인가 (7절) |
+> | **SPEC.md** (이 문서) | 무엇이 있(어야 하)는가 |
 > | `PROGRESS.md` | 언제 무엇을 했는가 (시간순 로그) |
-> | `ROADMAP.md` | 무엇을 만들 것인가 |
+> | `ROADMAP.md` | 무엇을 언제 만들 것인가 |
 >
-> 구 `IMPROVEMENTS.md`(전 항목 완료) · 구 `RENEWAL.md`(미착수분은 ROADMAP Phase 3·4로 이식)는 2026-07-31 삭제 — 세부 내역은 git 히스토리 참조.
+> **운영 규칙 유지**: 새 기능은 3절 표에 한 줄로 추가될 수 있어야 한다. 한 줄로 안 들어가면 기능이 복잡한 게 아니라 **데이터 모델이 부족한** 것이다.
 >
-> **운영 규칙**: 새 기능은 3절 표에 한 줄로 추가될 수 있어야 한다. 한 줄로 안 들어가면 기능이 복잡한 게 아니라 **데이터 모델이 부족한** 것이다.
+> 열린 결정은 2026-07-31 전부 확정됨 — 근거는 11절 결정 기록.
 
 ---
 
-## 1. 실행 모드 2종
+## 1. 아키텍처 공리 (2026-07-31 확정)
 
-앱 시작 시 `/api/version` 프로브 1회로 갈린다 (`storage/index.ts:initStore`).
+1. **문헌의 세계는 두 곳뿐이다** — **카탈로그**(관리자가 큐레이션해 배포하는 저장소, git/Pages)와 **유저 공간**(기기 로컬, 이후 동기화 대상).
+2. **유저 공간으로의 유입 경로는 두 개뿐이다** — ① 직접 생성 ② 카탈로그에서 받기.
+3. **유저 공간의 문헌은 전부 동등하다** — 출처 무관 같은 스키마, 같은 편집 경로(id 직접 수정), 같은 권한. `source`는 "어디서 왔나 + 업데이트 확인용" 꼬리표일 뿐 특별 취급의 근거가 아니다.
+4. **저작 모드는 없다** — 관리자도 앱에서는 유저다. 카탈로그 콘텐츠는 유저 공간에서 만들고 다듬은 뒤 **승격**(내보내기 → `catalog/` 커밋)으로 배포한다 (5절).
+5. **데이터는 3계층으로 분리된다** — Content(재설치 가능) / Progress(복구 불가 — 동기화 대상) / Preference(무해).
+6. **서버 동기화를 전제로 모델을 설계한다** — `BackendStore` 구현은 단계적. 계정·동기화 도입 시 스키마가 바뀌지 않아야 한다.
 
-| | 정적 모드 (`LocalStore`) | 관리자 저작 모드 (`ServerStore`) |
+파생 결과: 실행 모드는 **정적 PWA 단일**이다. `/api/version` 프로브·`ServerStore`·`server.py` 편집 API·`문독.command`는 폐지된다 (7절).
+
+---
+
+## 2. 도메인 모델
+
+### 2.1 엔티티
+
+| 엔티티 | 내용 | 계층 | 소유 |
+|---|---|---|---|
+| **Doc** | 문헌 — 메타 + 4레벨 카드 | Content | 유저 (설치본 포함) |
+| **Card** | 학습 단위 — 원문·뜻·독음·문법·해석 순서·드릴 링크 | Content | Doc에 내장 |
+| **Collection** | 문헌 묶음(교재·과목) 1계층 + 순서 | Content(조직화) | 유저 / 카탈로그 제공 |
+| **ReviewLog** | 학습 이벤트 append-only 로그 | Progress | 유저 |
+| **Session** | 마지막 학습 위치·streak | Progress | 유저 |
+| **Prefs** | 선반 접힘·온보딩 등 UI 상태 | Preference | 유저 |
+
+### 2.2 id 체계
+
+- **docId** — 유저 스코프 안에서 유일하면 된다 (다사용자 충돌은 계정 네임스페이스가, 다기기는 동기화가 해결).
+  - 카탈로그 설치본: **catalogId(한글 slug)를 그대로 docId로** — 재설치·업데이트·학습기록 연속성이 공짜로 얻어진다.
+  - 직접 생성: `u-` + 난수 8자 (현행 `u{n}` 순번은 다기기 충돌 위험 → 폐기).
+- **cardId** — 문헌 내 유일·**불변**. 승격돼도, 업데이트로 돌아와도 같은 id를 유지한다 — 학습기록 보존과 업데이트 머지의 기반. 신규 카드는 난수 채번 (순번 채번 폐기).
+- 전역 참조 = `docId/cardId` 조합. 합성 텍스트 id(`${docId}_${type}_${text}`)는 소멸.
+
+### 2.3 Doc 스키마 (DocJSON v2)
+
+```jsonc
+{
+  "schemaVersion": 3,          // 백업 포맷 버전과 일치시킴
+  "id": "기혈다소",
+  "title": "…", "sub": "…", "color": "…", "order": 1,
+  "source": {                   // 카탈로그 설치본만 존재
+    "catalogId": "기혈다소", "version": 2, "installedAt": 1690000000000
+  },
+  "origin": {                   // 원전 메타 (구 P9 — _manifest.json에서 승계)
+    "work": "醫學入門", "author": "李梴", "pages": "12–14"
+  },
+  "levels": { "char": [], "word": [], "sentence": [], "paragraph": [] },
+  "updatedAt": 1690000000000
+}
+```
+
+```jsonc
+// Card
+{
+  "id": "c-x7k2",
+  "front": "不治已病治未病",
+  "back": "이미 병든 것을 다스리지 않고…",
+  "reading": "불치이병치미병",
+  "grammar": [], "interp": [],        // 전부 카드 내장 — 델타 저장소 없음
+  "drill": ["c-a1b2"],                // 하위 레벨 카드 id 참조 (구 P11 — substring 추측 폐기)
+  "editedAt": 1690000000000,           // 옵션 — 유저 수정 마킹, 업데이트 머지 판단 기준 (C6)
+  "status": "draft"                    // 옵션 — Phase 3 사진 인제스트 예약
+}
+```
+
+- **완성도**(구 P10)는 저장 필드가 아니라 **카탈로그 index 빌드 시 계산**한다 (meaning·reading 채움율) — 이중 관리 원천 차단.
+- 수업 메타(날짜·주차, Phase 3 D4)는 `Doc`에 옵션 필드로 추가 예정 — 이 스키마와 정합.
+
+### 2.4 ReviewLog 스키마
+
+```jsonc
+// 문헌별 append-only 배열
+{ "card": "c-x7k2", "ts": 1690000000000, "mode": "anki", "grade": 2 }
+```
+
+- `fail_count` 같은 파생값은 **로그에서 계산**한다 (로드 시 캐시). SRS 알고리즘 도입은 이후 — 로그가 있으면 언제 도입해도 과거가 남아 있다.
+- v1의 스칼라 `fail_count`는 이력을 날조하지 않고 요약 레코드로 승계: `{ "card": …, "legacyFails": 3 }`.
+
+---
+
+## 3. 기능 명세 (엔티티 기준)
+
+### 3.1 학습 — v1과 기능 동일, 참조 데이터만 단일화
+
+| # | 기능 | 트리거 | 읽기 | 쓰기 |
+|---|---|---|---|---|
+| L1 | 서가 홈 | 홈 진입 | Doc*, Collection, Session, Prefs | — |
+| L2·L3 | 이어서 학습 | 히어로 | Session | Session |
+| L4 | 문헌 상세 오버레이 | 표지 클릭/숫자키 | Doc, Collection(참고문헌) | — |
+| L5·L6 | 순차 재생 / 안키 | 오버레이 `Enter`/`⇧Enter` | Card, ReviewLog(파생) | Session, ReviewLog |
+| L7~L11 | 뒤집기·평가·결과·재시작·초기화 | 기존 단축키 동일 | Card, ReviewLog | ReviewLog, Session |
+| L12 | 드릴다운 | 밑줄 클릭 | `card.drill` (id 참조) | — |
+| L13~L15 | 독음·문법·해석 순서 | 자동/`G`/▶ | `card.reading·grammar·interp` | — |
+| L16~L18 | 선반 접기·온보딩·도움말 | — | Prefs | Prefs |
+
+### 3.2 저작 — 단일 경로 (모든 문헌 동일)
+
+| # | 기능 | 트리거 | 동작 |
+|---|---|---|---|
+| A1 | 카드 추가 | 셀 스윕 → 버블 | Doc에 카드 삽입 (id 채번) |
+| A2~A4 | 카드 수정·연결 일괄수정·삭제 | 카드 도구 | **id로 직접 수정** — 원문을 고쳐도 문법·해석·학습기록이 카드 id에 붙어 있어 고아화 없음 |
+| A5·A6 | 문법·해석 순서 편집 | 文 메뉴 | 카드 내장 필드 직접 수정 |
+
+- v1의 분기 3종(텍스트 델타 / user-docs 직접 / 서버 API)이 **한 경로로 통합**된다. `docs-merge.ts`의 "알려진 한계"(텍스트 수정 시 주석 고아화)는 구조적으로 소멸.
+
+### 3.3 수급
+
+| # | 기능 | 동작 |
 |---|---|---|
-| 대상 | 일반 사용자 (GitHub Pages) | 관리자 로컬 (`server.py` 기동) |
-| 콘텐츠 정본 | 번들 베이킹분 + `localStorage` | `src/data/*.json` 파일 |
-| 카드 편집 반영 | localStorage 델타 / user-docs | 파일 직접 수정 → `vite --watch` 재빌드 |
-| 전용 기능 | 문헌 받기, 백업 FAB | 그룹 편집, 새 문헌을 `src/data/`에 생성 |
-| 비노출 기능 | 그룹 편집 | 문헌 받기, 백업 FAB |
+| C1 | 새 문헌 만들기 | 3단 마법사 (현행 유지) → 유저 공간에 생성 |
+| C2~C4 | 본문 추가·정보 수정·삭제 | 모든 문헌에서 가능 (설치본 포함 — 공리 3) |
+| C5 | 문헌 받기 | 카탈로그 → 유저 공간 설치 (+`source`) |
+| C6 | 업데이트 | 카드 **id 단위 머지** — `editedAt` 붙은 카드는 유저 것 보존, 나머지는 상류 개정 적용, 종료 시 "N장은 직접 수정분 유지" 요약 알림. base 스냅샷 불필요. 카드별 상류판 비교·적용 UI는 2.x. v1의 "통째 교체·수정분 소실" 폐기 |
+| C7 | JSON 내보내기 | 문헌 상세 → DocJSON v2 파일 다운로드 — 승격 파이프라인의 입구 (5절) |
+| C8 | 스타터 제안 | 온보딩 마지막에 대표 문헌 1~2개(뜻·문법·해석 완성본) **원클릭 설치 제안** — 기본 선택된 버튼 하나. 빈 서가 첫인상 회피 + 선택권 존중 |
 
----
+### 3.4 조직화 — 사용자 소유 (구 P8 해소)
 
-## 2. 화면·오버레이 (표 A)
+| # | 기능 | 동작 |
+|---|---|---|
+| O1 | 컬렉션 | v2는 **스키마만** (카탈로그 제공 컬렉션 = 교재 단위 묶음 표시). 사용자 편집 UI는 2.x |
+| O2 | 참고문헌 관계 | 구 `_groups.refs` → 카탈로그 컬렉션 메타(`_collections.json`)로 이전 |
+| O3 | 홈 정렬 | Collection 순서 → 미분류(order순) → 내 문헌 |
 
-`Screen` 타입은 **3개**다 (`types.ts:1`): `home` | `level` | `study`.
+### 3.5 백업 — 포맷 v3
 
-> ⚠ **문서 stale**: `README.md`·`PROGRESS.md`가 아직 `home → mode → level → study`로 적고 있다. `mode` 화면은 v1.5.0에서 **문헌 상세 오버레이**로 흡수돼 존재하지 않는다.
-
-| 화면 | 진입 | 이탈 | 단축키 |
-|---|---|---|---|
-| `home` (서가) | 앱 시작, 홈 버튼 | 표지 클릭 → 오버레이 | `1`~`9` 문헌 열기 |
-| `level` (단위 선택) | 오버레이의 순차/안키 버튼 | `Esc` → 오버레이 | `1`~`N` 단위 선택 |
-| `study` (순차) | 단위 선택 | `Esc` → level (드릴다운 중이면 상위 카드) | `Space` 뒤집기 / `←` `→` `Enter` 이동 / `G` 문법 |
-| `study` (안키) | 단위 선택 | `Esc` → level | `Space` 뒤집기 / `1` `2` `3` 평가 / `R` 재시작 / `Ctrl+Shift+R` 기록 초기화 |
-
-오버레이·모달 (화면이 아니라 DOM 주입 레이어 — `Screen` 상태 밖):
-
-| 레이어 | DOM id | 진입 | 모드 |
-|---|---|---|---|
-| 문헌 상세 | `.doc-overlay` (홈 렌더에 포함) | 표지 클릭 | 공통 · `Enter` 순차 / `⇧Enter` 안키 / 숫자키 참고문헌 |
-| 카드 추가 | `ac-overlay` | 본문 셀 스윕 선택 → 버블 | 공통 |
-| 카드 수정 | `ec-overlay` | 카드 도구 ✎ | 공통 |
-| 연결카드 일괄수정 | `ce-overlay` | 카드 수정 저장 시 자동 감지 | 공통 |
-| 문헌 마법사 (생성·본문추가·정보수정) | `dc-overlay` | 홈 새 문헌 타일 / 오버레이 버튼 | 공통 |
-| 문헌 받기 (카탈로그) | `ct-overlay` | 홈 '문헌 받기' 타일 | 정적 전용 |
-| 그룹 편집 | `ge-overlay` | 홈 첫 선반 '그룹 편집' | **서버 전용** |
-| 온보딩 | (onboarding.ts) | 첫 방문 | 공통 |
-| 단축키 도움말 | (shortcut-help.ts) | `?` | 공통 |
-| 백업 팝오버 | `bk-pop` | ⤓ FAB (좌하단) | 정적 전용 |
-
----
-
-## 3. 기능 인벤토리 (표 B)
-
-**읽기/쓰기 열은 4절 표 C의 저장 위치 이름을 쓴다.** 메모리 전용 상태(`S.*`)는 표기 생략.
-
-### 3.1 학습
-
-| # | 기능 | 트리거 | 읽는 데이터 | 쓰는 데이터 |
-|---|---|---|---|---|
-| L1 | 서가 홈 표지 목록 | 홈 진입 | 베이킹 문헌, `_groups`, user-docs, `<doc>/<lv>_ts`, `streak`, `shelves-collapsed` | — |
-| L2 | 이어서 학습 히어로 | 홈 진입 | `last-session`, 문헌 | — |
-| L3 | 이어하기 | 히어로 버튼 | `last-session` | `last-session` |
-| L4 | 문헌 상세 오버레이 | 표지 클릭 / 숫자키 | 문헌, `_groups.refs`, `<doc>/<lv>_ts` | — |
-| L5 | 순차 재생 | 오버레이 `순차 재생` / `Enter` | 레벨 카드 | `last-session` |
-| L6 | 안키 모드 | 오버레이 `안키 모드` / `⇧Enter` | 레벨 카드, `<doc>/<lv>/fails` | `last-session` |
-| L7 | 카드 뒤집기 | `Space` / 카드 탭 / `정답 보기` | 카드 | `<doc>/<lv>_ts` (순차 첫 플립 시) |
-| L8 | 난이도 평가 | `1` `2` `3` / 버튼 | 안키 큐 | `<doc>/<lv>/fails`, `<doc>/<lv>_ts`, `last-session` |
-| L9 | 결과 화면 | 안키 큐 소진 | 큐 통계 | `streak` (완료 시 1회) |
-| L10 | 안키 재시작 | `R` / 버튼 | `<doc>/<lv>/fails` | — |
-| L11 | 안키 기록 초기화 | `Ctrl+Shift+R` | — | `<doc>/<lv>/fails` 삭제 |
-| L12 | 드릴다운 | 밑줄 구간 클릭 | 하위 레벨 카드 (**자동 substring 매칭** — 저장된 링크 아님) | — |
-| L13 | 독음 표시 | 뒤집기 시 자동 | `card.reading` (`alignReading` 1:1 정렬, 실패 시 통째 표시) | — |
-| L14 | 문법 표시 | 文 메뉴 `문법 표시` / `G` | `card.grammar` | — |
-| L15 | 해석 순서 재생 | 카드 도구 ▶ | `card.interp` | — |
-| L16 | 선반 접기 | 선반 헤더 ▸ | `shelves-collapsed` | `shelves-collapsed` |
-| L17 | 온보딩 | 첫 방문 | `onboarding-seen` | `onboarding-seen` |
-| L18 | 단축키 도움말 | `?` | — | — |
-
-### 3.2 저작 — 카드
-
-세 저장소가 **같은 UI, 다른 정합성 규칙**을 쓴다 (→ 7절 P2).
-
-| # | 기능 | 트리거 | 정적·베이킹 문헌 | 정적·사용자 문헌 | 서버 모드 |
-|---|---|---|---|---|---|
-| A1 | 카드 추가 | 셀 스윕 선택 → 버블 → 모달 | `userdata.additions` (텍스트 키, 합성 id) | `user-docs` 직접 (id 채번) | `POST /api/add-card` → 파일 |
-| A2 | 카드 수정 | 카드 도구 ✎ | `userdata.edits` (origText 키) | `user-docs` 직접 (id) | `POST /api/edit-card` (id) |
-| A3 | 연결카드 일괄수정 | A2 저장 시 상위 카드 자동 감지 | 위와 동일 (대상별 반복) | 동일 | 동일 |
-| A4 | 카드 삭제 | 카드 도구 🗑 | `userdata.deletions` (텍스트 키) | `user-docs` 직접 (id) | `POST /api/delete-card` (id) |
-| A5 | 문법 주석 편집 | 文 메뉴 `문법 편집` → 드래그 → S/V/O/구절 | `userdata.grammar` (**cardFront 키**) | `user-docs` 카드 내장 | `POST /api/save-grammar` (id) |
-| A6 | 해석 순서 편집 | 文 메뉴 `해석 순서 편집` → 드래그 토글 | `userdata.interp` (**cardFront 키**) | `user-docs` 카드 내장 | `POST /api/save-interp` (id) |
-
-### 3.3 콘텐츠 수급
-
-| # | 기능 | 트리거 | 읽는 데이터 | 쓰는 데이터 | 모드 |
-|---|---|---|---|---|---|
-| C1 | 새 문헌 만들기 | 홈 `새 문헌` 타일 → 3단 마법사 | — | `user-docs` (`u1`…) | 정적 |
-| C1′ | 같은 기능, 서버 모드 | 동일 | — | `src/data/<id>.json` 생성 (`POST /api/create-doc`) | 서버 |
-| C2 | 본문 추가 | 오버레이 `본문 추가` | `user-docs` | `user-docs` | 정적 |
-| C3 | 문헌 정보 수정 | 오버레이 `정보 수정` | `user-docs` | `user-docs` | 정적 |
-| C4 | 문헌 삭제 | 오버레이 `문헌 삭제` | `user-docs` | `user-docs` + `hanja-v2/<docId>/*` 전부 삭제 | 정적 |
-| C5 | 문헌 받기 | 홈 `문헌 받기` 타일 | `dist/catalog/index.json`, `<id>.json` | `user-docs` (+`source` 메타) | 정적 |
-| C6 | 카탈로그 업데이트 | 같은 항목 `업데이트` | 위 + 설치본 `source.version` | `user-docs` **통째 교체** (직접 수정분 소실 · 카드 id 유지로 학습기록 보존) | 정적 |
-
-### 3.4 조직화
-
-| # | 기능 | 트리거 | 읽는 데이터 | 쓰는 데이터 | 모드 |
-|---|---|---|---|---|---|
-| O1 | 선반(그룹) 편집 | 홈 첫 선반 `그룹 편집` | `_groups.json` | `_groups.json` (`POST /api/save-groups`) | **서버 전용** |
-| O2 | 참고문헌 스택·오버레이 | 자동 | `_groups.refs` | — | 공통 |
-| O3 | 홈 정렬 | 자동 | `_groups.shelves` 순서 → 미분류 → `내 문헌` | — | 공통 |
-
-> ⚠ **일반 사용자는 문헌을 정리할 수 없다.** 사용자 문헌·설치본은 전부 고정 선반 `내 문헌`에 들어가고, 순서·그룹을 바꿀 수단이 없다 (→ 7절 P8).
-
-### 3.5 데이터 보험
-
-| # | 기능 | 트리거 | 읽는 데이터 | 쓰는 데이터 | 모드 |
-|---|---|---|---|---|---|
-| B1 | 내보내기 | ⤓ FAB → `내 데이터 내보내기` | `hanja-v2/` 접두사 **전체 키** | 파일 다운로드 (`{version:2, exportedAt, keys}`) | 정적 |
-| B2 | 가져오기 | ⤒ `백업 파일에서 가져오기` | 백업 파일 | `hanja-v2/` 키 전체 덮어쓰기 → 새로고침 | 정적 |
-
----
-
-## 4. 데이터 저장 위치 전수 (표 C)
-
-**계층** 열은 8절에서 확정한 v2 3계층 분류 — 현재 코드에는 이 구분이 없다.
-
-### 4.1 파일 (관리자 소유, git)
-
-| 경로 | 개수 | 내용 | 스키마 | 계층 |
-|---|---|---|---|---|
-| `src/data/*.json` | 8 | 베이킹 문헌 정본 (번들에 포함) | `DocJSON` | Content |
-| `src/data/_groups.json` | 1 | 선반 + 참고문헌 관계 | `GroupsJSON` | Content(조직화) |
-| `catalog/*.json` | 73 | 다운로드 배포 문헌 | `DocJSON` (+`version`) | Content |
-| `dist/catalog/index.json` | 빌드 산출 | 카탈로그 목록 | `{docs:[{id,title,sub,color,version,cards}]}` | Content |
-| `src/data/textbook/_manifest.json` | 1 | 교재 79문헌 출처 메타 — 원전·저자·교재 지면·PDF 페이지·검증 status, skipped 6건(베이킹 중복) 판단 기록 포함 | 독자 스키마 | Content(메타) |
-
-- `src/data/textbook/`은 **런타임에 로드되지 않는다**: `docs.ts`의 glob이 `./data/*.json`이라 하위 디렉터리를 타지 않고, `lint-data.mjs`도 `src/data` 최상위만 스캔한다.
-- 스테이징 정리(2026-07-31): JSON 사본 73개는 catalog와 전수 대조(id·title·sub·levels 동일, catalog 쪽 `order`만 추가) 후 삭제, OCR PDF는 `~/Documents/문독-원본PDF/` 이동(체크섬 검증). `_manifest.json`만 커밋 보존 — DocJSON 이전은 v2에서(P9).
-- `catalog/`는 `lint-data.mjs`가 `src/data/`와 같은 규칙으로 검사한다 (+`id`=파일명, `version`≥1 정수).
-
-### 4.2 localStorage (사용자 소유) — 전 9종
-
-| 키 | 내용 | 스키마 | 키 방식 | 백업 | 계층 |
-|---|---|---|---|---|---|
-| `hanja-v2/userdata` | 베이킹 문헌 편집 델타 | `UserData` {additions, edits, deletions, grammar, interp} | **텍스트** | ✅ | Content |
-| `hanja-v2/user-docs` | 사용자 문헌 + 카탈로그 설치본 | `DocJSON[]` | **id** | ✅ | Content |
-| `hanja-v2/<docId>/<lv>/fails` | 카드별 누적 오답 수 | `Record<cardId, number>` | id | ✅ | Progress |
-| `hanja-v2/<docId>/<lv>_ts` | 최근 학습 시각 | `number` (epoch ms) | — | ✅ | Progress |
-| `hanja-v2/last-session` | 마지막 학습 위치 | `LastSession` {docId, lvKey, mode, idx, total, ts} | — | ✅ | Progress |
-| `hanja-v2/streak` | 연속 학습일 | `StreakData` {lastDate, count, todayCards} | — | ✅ | Progress |
-| `hanja-v2/shelves-collapsed` | 선반 접힘 상태 | `string[]` (shelfId) | — | ✅ | Preference |
-| `hanja-v2/onboarding-seen` | 온보딩 완료 | `'1'` | — | ✅ | Preference |
-| `hanja-v2/<docId>/<lv>` | **구 포맷** 안키 배열 | `Card[]` | 개수 일치 | — | 폐기 (첫 로드 시 `migrateOldAnki`가 변환·삭제) |
-
-**추상화 누수**: `Store` 인터페이스는 Content만 담당한다. Progress·Preference는 `localStorage`를 직접 호출한다 — `state.ts` 14곳, `user-docs.ts` 3곳, `onboarding.ts` 5곳 (→ 7절 P3).
-
-### 4.3 server.py API (서버 모드)
-
-`GET /api/version` · `POST /api/create-doc` `add-card` `edit-card` `delete-card` `save-grammar` `save-interp` `save-groups`. 전부 `src/data/` 파일을 원자적으로 다시 쓴다. 127.0.0.1 바인딩.
-
----
-
-## 5. 초기화·병합 순서
-
-`main.ts:init()` → `initDocs()` (`docs.ts:120`):
-
-```
-1. initStore()                    /api/version 프로브 → LocalStore | ServerStore
-2. import.meta.glob               src/data/*.json (_ 제외) → DOCS  [order → 파일명 정렬]
-3. syncUserDocs()                 정적 모드만: user-docs → DOCS 뒤에 append (userDoc: true)
-4. store().loadDelta()            정적: hanja-v2/userdata / 서버: null
-5. applyUserData(DOCS, delta)     deletions → edits → additions  (전부 텍스트 매칭)
-6. applyInterpDelta(DOCS, ...)    (docId, cardFront) 매칭
-7. initGrammar(mergeGrammar(...)) 베이킹 내장 + user-docs 내장 + 델타  ((docId, cardFront) 키)
+```jsonc
+{ "version": 3, "exportedAt": …,
+  "content":    { "docs": [], "collections": [] },
+  "progress":   { "logs": {}, "session": …, "streak": … },
+  "preference": { … } }
 ```
 
-- 안키 기록(`fails`)은 여기서 안 읽는다 — 학습 시작 시 `loadAnki(cards)`가 카드 id로 조회.
-- 드릴다운 링크는 저장되지 않는다 — 매 렌더마다 `findDrillSpans`가 하위 레벨 카드 텍스트로 substring 재계산.
+- 3계층이 포맷에 그대로 드러난다 — 부분 복원(Progress만 등)이 구조적으로 가능.
+- **v2 백업 가져오기 호환 유지**: 구 백업을 읽으면 9절 마이그레이션과 같은 경로로 변환.
 
 ---
 
-## 6. 콘텐츠 실측 현황 (2026-07-29)
+## 4. 데이터 저장 위치
 
-| 출처 | 문헌 | 카드 | `reading` 채워짐 | `meaning` 채워짐 |
+### 4.1 git (카탈로그 — 관리자 소유)
+
+| 경로 | 내용 |
+|---|---|
+| `catalog/*.json` | 배포 문헌 정본 (DocJSON v2). **베이킹 8문헌도 여기로 완전 이전** — `src/data/*.json` 소멸 |
+| `catalog/_collections.json` | 카탈로그 제공 컬렉션(교재 묶음)·참고문헌 관계 — 구 `_groups.json` 승계 |
+| `dist/catalog/index.json` | 빌드 산출 — 목록 + **완성도**(빌드 시 계산) |
+| `src/data/textbook/_manifest.json` | 원전·저자·지면 메타 → 승격 시 `origin` 필드로 흘려 넣는 원천 (P9) |
+
+### 4.2 localStorage (유저 공간)
+
+| 키 | 내용 | 계층 |
+|---|---|---|
+| `mundok-v3/docs` | 유저 공간 문헌 전체 (`DocJSON v2[]`) | Content |
+| `mundok-v3/collections` | 사용자 컬렉션 | Content |
+| `mundok-v3/log/<docId>` | ReviewLog (문헌별 append) | Progress |
+| `mundok-v3/session` | 마지막 위치·streak | Progress |
+| `mundok-v3/prefs` | 선반 접힘·온보딩 등 통합 | Preference |
+
+- **`Store` 인터페이스가 3계층 전부를 담당한다** — localStorage 직접 호출 금지 (구 P3). `BackendStore`는 이 인터페이스 구현 하나 추가로 성립.
+- 용량 실측(2026-07-31): 카탈로그 628K + 구 베이킹 252K ≈ 0.9MB — 전량 설치해도 5MB 한도 내. IndexedDB 이전은 범위 밖.
+
+---
+
+## 5. 카탈로그 파이프라인 (승격 경로)
+
+```
+유저 공간에서 저작·수정 (앱, 일반 기능만 사용)
+  → C7 JSON 내보내기 (DocJSON v2)
+  → scripts/promote.mjs <file>   # lint + version 증가 + catalog/<id>.json 배치
+  → git 커밋 → Pages 배포
+  → 각 유저: C6 업데이트 (id 머지)
+```
+
+- 관리자 전용 앱 기능은 **C7 내보내기뿐**이며 그마저 모든 유저에게 열려 있다 (내 문헌 백업 겸용).
+- `lint-data.mjs`는 `catalog/`만 검사하는 형태로 단순화 (+ 스키마 v2 검증).
+
+---
+
+## 6. 초기화·로드 순서 (v2)
+
+```
+1. store().loadDocs()             mundok-v3/docs → DOCS
+2. (필요 시) migrateV1()          hanja-v2/* 감지 → 9절 1회 변환
+3. render()
+```
+
+- v1의 7단계 병합(베이킹 glob → user-docs append → 델타 → 텍스트 매칭 3종)이 **로드 1단계로** 줄어든다. 텍스트 매칭 병합 소멸.
+- 드릴다운은 `card.drill` id 참조를 읽는다 — 매 렌더 substring 재계산 폐기 (P11).
+
+---
+
+## 7. v1에서 폐지되는 것
+
+| 폐지 대상 | 근거 공리 |
+|---|---|
+| `ServerStore` · `/api/version` 프로브 · 실행 모드 2종 | 4 (저작 모드 없음) |
+| `server.py` 편집 API 7종 (`create-doc` `add-card` `edit-card` `delete-card` `save-grammar` `save-interp` `save-groups`) | 4 — 승격 파이프라인으로 대체 |
+| `문독.command` 런처 | 4 — 관리자도 배포본(또는 `vite dev`) 사용 |
+| 베이킹 8문헌 (`src/data/*.json` 번들, `import.meta.glob`) | 1·3 — 카탈로그로 완전 이전 (07-19 "굿노트형" 결정의 완성) |
+| 텍스트 델타 (`hanja-v2/userdata` — additions·edits·deletions·grammar·interp) | 3 — 마이그레이션 때 설치본에 구워 넣고 폐기 |
+| `_groups.json` 서버 편집 (O1 구판) | 3·4 — 조직화는 사용자 소유 + 카탈로그 컬렉션 |
+| 합성 카드 id · 순번 채번 · cardFront 키 | 2.2 |
+| `migrateOldAnki` (구구 포맷 변환) | v2 마이그레이션이 최종 상속 |
+
+---
+
+## 8. 콘텐츠 실측 현황 (2026-07-29 조사, 승계)
+
+| 출처 | 문헌 | 카드 | `reading` | `meaning` |
 |---|---|---|---|---|
-| `src/data/` 베이킹 | 8 | 1,062 | — | 613 (**57%**) |
-| `catalog/` 배포 | 73 | 2,119 (전부 `sentence`) | 0 (**0%**) | 0 (**0%**) |
+| 구 베이킹 (→ 카탈로그 이전 대상) | 8 | 1,062 | — | 613 (57%) |
+| `catalog/` | 73 | 2,119 (전부 sentence) | 0 (0%) | 0 (0%) |
 
-- 카탈로그 73문헌은 **원문 문장만** 있다 (현토 포함, `char`·`word`·`paragraph` 레벨은 빈 배열). `_manifest.json`의 `"levels.sentence만 채움"` 그대로다.
-- 그런데 카탈로그 목록 UI는 `장수`만 노출한다 — 사용자가 `기혈다소`를 받으면 **뜻·독음 없는 7장**을 받는다. 완성도를 표현하는 필드가 스키마에 없다 (→ 7절 P10).
+- 카탈로그 73문헌은 원문 문장만 있다 — 완성도 표시는 index 빌드 시 계산으로 해결 (2.3).
 
 ---
 
-## 7. 인벤토리에서 드러난 구조 문제
+## 9. 마이그레이션 (v1 → v2, 1회)
 
-| # | 문제 | 근거 | 영향 |
-|---|---|---|---|
-| **P1** | **콘텐츠 정본 3곳** — `src/data/`(8) · `catalog/`(73) · `user-docs`(설치본). textbook 스테이징 사본은 2026-07-31 정리 | 4.1 | 같은 문헌이 단계마다 사본(카탈로그↔설치본 등). 승격·동기화 규칙이 코드에 없고 수동 |
-| **P2** | **편집 경로 2종** — 베이킹 문헌은 텍스트 키 델타, 사용자 문헌은 id 직접 | 3.2, `types.ts:44,55` | 2026-06-30에 해소한 "텍스트=식별자" 버그가 델타 경로에만 잔존 (Phase 4b 보류). 텍스트 수정 시 문법·해석 고아화 — `docs-merge.ts:65` 주석이 "알려진 한계"로 명시 |
-| **P3** | **Progress가 `Store` 밖** | 4.2, `localStorage` 직접 22곳 | `BackendStore` 하나 추가로 동기화된다는 설계 의도가 성립하지 않음 |
-| **P4** | **전역 id 없음** — `docId`=한글 파일명 / `u{n}`, `cardId`=문헌 내 순번, 델타 추가 카드는 합성 id `${docId}_${type}_${text}` | `local.ts:62`, `user-docs.ts:19` | 다기기·다사용자에서 충돌. 카탈로그 업데이트를 머지할 수 없어 통째 교체 |
-| **P5** | **`schemaVersion` 없음** | `types.ts:108` | 옵션 필드 8개(`order` `color` `updatedAt` `version` `source` `grammar` `interp` `drill`)가 누적됐지만 "지금 유효한 형태"가 미선언 → 필드 추가마다 판단 재발명 |
-| **P6** | **Progress가 스칼라** — 카드별 `fail_count` 하나 | 4.2 | 언제·어떻게 틀렸는지 이력이 없어 SRS·통계·취약점 분석 전부 불가. 나중에 도입하면 과거 기록 소실 |
-| **P7** | **카탈로그 업데이트 = 통째 교체** | `user-docs.ts:137`, `catalog.ts:131` | 사용자 수정분 소실을 confirm으로 경고할 뿐. 3-way 머지 불가 |
-| **P8** | **조직화가 관리자 전유** | 3.4, `render.ts:413` | 사용자는 자기 서가를 정리할 수 없음. 카탈로그 73개 규모에서 `내 문헌` 선반이 무너짐 |
-| **P9** | **출처 메타 유실** | 4.1 | `_manifest.json`의 원전·저자·교재 지면·검증 status가 `catalog/` DocJSON으로 안 넘어감. `DocJSON`에 해당 필드가 없음 — 상용 서비스에서 표시해야 할 정보. (`_manifest.json`은 2026-07-31 커밋 보존 — 스키마 이전은 v2에서) |
-| **P10** | **완성도 표현 없음** | 6절 | 카탈로그 2,119장 전부 공란인데 목록은 장수만 노출 |
-| **P11** | 드릴다운이 매 렌더 substring 추측 | 5절, `render.ts:149` | `drill` 필드는 스키마에 있으나 미사용. 데이터 늘면 오매칭·비용 증가 |
-| **P12** | 문서 stale — `mode` 화면 | 2절 | PROGRESS의 화면 흐름이 실제와 다름 (README에는 화면 흐름 서술 없음 — 2026-07-31 확인) |
+**원칙**: 자동·무손실·구 데이터 보존. 첫 로드 시 `hanja-v2/*` 존재 && `mundok-v3/*` 부재면 실행.
 
-### 비문제 확인 기록 (재감사 방지 — 구 IMPROVEMENTS.md에서 이전)
+| 단계 | 내용 |
+|---|---|
+| 0 | (선행, 코드 아님) **베이킹 8문헌을 카탈로그에 등록** — 이때 기존 카드 순번 id를 **그대로 카드 id로 고정**해 매핑표 없이 학습기록이 이어지게 한다 |
+| 1 | 사용자에게 백업(v2) 내보내기 안내 — 롤백 보험 |
+| 2 | 베이킹 8문헌 + `userdata` 델타 적용 **결과물**을 유저 공간 설치본으로 굽기 (`source`=카탈로그) — 델타 소멸 |
+| 3 | `user-docs` → `mundok-v3/docs` 이전 (id 규칙 변환: `u{n}` → `u-…`, 매핑 기록) |
+| 4 | `fails` 스칼라 → ReviewLog `legacyFails` 요약 레코드 (2.4) |
+| 5 | `<lv>_ts`·`last-session`·`streak` → `session`, `shelves-collapsed`·`onboarding-seen` → `prefs` |
+| 6 | **구 `hanja-v2/*` 키는 지우지 않는다** — 검증 기간(≥1개 마이너 버전) 후 제거. 실패 시 구 데이터 무손상 + 알림 |
+| 7 | 백업 v2 파일 가져오기도 같은 변환 경유 (3.5) |
+
+---
+
+## 10. v1 구조 문제 해소 매핑 (구 SPEC 7절 승계)
+
+| 구 # | 문제 | v2에서 |
+|---|---|---|
+| P1 | 콘텐츠 정본 3곳 | **소멸** — 카탈로그/유저 공간 2곳 + 승격 규칙 명문화 (공리 1·4, 5절) |
+| P2 | 편집 경로 2종·주석 고아화 | **소멸** — id 단일 경로 (3.2) |
+| P3 | Progress가 Store 밖 | Store가 3계층 전담 (4.2) |
+| P4 | 전역 id 없음 | 2.2 id 체계 |
+| P5 | schemaVersion 없음 | `schemaVersion: 3` (2.3) |
+| P6 | Progress 스칼라 | ReviewLog (2.4) |
+| P7 | 카탈로그 통째 교체 | id 단위 머지 (C6) |
+| P8 | 조직화 관리자 전유 | 사용자 소유 + 컬렉션 (3.4) |
+| P9 | 출처 메타 유실 | `origin` 필드 + 승격 시 manifest 승계 (2.3, 5절) |
+| P10 | 완성도 표현 없음 | index 빌드 시 계산 (2.3) |
+| P11 | 드릴다운 substring 추측 | `card.drill` id 참조 (6절) |
+| P12 | 문서 stale | 이 재작성으로 해소 — README 화면 흐름 서술 없음 확인(07-31), PROGRESS는 로그 전용 |
+
+---
+
+## 11. 결정 기록 (2026-07-31 — 열린 결정 전부 확정)
+
+| 결정 | 채택안 | 기각안 |
+|---|---|---|
+| id 형식 | 설치본 docId=**카탈로그 id 유지**, 직접 생성 `u-`+난수, cardId는 문헌 내 난수·불변 (2.2) | 전면 난수 — 기록 키 재작성 비용 대비 실익 없음 |
+| 업데이트 머지 | **`editedAt` 플래그 기준 수정 카드 보존 자동** + 요약 알림, base 스냅샷 없음 (C6) | 카드별 선택 UI(→2.x로 연기) · 상류 우선(수정분 소실 — 공리 3 위배) |
+| 신규 첫 경험 | **온보딩 원클릭 스타터 설치 제안** (C8) | 무단 자동 설치 · 빈 서가 |
+| `server.py` | **완전 삭제** — 개발 `vite dev`, 저작 배포본 앱, 승격 `promote.mjs` (7절) | 정적 서버 잔존 — 유지 이유 없음 |
+| ReviewLog 필드 | 최소 `{card, ts, mode, grade?}`로 시작 (2.4) — append-only라 옵션 필드 추가는 언제든 호환 | — |
+| 컬렉션·refs 위치 | `catalog/_collections.json`에 구 `_groups` 선반·refs 승계, 유저 컬렉션은 로컬 별도 (3.4, 4.1) | — |
+| localStorage 접두사 | `mundok-v3/` (4.2) | — |
+
+---
+
+## 부록 — 비문제 확인 기록 (재감사 방지, 구 SPEC에서 승계)
 
 - XSS: 사용자 입력은 `esc()`/`ecEsc()`로 이스케이프됨 — 정상
-- `server.py`는 127.0.0.1 바인딩 — 외부 노출 없음
 - 전체 innerHTML 리렌더 방식 — 현 규모에서 성능 문제 없음, 이벤트 위임 사용 중
 - 카드 edit 시 내장 grammar 보존 — 동작 확인
-- `문독.bat` Windows 검증 항목 **폐기** 및 런처 파일 자체 **삭제** (2026-07-31 사용자 결정 — Windows 기기 없음, 우선순위 없음. 관리자 저작은 macOS `문독.command` 단일 경로)
-
----
-
-## 8. 확정된 v2 방향 (2026-07-29 결정)
-
-| 축 | 결정 |
-|---|---|
-| 계정·동기화 | **서버 동기화를 전제로 데이터 모델을 설계**하고, `BackendStore` 구현은 단계적으로 |
-| 콘텐츠 공급 | **관리자 큐레이션 카탈로그 + 사용자 비공개 저작**. 사용자 저작물 공개 공유는 범위 밖 |
-| 학습기록 | `fail_count` → **리뷰 로그 스키마**로 전환. SRS 알고리즘 도입은 이후 |
-| 조직화 | **컬렉션(교재·과목) 1계층 추가** + 태그. 선반은 사용자 개인 정리 수단으로 |
-
-### 3계층 분리 (P1·P2·P3의 공통 해법)
-
-| 계층 | 담는 것 | 소유 | 유실 시 |
-|---|---|---|---|
-| **Content** | 문헌·카드·주석·컬렉션 | 출처(관리자/카탈로그/사용자) 무관 **단일 모델** | 재설치 가능 |
-| **Progress** | 리뷰 로그·streak·마지막 위치 | 사용자 | **복구 불가 — 동기화 대상** |
-| **Preference** | 선반 접힘·온보딩·UI 상태 | 사용자 | 무해 |
-
-### 다음 단계
-
-1. ~~as-is 인벤토리~~ ✅ 이 문서
-2. **도메인 모델 v2 설계** — 전역 id 체계, `schemaVersion`, 리뷰 로그 스키마, 컬렉션 엔티티, 편집 모델 단일화(텍스트 델타 폐기)
-3. **기능명세를 엔티티 기준으로 재작성** — 3절 표의 읽기/쓰기 열을 v2 엔티티 이름으로 교체
-4. **스키마 v2 리더 + 1회 마이그레이션 + 백업 v3**
+- `문독.bat` Windows 검증 항목 폐기·파일 삭제 (2026-07-31) — v2에서는 `문독.command`도 폐지 (7절)
+- (구) `server.py` 127.0.0.1 바인딩 — 외부 노출 없음 · v2에서 편집 API 자체가 폐지되므로 항목 종결
