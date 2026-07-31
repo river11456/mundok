@@ -2,7 +2,7 @@ import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNa
 import { homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
-import { deleteUserDoc } from './user-docs';
+import { deleteUserDoc, loadUserDocs } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
@@ -148,6 +148,19 @@ export function setupClick(): void {
       case 'open-catalog': showCatalog();               break;
       case 'doc-append':    if (S.docOverlay) showDocAppend(S.docOverlay); break;
       case 'doc-edit-info': if (S.docOverlay) showDocEdit(S.docOverlay);   break;
+      case 'doc-export': {
+        // C7 — DocJSON 파일 다운로드. 개인 백업 겸 승격(promote.mjs) 입구 (SPEC 5절)
+        const dj = S.docOverlay ? loadUserDocs().find(d => d.id === S.docOverlay) : undefined;
+        if (!dj) break;
+        const blob = new Blob([JSON.stringify(dj, null, 2)], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `${dj.id}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        break;
+      }
       case 'doc-delete': {
         const id  = S.docOverlay;
         const doc = id ? DOCS.find(x => x.id === id) : undefined;

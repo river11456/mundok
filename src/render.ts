@@ -357,6 +357,7 @@ function docOverlayHtml(docId: string): string {
       <div class="detail-user-actions">
         <button data-action="doc-append" class="btn-ghost">본문 추가</button>
         <button data-action="doc-edit-info" class="btn-ghost">정보 수정</button>
+        <button data-action="doc-export" class="btn-ghost">내보내기</button>
         <button data-action="doc-delete" class="btn-ghost danger">문헌 삭제</button>
       </div>
       ${refs.length ? `

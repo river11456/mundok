@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * 콘텐츠 무결성 lint — src/data/*.json 을 검사한다.
+ * 콘텐츠 무결성 lint — catalog/*.json(콘텐츠 정본)을 검사한다.
  *
  *  ERROR (빌드 차단): 데이터가 잘못된 것
  *   - 카드 id 중복 (문헌 내)
  *   - drill 링크가 존재하지 않는 카드 id 를 가리킴
  *   - 문법 주석 인덱스가 범위를 벗어남 (start<end, 0..len)
+ *   - _collections.json 이 존재하지 않는 문헌을 참조
  *  WARN (정보): 잠재적 모호성
  *   - 같은 레벨 내 중복 텍스트 (edit/delete 가 양쪽에 적용될 수 있음)
  *   - 드릴다운 자동매칭 후보가 0인 문장/단락 (밑줄이 안 생김)
@@ -20,7 +21,6 @@ import { alignReading, isHan } from '../src/reading-align.ts';
 import { interpError } from '../src/interp.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DATA_DIR  = join(__dirname, '..', 'src', 'data');
 const LEVEL_ORDER = ['char', 'word', 'sentence', 'paragraph'];
 // render.ts 의 드릴 경로와 일치
 const DRILL_LEVELS = { paragraph: ['sentence'], sentence: ['word', 'char'], word: ['char'] };
@@ -166,44 +166,29 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const errors = [];
   const warns  = [];
 
-  // `_`로 시작하는 파일(_groups.json 등)은 문헌이 아니라 메타 — 별도 검사
-  const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort();
-  const djs   = [];
-  for (const file of files) {
-    const dj = JSON.parse(readFileSync(join(DATA_DIR, file), 'utf-8'));
-    djs.push(dj);
-    const { errors: e, warns: w } = lintDoc(dj);
-    errors.push(...e);
-    warns.push(...w);
-  }
-
-  // 서가 그룹 무결성 (_groups.json)
-  try {
-    const groups = JSON.parse(readFileSync(join(DATA_DIR, '_groups.json'), 'utf-8'));
-    errors.push(...lintGroups(groups, djs.map(d => d.id)));
-  } catch {
-    warns.push('_groups.json 없음 — 홈 화면이 미분류 단일 선반으로 표시됩니다');
-  }
-
-  // 카탈로그 문헌 (catalog/*.json — 다운로드 배포분) — 같은 규칙으로 검사
+  // 카탈로그 문헌 (catalog/*.json — 콘텐츠 정본). `_` 파일(_collections.json)은 메타.
   const CATALOG_DIR = join(__dirname, '..', 'catalog');
   const catalogDjs  = [];
-  try {
-    for (const file of readdirSync(CATALOG_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()) {
-      const dj = JSON.parse(readFileSync(join(CATALOG_DIR, file), 'utf-8'));
-      catalogDjs.push(dj);
-      if (`${dj.id}.json` !== file) errors.push(`catalog/${file}: id "${dj.id}"가 파일명과 다름`);
-      if (dj.version !== undefined && (!Number.isInteger(dj.version) || dj.version < 1)) {
-        errors.push(`catalog/${file}: version은 1 이상 정수여야 함 (${JSON.stringify(dj.version)})`);
-      }
-      const { errors: e, warns: w } = lintDoc(dj);
-      errors.push(...e.map(m => `[catalog] ${m}`));
-      warns.push(...w.map(m => `[catalog] ${m}`));
+  for (const file of readdirSync(CATALOG_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()) {
+    const dj = JSON.parse(readFileSync(join(CATALOG_DIR, file), 'utf-8'));
+    catalogDjs.push(dj);
+    if (`${dj.id}.json` !== file) errors.push(`catalog/${file}: id "${dj.id}"가 파일명과 다름`);
+    if (dj.version !== undefined && (!Number.isInteger(dj.version) || dj.version < 1)) {
+      errors.push(`catalog/${file}: version은 1 이상 정수여야 함 (${JSON.stringify(dj.version)})`);
     }
-  } catch {
-    /* catalog/ 없으면 카탈로그 미운영 — 정상 */
+    const { errors: e, warns: w } = lintDoc(dj);
+    errors.push(...e.map(m => `[catalog] ${m}`));
+    warns.push(...w.map(m => `[catalog] ${m}`));
   }
   const catalogCount = catalogDjs.length;
+
+  // 컬렉션(선반·참고문헌) 무결성 — catalog/_collections.json (구 _groups.json 승계)
+  try {
+    const groups = JSON.parse(readFileSync(join(CATALOG_DIR, '_collections.json'), 'utf-8'));
+    errors.push(...lintGroups(groups, catalogDjs.map(d => d.id)));
+  } catch {
+    warns.push('_collections.json 없음 — 홈 화면이 미분류·내 문헌 선반만으로 표시됩니다');
+  }
 
   // 폰트 커버리지 — 콘텐츠 한자가 self-host WenKai 서브셋에 전부 있는지 (베이킹+카탈로그 합산).
   // 서브셋에 없는 글자 중 missing.txt(원본 폰트 자체 미지원, subset-font.mjs 가 기록)에 있으면
@@ -226,7 +211,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     warns.push('폰트: WenKai 서브셋 미생성 (public/fonts/) → npm run font:subset 실행');
   }
 
-  console.log(`\n콘텐츠 lint — 문헌 ${files.length}개${catalogCount ? ` + 카탈로그 ${catalogCount}개` : ''}\n`);
+  console.log(`\n콘텐츠 lint — 카탈로그 ${catalogCount}개\n`);
   if (errors.length) {
     console.log(`❌ ERROR ${errors.length}건:`);
     errors.forEach(e => console.log(`   ${e}`));
