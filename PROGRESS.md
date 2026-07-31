@@ -1,7 +1,8 @@
 # 文讀 — 프로젝트 현황
 
 > 새 세션에서 이어받을 때 이 파일을 먼저 읽으세요.
-> **개선 작업 목록은 `IMPROVEMENTS.md`** (2026-07-07 전수 검토) — 우선순위·착수 순서·항목별 위치/방법 정리됨.
+> **현행 기능·데이터 명세와 개선 항목은 `SPEC.md`** (7절 P1~P12).
+> (구 `IMPROVEMENTS.md`는 전 항목 완료로 2026-07-31 삭제 — 세부 검증 내역은 git 히스토리 참조)
 
 ---
 
@@ -173,7 +174,7 @@
 | 3 | ⑩ 자동 테스트 + CI | `node:test`+`--experimental-strip-types`(Node 22 내장, 의존성 0)로 `test/` 27건. 안키 큐 재배치(`anki-core.ts`)·사용자 델타 병합(`docs-merge.ts`)·lint 규칙·드릴다운 매칭을 순수 함수로 분리해 테스트 가능하게 함. `.github/workflows/ci.yml`(PR 트리거) 신설 + `deploy.yml`에도 테스트 스텝 추가. 부수 발견: `lint-data.mjs`의 CLI 가드가 한글 경로(`문독`)에서 URL percent-encoding 불일치로 무력화되던 버그 수정 |
 | 4 | ⑨ 드릴다운 매칭 통합 + render.ts 분리 | `buildDrillMap`/`tokenizeHighlights`/`annotatedFront` 3중 복제를 `src/drill-match.ts`의 `findDrillSpans()` 단일 출처로 통합. render.ts(958줄)에서 `onboarding.ts`·`shortcut-help.ts`·`result-screen.ts`·`render-shared.ts` 분리 → 585줄. lint 드릴다운 WARN 건수 리팩터 전후 동일함으로 매칭 결과 불변 확인 |
 
-세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고. **다음 세션 후보**: 🟢 낮음 항목들(코드포인트/UTF-16 인덱스 혼용 통일, 원본 PDF 분리, 버전 문자열 하드코딩 등) 또는 보류 중인 🔴 4번(모바일 레이아웃).
+세부 근거·검증 내역은 `IMPROVEMENTS.md`(삭제됨 — git 히스토리) 해당 항목 참고. **다음 세션 후보**: 🟢 낮음 항목들(코드포인트/UTF-16 인덱스 혼용 통일, 원본 PDF 분리, 버전 문자열 하드코딩 등) 또는 보류 중인 🔴 4번(모바일 레이아웃).
 
 ---
 
@@ -188,7 +189,7 @@
 | ② PWA 전환 | `public/manifest.json`(아이콘은 `icon.svg`를 `sips`로 192/512px 래스터화) + `public/sw.js`(앱 셸 stale-while-revalidate, 프로덕션 빌드에서만 등록) + `storage.persist()`. Google Fonts self-host는 레포 용량 문제로 SW 런타임 캐싱으로 대체 |
 | ⑦ streak UTC→로컬 | `state.ts`에 `localDateStr()` 추가, `todayStr()`/어제 계산 양쪽에 적용. KST 08:30(UTC 전날 23:30) 경계 재현 테스트로 수정 확인 |
 
-세부 근거·검증 내역은 `IMPROVEMENTS.md` 해당 항목 참고.
+세부 근거·검증 내역은 `IMPROVEMENTS.md`(삭제됨 — git 히스토리) 해당 항목 참고.
 
 ---
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — 文讀 저장소 규칙
 
-프로젝트 개요·현황은 `PROGRESS.md`, 개선 목록은 `IMPROVEMENTS.md` 참고.
+프로젝트 개요·현황은 `PROGRESS.md`, 현행 기능·데이터 명세와 개선 목록은 `SPEC.md` 참고.
 
 ## 버전 규칙 (SemVer)
 

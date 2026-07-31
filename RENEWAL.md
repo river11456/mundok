@@ -44,7 +44,7 @@
 | # | 작업 | 비고 |
 |---|------|------|
 | C1 | 전 화면 토큰 적용 | home/mode/level/study(순차·안키)/result + 카드 추가·수정 모달·백업 FAB·온보딩·단축키 도움말 |
-| C2 | 반응형 | ✅ 완료 (2026-07-18 밤, v1.11.2·v1.14.0) — safe center(auto 마진)로 상단 잘림 해소(body·#app·모달 백드롭), 여백 clamp(16~48px)+safe-area, min-h-dvh, 폰 브레이크포인트 ≤480px. IMPROVEMENTS 🔴4 흡수 |
+| C2 | 반응형 | ✅ 완료 (2026-07-18 밤, v1.11.2·v1.14.0) — safe center(auto 마진)로 상단 잘림 해소(body·#app·모달 백드롭), 여백 clamp(16~48px)+safe-area, min-h-dvh, 폰 브레이크포인트 ≤480px. 구 IMPROVEMENTS 🔴4 흡수 |
 | C3 | 터치 대응 | ✅ 완료 (2026-07-18 밤, v1.12.0·v1.13.0) — flipCard 통합(탭·"정답 보기" 버튼·Space), 결과 "다시 시작" 버튼, :hover 게이팅, .kb-only, 터치 타깃 44px + **저작 인터랙션**: 선택 버블 selectionchange·문법 편집 pointer events(펜슬 포함) |
 
 ### D. 사진 인제스트 파이프라인 (Phase 3 — 저작 모드 전용)
