@@ -1,5 +1,5 @@
 import type { NewDocInput, Store } from './types';
-import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation } from '../types';
+import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk } from '../types';
 
 /**
  * server.py의 CRUD API로 POST. 실패 시 throw, 성공 시 응답 바디 반환.
@@ -58,5 +58,9 @@ export class ServerStore implements Store {
 
   async saveGrammar(docId: string, cardId: string, _cardFront: string, annotations: GrammarAnnotation[]): Promise<void> {
     await post('/api/save-grammar', { docId, id: cardId, annotations });
+  }
+
+  async saveInterp(docId: string, cardId: string, _cardFront: string, chunks: InterpChunk[]): Promise<void> {
+    await post('/api/save-interp', { docId, id: cardId, chunks });
   }
 }

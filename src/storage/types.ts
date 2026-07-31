@@ -1,4 +1,4 @@
-import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, LevelKey } from '../types';
+import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey } from '../types';
 
 /** 문헌 추가 마법사 입력 — texts가 비면 빈 문헌 */
 export interface NewDocInput {
@@ -43,4 +43,6 @@ export interface Store {
   editCard(edit: UserEdit): Promise<void>;
   deleteCard(deletion: UserDeletion): Promise<void>;
   saveGrammar(docId: string, cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void>;
+  /** 해석 순서 청크 저장 (sentence 전용). 빈 배열이면 제거. */
+  saveInterp(docId: string, cardId: string, cardFront: string, chunks: InterpChunk[]): Promise<void>;
 }

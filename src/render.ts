@@ -2,12 +2,13 @@ import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSes
 import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
 import { isServerMode } from './storage';
 import { resetCellSelect } from './cell-select';
+import { stopInterpPlay } from './interp-play';
 import { getAnnotations } from './grammar';
 import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match';
 import { alignReading } from './reading-align';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
 import { renderResult } from './result-screen';
-import type { Doc, GrammarAnnotation } from './types';
+import type { Card, Doc, GrammarAnnotation } from './types';
 import { version } from '../package.json';
 
 type CardStyle = { wrap: string; front: string; backAlign: string };
@@ -83,6 +84,9 @@ type FrontOpts = {
   showReading: boolean;
   annotations: GrammarAnnotation[];
   editMode:    boolean;
+  /** 해석 순서 편집 — editMode 그리드가 SVO 대신 순번 배지를 그린다 */
+  interpEdit?: boolean;
+  interp?:     Card['interp'];
 };
 
 /** 셀 하나의 문법(SVO 배경·구절 테두리) 클래스 — 표시·편집 그리드가 공유 */
@@ -108,20 +112,31 @@ function renderFront(front: string, opts: FrontOpts): string {
   const slotMap = opts.annotations.length ? buildSlotMap(opts.annotations) : null;
   const svoFg: Record<string, string> = { S: 'svo-fg-S', V: 'svo-fg-V', O: 'svo-fg-O' };
 
-  // ── 문법 편집: flex 그리드, 글자별 드래그 가능 셀 (grammar-edit.ts의 data-char-idx) ──
+  // ── 문법·해석순서 편집: flex 그리드, 글자별 드래그 가능 셀 (grammar-edit.ts의 data-char-idx) ──
+  //    해석 순서 편집은 SVO 대신 청크 순번 배지를 그린다 (문법 표시는 이 그리드에선 생략).
   if (opts.editMode) {
-    const hasAnyLabel = opts.annotations.some(a => a.type !== 'phrase');
+    const ipMap = new Map<number, { num: number; isStart: boolean }>();
+    if (opts.interpEdit) {
+      (opts.interp ?? []).forEach((c, k) => {
+        for (let i = c.start; i < c.end; i++) ipMap.set(i, { num: k + 1, isStart: i === c.start });
+      });
+    }
+    const hasAnyLabel = opts.interpEdit ? ipMap.size > 0 : opts.annotations.some(a => a.type !== 'phrase');
     const cells = chars.map((ch, i) => {
-      const s = slotMap?.get(i);
-      const badge = s?.svoType && s.isFirstSvo
-        ? `<span class="text-[10px] font-bold leading-none select-none ${svoFg[s.svoType]}">${s.svoType}</span>`
-        : hasAnyLabel
-          ? `<span class="text-[10px] leading-none select-none invisible">_</span>`
-          : '';
+      const s  = opts.interpEdit ? undefined : slotMap?.get(i);
+      const ip = ipMap.get(i);
+      const badge = opts.interpEdit
+        ? (ip?.isStart
+            ? `<span class="text-[10px] font-bold leading-none select-none num text-[var(--accent-deep)]">${ip.num}</span>`
+            : hasAnyLabel ? `<span class="text-[10px] leading-none select-none invisible">_</span>` : '')
+        : (s?.svoType && s.isFirstSvo
+            ? `<span class="text-[10px] font-bold leading-none select-none ${svoFg[s.svoType]}">${s.svoType}</span>`
+            : hasAnyLabel ? `<span class="text-[10px] leading-none select-none invisible">_</span>` : '');
       const rd = reads
         ? `<span class="cc-rd-e ${reads[i] ? '' : 'invisible'}">${esc(reads[i] ?? '·')}</span>`
         : '';
-      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}">
+      const chunkBg = ip ? ' bg-[rgba(46,124,246,.10)] rounded-sm' : '';
+      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)}${chunkBg} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}">
         ${badge}
         <span class="hanja text-2xl leading-none pointer-events-none">${esc(ch)}</span>
         ${rd}
@@ -153,9 +168,9 @@ function renderFront(front: string, opts: FrontOpts): string {
   return html;
 }
 
-/** 文 아이콘 + 확장 메뉴 (카드 도구, 문장 카드) — 표시·편집 두 항목. 표시 단축키 G. */
+/** 文 아이콘 + 확장 메뉴 (카드 도구, 문장 카드) — 표시·편집·해석 순서 세 항목. 표시 단축키 G. */
 function grammarMenuBtn(): string {
-  const active = S.grammarOn || S.grammarEditMode;
+  const active = S.grammarOn || S.grammarEditMode || S.interpEditMode;
   return `
   <div class="gram-wrap relative">
     <button data-action="toggle-grammar-menu" class="icon-btn${active ? ' on' : ''}" title="문법 (G: 표시 토글)"
@@ -170,6 +185,9 @@ function grammarMenuBtn(): string {
       <button data-action="toggle-grammar-edit" class="gram-item${S.grammarEditMode ? ' on' : ''}">
         <span>문법 편집</span>
       </button>
+      <button data-action="toggle-interp-edit" class="gram-item${S.interpEditMode ? ' on' : ''}">
+        <span>해석 순서 편집</span>
+      </button>
     </div>` : ''}
   </div>`;
 }
@@ -177,6 +195,7 @@ function grammarMenuBtn(): string {
 let _prevScr = '';
 
 export function render(): void {
+  stopInterpPlay();   // 셀이 재생성되므로 재생 타이머·상태 정리 (상호작용 = 재생 중단)
   resetCellSelect();
   document.body.classList.toggle('anki-mode', S.mode === 'anki');
   const entering = S.scr !== _prevScr;
@@ -215,9 +234,26 @@ function revealHint(): string {
     </div>`;
 }
 
-function cardActions(lvKey?: string): string {
+/** 편집 서브모드 안내 한 줄 (카드 하단) — 문법·해석 순서 공용. */
+function editHint(): string {
+  const msg = S.interpEditMode
+    ? '해석 순서 편집 — 드래그한 범위가 다음 순번으로 추가되고, 지정된 범위를 다시 드래그하면 빠집니다'
+    : S.grammarEditMode
+      ? '문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요'
+      : null;
+  return msg ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">${msg}</div>` : '';
+}
+
+function cardActions(lvKey?: string, card?: Card): string {
+  const playBtn = lvKey === 'sentence' && card?.interp?.length ? `
+    <button data-action="interp-play" class="icon-btn" title="해석 순서 재생" aria-label="해석 순서 재생">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+        <path d="M4.2 2.9v8.2c0 .5.55.8.97.54l6.2-4.1a.64.64 0 0 0 0-1.08l-6.2-4.1a.64.64 0 0 0-.97.54Z"/>
+      </svg>
+    </button>` : '';
   return `
   <div class="absolute top-4 right-4 flex gap-1 items-center">
+    ${playBtn}
     <button data-action="edit-card" class="icon-btn" title="카드 수정" aria-label="카드 수정">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
         <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -446,7 +482,8 @@ function renderSeq(entering = false): void {
   const prevEntry = S.navStack.length > 0 ? S.navStack[S.navStack.length - 1] : null;
   const backLabel = prevEntry ? prevEntry.lv.label : `${d.title} / ${S.lv!.label}`;
 
-  const isSentGrammar = S.lv?.key === 'sentence' && S.grammarOn;
+  const isSent = S.lv?.key === 'sentence';
+  const isSentGrammar = isSent && S.grammarOn;
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
   const isChar = S.lv!.key === 'char';
   const reads  = isChar ? null : alignReading(card.front, card.reading);
@@ -455,7 +492,9 @@ function renderSeq(entering = false): void {
     reads,
     showReading:  S.seqFlipped,
     annotations:  sentAnnotations,
-    editMode:     isSentGrammar && S.grammarEditMode,
+    editMode:     (isSentGrammar && S.grammarEditMode) || (isSent && S.interpEditMode),
+    interpEdit:   isSent && S.interpEditMode,
+    interp:       card.interp,
   });
 
   $app().innerHTML = `
@@ -474,12 +513,12 @@ function renderSeq(entering = false): void {
       </div>
 
       <div class="card-surface">
-        ${cardActions(S.lv?.key)}
+        ${cardActions(S.lv?.key, card)}
         <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
         ${belowFront(S.seqFlipped ? cardBack(card, cs, reads === null) : revealHint(), isChar)}
-        ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
+        ${editHint()}
       </div>
 
       <div class="flex justify-between items-center">
@@ -511,7 +550,8 @@ function renderAnki(entering = false): void {
 
   const cs = cardStyle(S.lv!.key);
 
-  const isSentGrammar   = S.lv?.key === 'sentence' && S.grammarOn;
+  const isSent = S.lv?.key === 'sentence';
+  const isSentGrammar   = isSent && S.grammarOn;
   const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
   const isFlipped       = S.side === 'back';
   const isChar = S.lv!.key === 'char';
@@ -521,7 +561,9 @@ function renderAnki(entering = false): void {
     reads,
     showReading:  isFlipped,
     annotations:  sentAnnotations,
-    editMode:     isSentGrammar && S.grammarEditMode,
+    editMode:     (isSentGrammar && S.grammarEditMode) || (isSent && S.interpEditMode),
+    interpEdit:   isSent && S.interpEditMode,
+    interp:       card.interp,
   });
 
   $app().innerHTML = `
@@ -540,12 +582,12 @@ function renderAnki(entering = false): void {
       </div>
 
       <div class="card-surface">
-        ${cardActions(S.lv?.key)}
+        ${cardActions(S.lv?.key, card)}
         <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
           ${frontHtml}
         </div>
         ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : revealHint(), isChar)}
-        ${S.grammarEditMode ? `<div class="text-xs text-center text-[var(--warn)] pt-3 border-t border-[var(--line-soft)] mt-2">문법 편집 모드 — 한자를 드래그해서 표시 영역을 선택하세요</div>` : ''}
+        ${editHint()}
       </div>
 
       <div class="flex flex-col items-center gap-3">

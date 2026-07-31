@@ -1,4 +1,4 @@
-import type { Doc, LevelKey, UserData, GrammarEntry } from './types';
+import type { Doc, LevelKey, UserData, GrammarEntry, InterpEntry } from './types';
 
 export const LEVEL_ORDER: readonly LevelKey[] = ['char', 'word', 'sentence', 'paragraph'];
 export const LEVEL_LABEL: Record<LevelKey, string> = {
@@ -56,4 +56,19 @@ export function mergeGrammar(base: GrammarEntry[], delta: GrammarEntry[]): Gramm
     if (i >= 0) merged[i] = g; else merged.push(g);
   }
   return merged;
+}
+
+/**
+ * 해석 순서 델타(정적 모드) — 베이킹 카드에 사용자 interp 를 덮어쓴다.
+ * grammar 델타와 같은 (docId, cardFront) 키. 텍스트가 수정된 카드는 매칭 실패(고아) — 알려진 한계.
+ */
+export function applyInterpDelta(docs: Doc[], entries: InterpEntry[]): void {
+  for (const e of entries) {
+    const card = docs.find(d => d.id === e.docId)
+      ?.levels.find(l => l.key === 'sentence')
+      ?.cards.find(c => c.front === e.cardFront);
+    if (!card) continue;
+    if (e.chunks.length) card.interp = e.chunks;
+    else delete card.interp;
+  }
 }

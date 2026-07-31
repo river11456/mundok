@@ -1,7 +1,14 @@
 import { S } from './state';
 import { getAnnotations, saveAnnotations } from './grammar';
+import { store } from './storage';
+import { toggleChunk } from './interp';
 import { render } from './render';
 import type { Card, GrammarType } from './types';
+
+/** 문법·해석순서 편집이 공유하는 셀 드래그 기계의 활성 여부 */
+function editActive(): boolean {
+  return (S.grammarEditMode || S.interpEditMode) && S.scr === 'study';
+}
 
 let _dragStart       = -1;
 let _pendingStart    = -1;
@@ -76,6 +83,22 @@ async function applyAnnotation(type: GrammarType): Promise<void> {
   render();
 }
 
+/** 해석 순서 편집 — 드래그 범위를 청크 토글(겹치면 제거, 아니면 다음 순번 추가)하고 저장. */
+async function applyInterpToggle(start: number, end: number): Promise<void> {
+  const docId = S.docId!;
+  const card  = currentCard();
+  if (!card) return;
+  const chunks = toggleChunk(card.interp ?? [], start, end);
+  if (chunks.length) card.interp = chunks;
+  else delete card.interp;
+  try {
+    await store().saveInterp(docId, card.id, card.front, chunks);
+  } catch (e) {
+    alert(e instanceof Error ? e.message : '해석 순서 저장에 실패했습니다.');
+  }
+  render();
+}
+
 async function deleteOverlapping(): Promise<void> {
   if (_pendingStart < 0) return;
   const docId = S.docId!;
@@ -140,7 +163,7 @@ export function initGrammarEdit(): void {
     document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-char-idx]') ?? null;
 
   document.addEventListener('pointerdown', e => {
-    if (!S.grammarEditMode || S.scr !== 'study') return;
+    if (!editActive()) return;
     hidePicker();
     const ci = (e.target as Element).closest<HTMLElement>('[data-char-idx]');
     _dragStart      = ci ? parseInt(ci.dataset.charIdx!) : -1;
@@ -148,7 +171,7 @@ export function initGrammarEdit(): void {
   });
 
   document.addEventListener('pointermove', e => {
-    if (!S.grammarEditMode || S.scr !== 'study' || _dragStart < 0) return;
+    if (!editActive() || _dragStart < 0) return;
     const ci = cellAt(e.clientX, e.clientY);
     if (ci) {
       _lastHoveredIdx = parseInt(ci.dataset.charIdx!);
@@ -157,7 +180,7 @@ export function initGrammarEdit(): void {
   });
 
   document.addEventListener('pointerup', e => {
-    if (!S.grammarEditMode || S.scr !== 'study') return;
+    if (!editActive()) return;
     if ((e.target as Element).closest('#gp-picker')) return;
     if (_dragStart < 0) return;
 
@@ -171,20 +194,21 @@ export function initGrammarEdit(): void {
     const end   = Math.max(_dragStart, dragEnd) + 1;
     _dragStart  = -1;
     clearHighlight();
+    if (S.interpEditMode) { applyInterpToggle(start, end); return; }   // 피커 없이 즉시 토글
     showPicker(start, end, e.clientX, e.clientY);
   });
 
   // Close picker when pressing outside (edit mode에서는 drag-start listener가 처리)
   document.addEventListener('pointerdown', e => {
-    if (S.grammarEditMode && S.scr === 'study') return;
+    if (editActive()) return;
     if (!(e.target as Element).closest('#gp-picker')) hidePicker();
   });
 
   // Prevent text selection / native DnD while in grammar edit mode
   document.addEventListener('selectstart', e => {
-    if (S.grammarEditMode) e.preventDefault();
+    if (S.grammarEditMode || S.interpEditMode) e.preventDefault();
   });
   document.addEventListener('dragstart', e => {
-    if (S.grammarEditMode) e.preventDefault();
+    if (S.grammarEditMode || S.interpEditMode) e.preventDefault();
   });
 }

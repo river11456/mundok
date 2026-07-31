@@ -1,4 +1,4 @@
-import type { CardJSON, DocJSON, GrammarAnnotation, LevelKey } from './types';
+import type { CardJSON, DocJSON, GrammarAnnotation, InterpChunk, LevelKey } from './types';
 
 /**
  * 사용자 생성 문헌 저장소 — localStorage `hanja-v2/user-docs` 에 DocJSON 배열.
@@ -186,5 +186,14 @@ export function userSaveGrammar(docId: string, cardId: string, annotations: Gram
     if (!t) throw new Error('카드를 찾을 수 없습니다');
     if (annotations.length) t.grammar = annotations;
     else delete t.grammar;
+  });
+}
+
+export function userSaveInterp(docId: string, cardId: string, chunks: InterpChunk[]): void {
+  withDoc(docId, d => {
+    const t = d.levels.sentence?.find(x => x.id === cardId);
+    if (!t) throw new Error('카드를 찾을 수 없습니다');
+    if (chunks.length) t.interp = chunks;
+    else delete t.interp;
   });
 }

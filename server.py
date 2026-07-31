@@ -143,6 +143,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._edit_card()
         elif self.path == '/api/save-grammar':
             self._save_grammar()
+        elif self.path == '/api/save-interp':
+            self._save_interp()
         elif self.path == '/api/save-groups':
             self._save_groups()
         else:
@@ -279,6 +281,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         target['grammar'] = annotations
                     else:
                         target.pop('grammar', None)
+                    save_doc(doc_id, doc)
+            if target is not None:
+                self._json(200, {'ok': True})
+            else:
+                self._json(404, {'ok': False, 'error': '카드를 찾을 수 없습니다'})
+        except Exception as e:
+            self._json(500, {'ok': False, 'error': str(e)})
+
+    def _save_interp(self):
+        """해석 순서 청크 저장 — save_grammar 와 동일하게 sentence 카드에 id 기반 기록."""
+        try:
+            body    = self._body()
+            doc_id  = body['docId']
+            card_id = body['id']
+            chunks  = body.get('chunks', [])
+            with doc_lock:
+                doc    = load_doc(doc_id)
+                target = next((c for c in doc['levels'].get('sentence', []) if c.get('id') == card_id), None)
+                if target is not None:
+                    if chunks:
+                        target['interp'] = chunks
+                    else:
+                        target.pop('interp', None)
                     save_doc(doc_id, doc)
             if target is not None:
                 self._json(200, {'ok': True})

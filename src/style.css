@@ -200,6 +200,18 @@ button { touch-action: manipulation; }
     font-size: 10px; font-weight: 800; line-height: 1;
     user-select: none; pointer-events: none;
   }
+
+  /* ── 해석 순서 재생 (interp-play.ts) — 셀 클래스는 DOM 직접 토글, 리렌더 없음 ── */
+  .ip-dim { opacity: .22; }
+  .ip-dim, .ip-on { transition: opacity .3s, color .3s; }
+  .ip-now { color: var(--accent-deep); }                /* 현재 스텝 청크 강조 (텍스트 안전 액센트) */
+  .ip-num {
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    margin-bottom: 2px; font-size: 10px; font-weight: 800; line-height: 1;
+    color: var(--accent-deep); user-select: none; pointer-events: none;
+    animation: pop .28s var(--spring);
+  }
+  .interp-playing .cc-svo { visibility: hidden; }       /* 배지 자리가 겹치는 SVO 레이블은 재생 동안 숨김 */
   /* 문법 편집 그리드의 음 — 표시 모드(.cc-rd)와 같은 표기, in-flow 변형 (R9) */
   .cc-rd-e { font-size: 11.5px; line-height: 1; margin-top: 3px; color: var(--sub); user-select: none; }
 

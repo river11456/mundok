@@ -9,6 +9,7 @@ export interface Card {
   back: string;
   note: string;
   fail_count: number;
+  interp?: InterpChunk[];   // 해석 순서 청크 (sentence 전용) — 배열 순서 = 해석 순서
 }
 
 export type LevelKey = 'char' | 'word' | 'sentence' | 'paragraph';
@@ -60,6 +61,7 @@ export interface UserData {
   edits: UserEdit[];
   deletions: UserDeletion[];
   grammar?: GrammarEntry[];
+  interp?: InterpEntry[];
 }
 
 export type GrammarType = 'S' | 'V' | 'O' | 'phrase';
@@ -76,6 +78,19 @@ export interface GrammarEntry {
   annotations: GrammarAnnotation[];
 }
 
+/** 해석 순서 청크 — text 코드포인트 인덱스 [start, end). 담는 배열의 순서가 해석 순서. */
+export interface InterpChunk {
+  start: number;
+  end: number;
+}
+
+/** LocalStore 델타용 — grammar 와 같은 (docId, cardFront) 키 방식. */
+export interface InterpEntry {
+  docId: string;
+  cardFront: string;
+  chunks: InterpChunk[];
+}
+
 // ── 문헌별 JSON 콘텐츠 스키마 (CSV + userdata.json 통합본) ──────────────
 //   src/data/<문헌>.json 의 형태. 안정적 카드 id를 1급 시민으로 갖는다.
 
@@ -86,6 +101,7 @@ export interface CardJSON {
   meaning: string;   // 뒷면 (= Card.back)
   note:    string;
   grammar?: GrammarAnnotation[];  // 카드 내장 문법 주석 (cardFront 키 불필요)
+  interp?:  InterpChunk[];        // 해석 순서 청크 (sentence 전용) — 배열 순서 = 해석 순서
   drill?:   string[];             // 명시적 드릴다운 대상 카드 id. 없으면 자동 substring 매칭.
 }
 

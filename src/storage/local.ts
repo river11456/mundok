@@ -1,15 +1,15 @@
 import type { NewDocInput, Store } from './types';
-import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation } from '../types';
+import type { UserData, UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk } from '../types';
 import {
   createUserDoc, isUserDoc,
-  userAddCard, userEditCard, userDeleteCard, userSaveGrammar,
+  userAddCard, userEditCard, userDeleteCard, userSaveGrammar, userSaveInterp,
 } from '../user-docs';
 
 /** localStorage에 저장되는 사용자 편집 델타의 키 */
 export const LOCAL_KEY = 'hanja-v2/userdata';
 
 function empty(): UserData {
-  return { additions: [], edits: [], deletions: [], grammar: [] };
+  return { additions: [], edits: [], deletions: [], grammar: [], interp: [] };
 }
 
 function load(): UserData {
@@ -22,6 +22,7 @@ function load(): UserData {
       edits:     d.edits ?? [],
       deletions: d.deletions ?? [],
       grammar:   d.grammar ?? [],
+      interp:    d.interp ?? [],
     };
   } catch {
     return empty();
@@ -102,6 +103,17 @@ export class LocalStore implements Store {
     const d = load();
     d.grammar = (d.grammar ?? []).filter(g => !(g.docId === docId && g.cardFront === cardFront));
     if (annotations.length > 0) d.grammar!.push({ docId, cardFront, annotations });
+    save(d);
+  }
+
+  async saveInterp(docId: string, cardId: string, cardFront: string, chunks: InterpChunk[]): Promise<void> {
+    if (isUserDoc(docId)) {
+      userSaveInterp(docId, cardId, chunks);
+      return;
+    }
+    const d = load();
+    d.interp = (d.interp ?? []).filter(g => !(g.docId === docId && g.cardFront === cardFront));
+    if (chunks.length > 0) d.interp!.push({ docId, cardFront, chunks });
     save(d);
   }
 }

@@ -10,6 +10,7 @@ import { showGroupEdit, hideGroupEdit, isGroupEditOpen } from './group-edit';
 import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { consumeSuppressedClick, dismissCellSelect } from './cell-select';
+import { toggleInterpPlay } from './interp-play';
 import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
@@ -187,10 +188,21 @@ export function setupClick(): void {
         break;
       case 'toggle-grammar-edit':
         S.grammarEditMode = !S.grammarEditMode;
-        if (S.grammarEditMode) S.grammarOn = true;
+        if (S.grammarEditMode) { S.grammarOn = true; S.interpEditMode = false; }
         S.grammarMenu = false;
         render();
         break;
+      case 'toggle-interp-edit':
+        S.interpEditMode = !S.interpEditMode;
+        if (S.interpEditMode) S.grammarEditMode = false;
+        S.grammarMenu = false;
+        render();
+        break;
+      case 'interp-play': {
+        const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
+        toggleInterpPlay(card?.interp);
+        break;
+      }
       case 'drill-down': {
         const keys = DRILL_LEVELS[S.lv!.key] ?? [DRILL_NEXT[S.lv!.key]].filter(Boolean);
         let nextLevel = undefined as ReturnType<typeof curDoc>['levels'][number] | undefined;

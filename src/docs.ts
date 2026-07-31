@@ -1,7 +1,7 @@
 import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON } from './types';
 import { initGrammar } from './grammar';
 import { initStore, store, isServerMode } from './storage';
-import { applyUserData, mergeGrammar, LEVEL_ORDER, LEVEL_LABEL } from './docs-merge';
+import { applyUserData, applyInterpDelta, mergeGrammar, LEVEL_ORDER, LEVEL_LABEL } from './docs-merge';
 import { loadUserDocs } from './user-docs';
 import groupsJson from './data/_groups.json';
 
@@ -27,6 +27,7 @@ function toDoc(dj: DocJSON, userDoc = false): Doc {
         back:       c.meaning,
         note:       c.note,
         fail_count: 0,
+        ...(c.interp?.length ? { interp: c.interp } : {}),
       })),
     }));
   return { id: dj.id, title: dj.title, sub: dj.sub, color: dj.color, ...(userDoc ? { userDoc: true } : {}), levels };
@@ -135,6 +136,7 @@ export async function initDocs(): Promise<void> {
   // 사용자 로컬 편집 델타(정적 모드). 서버 모드면 null.
   const delta = await store().loadDelta();
   if (delta) applyUserData(DOCS, delta);
+  if (delta?.interp?.length) applyInterpDelta(DOCS, delta.interp);
 
   initGrammar(mergeGrammar([...collectGrammar(), ...userGrammar], delta?.grammar ?? []));
 }
