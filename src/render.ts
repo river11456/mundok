@@ -340,25 +340,27 @@ function docOverlayHtml(docId: string): string {
       <button data-action="close-overlay" class="close" title="닫기" aria-label="닫기">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       </button>
-      <div class="detail-head">
-        <div class="detail-cover" style="--cbg:${docColor(d)}"><span class="slip kai hanja">${esc(d.title)}</span></div>
-        <div>
-          <div class="detail-title kai hanja">${esc(d.title)}</div>
-          <div class="detail-sub">${esc(d.sub)} · <span class="num">${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
-          <div class="detail-actions">
-            <button data-action="overlay-mode" data-arg="seq" class="btn-primary">순차 재생</button>
-            <button data-action="overlay-mode" data-arg="anki" class="btn-ghost">안키 모드</button>
+      <div class="detail-hero" style="--cbg:${docColor(d)}">
+        <div class="detail-head">
+          <div class="detail-cover"><span class="slip kai hanja">${esc(d.title)}</span></div>
+          <div class="detail-info">
+            <div class="detail-title kai hanja">${esc(d.title)}</div>
+            <div class="detail-sub">${esc(d.sub)} · <span class="num">${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
+            <div class="detail-actions">
+              <button data-action="overlay-mode" data-arg="seq" class="btn-primary">순차 재생</button>
+              <button data-action="overlay-mode" data-arg="anki" class="btn-ghost">안키 모드</button>
+            </div>
           </div>
         </div>
       </div>
-      <div class="lv-chips">
-        ${d.levels.map(lv => `<span class="lv-chip"><b class="num">${lv.cards.length}</b>${esc(lv.label)}</span>`).join('')}
+      <div class="detail-stats">
+        ${d.levels.map(lv => `<div class="dstat"><b class="num">${lv.cards.length}</b><span>${esc(lv.label)}</span></div>`).join('')}
       </div>
       <div class="detail-user-actions">
-        <button data-action="doc-append" class="btn-ghost">본문 추가</button>
-        <button data-action="doc-edit-info" class="btn-ghost">정보 수정</button>
-        <button data-action="doc-export" class="btn-ghost">내보내기</button>
-        <button data-action="doc-delete" class="btn-ghost danger">문헌 삭제</button>
+        <button data-action="doc-append" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2.6v8.8M2.6 7h8.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>본문 추가</button>
+        <button data-action="doc-edit-info" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.8 2.2l2 2-7.3 7.3-2.7.7.7-2.7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>정보 수정</button>
+        <button data-action="doc-export" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 8.8V2.4M4.4 4.9L7 2.3l2.6 2.6M2.4 9.6v1.2c0 .7.6 1.3 1.3 1.3h6.6c.7 0 1.3-.6 1.3-1.3V9.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>내보내기</button>
+        <button data-action="doc-delete" class="dua-btn danger"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.4 3.9h9.2M5.6 3.9V2.7c0-.4.3-.7.7-.7h1.4c.4 0 .7.3.7.7v1.2M3.6 3.9l.5 6.9c0 .7.6 1.2 1.3 1.2h3.2c.7 0 1.3-.5 1.3-1.2l.5-6.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>문헌 삭제</button>
       </div>
       ${refs.length ? `
       <div class="detail-refs">

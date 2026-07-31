@@ -46,6 +46,7 @@ button { touch-action: manipulation; }
   .nav-btn { padding: 13px 26px; }
   .gram-item { padding: 12px 14px; }
   .detail .close { padding: 15px; top: 6px; right: 6px; }
+  .dua-btn { padding: 12px 11px; }
   .shelf-toggle { padding: 12px; margin: -10px -8px; } /* 히트 영역만 확장, 헤더 레이아웃 유지 */
 }
 
@@ -448,9 +449,22 @@ button { touch-action: manipulation; }
   .cover.add .add-plus { font-size: 34px; font-weight: 300; line-height: 1; }
   .cover.add .add-label { font-size: 12px; font-weight: 600; }
 
-  /* 문헌 상세 오버레이 — 사용자 문헌 관리 버튼 줄 */
-  .detail-user-actions { display: flex; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
-  .detail-user-actions .danger { color: var(--fail); }
+  /* 문헌 상세 오버레이 — 관리 버튼 줄. 학습 액션(히어로의 알약)과 위계 분리:
+     구분선 아래 조용한 텍스트 버튼, 파괴 액션(삭제)은 오른쪽 끝으로 격리 */
+  .detail-user-actions {
+    display: flex; align-items: center; gap: 2px; flex-wrap: wrap;
+    margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+  }
+  .dua-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: var(--sub);
+    padding: 8px 11px; border-radius: 9px;
+    transition: background .15s, color .15s;
+  }
+  .dua-btn svg { flex: none; }
+  @media (hover: hover) { .dua-btn:hover { background: rgba(0, 0, 0, .045); color: var(--ink); } }
+  .dua-btn.danger { margin-left: auto; color: var(--fail); }
+  @media (hover: hover) { .dua-btn.danger:hover { background: rgba(215, 0, 21, .06); color: var(--fail); } }
 
   /* 문헌 추가 모달 — 표지색 스와치 + 분할 미리보기 목록 */
   .dc-swatches { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -513,8 +527,10 @@ button { touch-action: manipulation; }
     padding: 20px; overflow-y: auto;
   }
   .detail {
+    --dp-x: 26px; --dp-t: 26px;              /* 모달 패딩 — 히어로 밴드 풀블리드 계산에 공유 */
     width: 100%; max-width: 520px; background: var(--surface); border-radius: 24px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, .24); padding: 26px 26px 22px; position: relative;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .24); padding: var(--dp-t) var(--dp-x) 22px; position: relative;
+    overflow: hidden;                        /* 히어로 워시가 모달 라운드를 넘지 않게 */
     animation: pop .28s var(--spring);
     margin-top: auto; margin-bottom: auto;   /* safe center — 내용이 화면보다 길면 0으로 붕괴해 스크롤 유지 */
   }
@@ -523,23 +539,46 @@ button { touch-action: manipulation; }
     border-radius: 99px; display: flex; transition: background .15s, color .15s;
   }
   @media (hover: hover) { .detail .close:hover { background: rgba(0, 0, 0, .05); color: var(--ink); } }
+  /* 표지 파스텔을 옅게 워시한 히어로 밴드 — 표지가 온기 담당(tokens.md), 아래로 갈수록 서피스에 녹는다 */
+  .detail-hero {
+    margin: calc(var(--dp-t) * -1) calc(var(--dp-x) * -1) 0;
+    padding: calc(var(--dp-t) + 2px) var(--dp-x) 24px;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--cbg, #E3EDD9) 44%, #fff) 0%,
+      color-mix(in srgb, var(--cbg, #E3EDD9) 18%, #fff) 72%,
+      var(--surface) 100%);
+  }
   .detail-head { display: flex; gap: 20px; align-items: center; }
+  .detail-info { flex: 1; min-width: 0; }
   .detail-cover {
     width: 88px; aspect-ratio: 3 / 4.1; flex-shrink: 0; border-radius: 5px 10px 10px 5px;
-    background: var(--cbg, #E3EDD9); position: relative; box-shadow: 0 3px 10px rgba(0, 0, 0, .10);
+    background: var(--cbg, #E3EDD9); position: relative;
+    border: 1px solid rgba(0, 0, 0, .05);    /* 같은 색조 워시 위에서 표지 윤곽 유지 (플랫 규격) */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .12);
   }
   .detail-cover .slip {
     position: absolute; top: 7px; left: 7px; writing-mode: vertical-rl; text-orientation: upright;
     background: #fff; border: 1px solid rgba(0, 0, 0, .08); border-radius: 2px;
     padding: 6px 2px; font-size: 10.5px; letter-spacing: .12em; color: var(--ink);
   }
-  .detail-title { font-size: 24px; color: var(--ink); }
-  .detail-sub { font-size: 13px; color: var(--sub); margin-top: 5px; }
-  .detail-actions { display: flex; gap: 9px; margin-top: 15px; }
-  .lv-chips { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
-  .lv-chip { background: var(--bg); border-radius: 12px; padding: 9px 14px; font-size: 12px; color: var(--sub); }
-  .lv-chip b { font-size: 14px; color: var(--ink); font-weight: 700; margin-right: 3px; }
-  .detail-refs { margin-top: 22px; border-top: 1px solid var(--line-soft); padding-top: 17px; }
+  .detail-title { font-size: 26px; letter-spacing: .04em; line-height: 1.2; color: var(--ink); }
+  .detail-sub { font-size: 13px; color: var(--sub); margin-top: 6px; }
+  .detail-actions { display: flex; gap: 9px; margin-top: 16px; }
+  .detail-actions .btn-ghost { background: rgba(255, 255, 255, .72); border-color: rgba(0, 0, 0, .07); color: var(--ink); }
+  /* 레벨별 장수 — 버튼으로 오독되지 않는 단일 통계 밴드 (숫자 위 · 레이블 아래) */
+  .detail-stats {
+    display: flex; margin-top: 20px;
+    background: var(--bg); border: 1px solid var(--line-soft); border-radius: 16px;
+    padding: 13px 4px 12px;
+  }
+  .dstat { flex: 1; min-width: 0; text-align: center; position: relative; }
+  .dstat + .dstat::before {
+    content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px;
+    background: var(--line-soft);
+  }
+  .dstat b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; color: var(--ink); }
+  .dstat span { display: block; font-size: 11px; color: var(--sub); margin-top: 3px; }
+  .detail-refs { margin-top: 20px; border-top: 1px solid var(--line-soft); padding-top: 17px; }
   .detail-refs h3 { font-size: 11.5px; font-weight: 700; letter-spacing: .13em; color: var(--sub); margin-bottom: 13px; }
   .dref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 12px; }
   .dref { display: flex; flex-direction: column; gap: 7px; text-align: center; }
@@ -597,7 +636,12 @@ button { touch-action: manipulation; }
     .stat b { font-size: 22px; }
     .table-card th { padding: 11px 12px; }
     .table-card td { padding: 12px; }
-    .detail { padding: 22px 18px 18px; }
+    .detail { --dp-x: 18px; --dp-t: 22px; padding-bottom: 18px; }
+    .detail-head { gap: 16px; }
+    .detail-cover { width: 76px; }
+    .detail-title { font-size: 23px; }
+    .dstat b { font-size: 17px; }
+    .dua-btn { padding: 10px 8px; font-size: 12px; }
   }
 }
 
