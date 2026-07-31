@@ -1,0 +1,1281 @@
+{
+  "sourcePdf": "신편의학한문-ocr.pdf",
+  "pdfPages": 528,
+  "pageOffset": 14,
+  "schemaNote": "각 파일은 문독 앱 스키마({id,title,sub,levels}), levels.sentence만 채움, 현토 포함",
+  "documents": [
+    {
+      "no": 1,
+      "id": "복희신농황제",
+      "title": "伏羲, 神農, 黃帝",
+      "source": "古今醫統大全",
+      "author": "明·徐春甫",
+      "bookPage": 1,
+      "pdfPageStart": 15,
+      "pdfPageEnd": 20,
+      "file": "01-복희신농황제.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 2,
+      "id": "화타전",
+      "title": "華佗傳",
+      "source": "後漢書·方術列傳",
+      "author": "南朝 宋·范曄",
+      "bookPage": 7,
+      "pdfPageStart": 21,
+      "pdfPageEnd": 30,
+      "file": "02-화타전.json",
+      "status": "done",
+      "flags": [
+        "s35 '胎不去라한대' 토가 필기에 가려 불확실(이라한대 가능)",
+        "s52 '詐疾이오' 표기 확인 필요(이요 가능)",
+        "본문 범위: 책 7~12 (연습 제외)",
+        "검증 수정: s6 하야→하고, s16 하야 삭제, s20 이 보완, s29 이오→하고, s30 荀→筍(자구해도 筍, 인쇄대로+note), s39 曰은 정책상 유지(지면 日이나 의미상 曰)"
+      ]
+    },
+    {
+      "no": 3,
+      "id": "편작전",
+      "title": "扁鵲傳",
+      "source": "史記",
+      "author": "漢·司馬遷",
+      "bookPage": 17,
+      "pdfPageStart": 31,
+      "pdfPageEnd": 40,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 편작육불치.json(六不治 발췌) 있음"
+    },
+    {
+      "no": 4,
+      "id": "동봉",
+      "title": "董奉",
+      "source": "神仙傳",
+      "author": "晉·葛洪",
+      "bookPage": 27,
+      "pdfPageStart": 41,
+      "pdfPageEnd": 48,
+      "file": "04-동봉.json",
+      "status": "done",
+      "flags": [
+        "s4: 토 '한데' 인쇄대로 전사(통상 '한대')",
+        "s46: 買杏取給 — 인쇄는 買(神仙傳 원문은 賣), 인쇄대로 전사",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 5,
+      "id": "이고전",
+      "title": "李杲傳",
+      "source": "醫史",
+      "author": "明·李濂",
+      "bookPage": 35,
+      "pdfPageStart": 49,
+      "pdfPageEnd": 56,
+      "file": "05-이고전.json",
+      "status": "done",
+      "flags": [
+        "s13: 본문 大頭天行 vs 자구해 표제어 大豆天行 — 본문대로",
+        "s29: 郈城 — 저해상으로 郈/鄗 판별 곤란, 郈로 전사",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 6,
+      "id": "주진형",
+      "title": "朱震亨",
+      "source": "丹溪翁傳",
+      "author": "戴良",
+      "bookPage": 43,
+      "pdfPageStart": 57,
+      "pdfPageEnd": 64,
+      "file": "06-주진형.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 수정: s40 이러라→이라"
+      ]
+    },
+    {
+      "no": 7,
+      "id": "이도요병",
+      "title": "以道療病",
+      "source": "東醫寶鑑",
+      "author": "許浚",
+      "bookPage": 51,
+      "pdfPageStart": 65,
+      "pdfPageEnd": 68,
+      "file": "07-이도요병.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 8,
+      "id": "학의유학혁",
+      "title": "學醫猶學奕",
+      "source": "",
+      "author": "淸·趙彦暉",
+      "bookPage": 55,
+      "pdfPageStart": 69,
+      "pdfPageEnd": 72,
+      "file": "08-학의유학혁.json",
+      "status": "done",
+      "flags": [
+        "s10: 或間近世 — 인쇄는 間(聞/問 오식 가능성), 인쇄대로 전사",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 9,
+      "id": "의감",
+      "title": "醫鑑",
+      "source": "冷廬醫話",
+      "author": "淸·陸以湉",
+      "bookPage": 59,
+      "pdfPageStart": 73,
+      "pdfPageEnd": 78,
+      "file": "09-의감.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 10,
+      "id": "의지가법",
+      "title": "醫之可法",
+      "source": "此事難知",
+      "author": "元·王好古",
+      "bookPage": 65,
+      "pdfPageStart": 79,
+      "pdfPageEnd": 84,
+      "file": "10-의지가법.json",
+      "status": "done",
+      "flags": [
+        "s3: 伊贄 — 본문·자구해 모두 '贄'로 인쇄 확인(통행 표기 伊摯), 인쇄대로 전사",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 11,
+      "id": "의불탐색",
+      "title": "醫不貪色",
+      "source": "醫說",
+      "author": "宋·張杲",
+      "bookPage": 71,
+      "pdfPageStart": 85,
+      "pdfPageEnd": 86,
+      "file": "11-의불탐색.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 12,
+      "id": "대의정성",
+      "title": "大醫精誠",
+      "source": "備急千金要方",
+      "author": "唐·孫思邈",
+      "bookPage": 73,
+      "pdfPageStart": 87,
+      "pdfPageEnd": 96,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 대의정성.json 있음"
+    },
+    {
+      "no": 13,
+      "id": "식무구포",
+      "title": "食無求飽",
+      "source": "",
+      "author": "宋·婁居中",
+      "bookPage": 83,
+      "pdfPageStart": 97,
+      "pdfPageEnd": 100,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 식무구포.json 있음"
+    },
+    {
+      "no": 14,
+      "id": "여담론",
+      "title": "茹淡論",
+      "source": "格致餘論",
+      "author": "元·朱震亨",
+      "bookPage": 87,
+      "pdfPageStart": 101,
+      "pdfPageEnd": 106,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 여담론.json 있음"
+    },
+    {
+      "no": 15,
+      "id": "불치이병치미병",
+      "title": "不治已病治未病",
+      "source": "丹溪心法",
+      "author": "元·朱震亨",
+      "bookPage": 93,
+      "pdfPageStart": 107,
+      "pdfPageEnd": 112,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 불치이병치미병.json 있음"
+    },
+    {
+      "no": 16,
+      "id": "양성편",
+      "title": "養性序(第一)·養性篇",
+      "source": "千金要方",
+      "author": "唐·孫思邈",
+      "bookPage": 99,
+      "pdfPageStart": 113,
+      "pdfPageEnd": 118,
+      "file": null,
+      "status": "skipped",
+      "flags": [],
+      "note": "기존 양성편.json 있음"
+    },
+    {
+      "no": 17,
+      "id": "선천후천론",
+      "title": "先天後天論",
+      "source": "景岳全書·傳忠錄",
+      "author": "明·張景岳",
+      "bookPage": 105,
+      "pdfPageStart": 119,
+      "pdfPageEnd": 122,
+      "file": "17-선천후천론.json",
+      "status": "done",
+      "flags": [
+        "s5·s7·s12: 인쇄된 중략 부호(……)는 전사 제외",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 18,
+      "id": "명리론",
+      "title": "明理論",
+      "source": "醫易一理",
+      "author": "淸·邵同珍",
+      "bookPage": 109,
+      "pdfPageStart": 123,
+      "pdfPageEnd": 126,
+      "file": "18-명리론.json",
+      "status": "done",
+      "flags": [
+        "s6·s8: 옛 주격토 'ㅣ' 인쇄대로 전사",
+        "s2: 62자 단일문, 3줄 이내라 미분할",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 19,
+      "id": "음양체상",
+      "title": "陰陽體象",
+      "source": "類經圖翼",
+      "author": "明·張介賓",
+      "bookPage": 113,
+      "pdfPageStart": 127,
+      "pdfPageEnd": 134,
+      "file": "19-음양체상.json",
+      "status": "done",
+      "flags": [
+        "학생 필기가 많은 지면이라 토 오독 가능성 — 검증 패스에서 표본 재판독 필요",
+        "본문 범위: 책 113~117 (118은 자구해, 119~120 연습 추정)",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 20,
+      "id": "음양편",
+      "title": "陰陽篇",
+      "source": "景岳全書·傳忠錄",
+      "author": "明·張介賓",
+      "bookPage": 121,
+      "pdfPageStart": 135,
+      "pdfPageEnd": 142,
+      "file": "20-음양편.json",
+      "status": "done",
+      "flags": [
+        "s9: 陽中復有靜 — 통행본 景岳全書는 '陰', 인쇄대로 전사",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 21,
+      "id": "음양호근론",
+      "title": "陰陽互根論",
+      "source": "醫原",
+      "author": "淸·石芾南",
+      "bookPage": 129,
+      "pdfPageStart": 143,
+      "pdfPageEnd": 148,
+      "file": "21-음양호근론.json",
+      "status": "done",
+      "flags": [
+        "s42: 所生之少 뒤 옛 주격토 'ㅣ' 판독(확대 확인)",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 22,
+      "id": "오행통론",
+      "title": "五行統論",
+      "source": "類經圖翼",
+      "author": "明·張介賓",
+      "bookPage": 135,
+      "pdfPageStart": 149,
+      "pdfPageEnd": 158,
+      "file": "22-오행통론.json",
+      "status": "done",
+      "flags": [
+        "s15: 六氣 열거 현토 '이오/오' 인쇄대로",
+        "s37: 知克之有克 — 통행본은 爲克, 인쇄대로",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 23,
+      "id": "장부총론",
+      "title": "臟腑總論",
+      "source": "醫學入門",
+      "author": "明·李梴",
+      "bookPage": 145,
+      "pdfPageStart": 159,
+      "pdfPageEnd": 166,
+      "file": "23-장부총론.json",
+      "status": "done",
+      "flags": [
+        "s11: 형광펜 위 '經須記' 확대 판독",
+        "s18: 인쇄 '(中略)' 부호 제거",
+        "검증 통과(표본 지면 대조)",
+        "소자 협주 미수록(p159~162 다수) — 31·36·61은 포함, 소자 방침 통일 필요"
+      ]
+    },
+    {
+      "no": 24,
+      "id": "장부상통",
+      "title": "臟腑相通",
+      "source": "醫學入門",
+      "author": "李梴",
+      "bookPage": 153,
+      "pdfPageStart": 167,
+      "pdfPageEnd": 170,
+      "file": "24-장부상통.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 25,
+      "id": "을계동원론",
+      "title": "乙癸同源論",
+      "source": "醫宗必讀",
+      "author": "明·李中梓",
+      "bookPage": 157,
+      "pdfPageStart": 171,
+      "pdfPageEnd": 174,
+      "file": "25-을계동원론.json",
+      "status": "done",
+      "flags": [
+        "s1·s12: 현토 '이오' 인쇄대로(타 문장 '이요'와 다름)",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 26,
+      "id": "삼초포락명문변",
+      "title": "三焦包絡命門辨",
+      "source": "類經附翼·求正錄",
+      "author": "明·張介賓",
+      "bookPage": 161,
+      "pdfPageStart": 175,
+      "pdfPageEnd": 188,
+      "file": "26-삼초포락명문변.json",
+      "status": "done",
+      "flags": [
+        "s56~s57: 소활자 인용(滑氏註七難) 확대 판독",
+        "s93: 娵訾 활자 흐림 — 12차 명칭으로 판독",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 27,
+      "id": "당명경락",
+      "title": "當明經絡",
+      "source": "扁鵲心書",
+      "author": "竇材",
+      "bookPage": 175,
+      "pdfPageStart": 189,
+      "pdfPageEnd": 194,
+      "file": "27-당명경락.json",
+      "status": "done",
+      "flags": [
+        "s8~s13: 소활자 단락 확대 판독 — 일부 현토 최선 판독",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 28,
+      "id": "영위경락총론",
+      "title": "營衛經絡總論",
+      "source": "靈素節注類編",
+      "author": "淸·章楠",
+      "bookPage": 181,
+      "pdfPageStart": 195,
+      "pdfPageEnd": 200,
+      "file": "28-영위경락총론.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 29,
+      "id": "기경팔맥총설",
+      "title": "奇經八脈總說",
+      "source": "奇經八脈考",
+      "author": "明·李時珍",
+      "bookPage": 187,
+      "pdfPageStart": 201,
+      "pdfPageEnd": 204,
+      "file": "29-기경팔맥총설.json",
+      "status": "done",
+      "flags": [
+        "s4: 본문 삽입 소자 주석(難經 관련)을 별도 문장으로 수록",
+        "s1 曰: 지면은 日로 보이나 의미상 曰로 최종 확정(원서 오식 판단)",
+        "검증 완료(지면 대조, 曰/日 판정 포함)"
+      ]
+    },
+    {
+      "no": 30,
+      "id": "기혈다소",
+      "title": "氣血多少",
+      "source": "聖濟總錄",
+      "author": "宋·徽宗",
+      "bookPage": 191,
+      "pdfPageStart": 205,
+      "pdfPageEnd": 208,
+      "file": "30-기혈다소.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 31,
+      "id": "기",
+      "title": "氣",
+      "source": "醫碥",
+      "author": "淸·何夢瑤",
+      "bookPage": 195,
+      "pdfPageStart": 209,
+      "pdfPageEnd": 214,
+      "file": "31-기.json",
+      "status": "done",
+      "flags": [
+        "소자(저자 자주) 주석 다수 포함 — s4~s10,s16,s17,s22,s26,s27,s35,s36 (인쇄 위치대로 수록, 포함 여부는 사용자 결정 필요)",
+        "검증 통과(지면 대조)",
+        "협주 제거: 37→34문장 (s4·s35·s36 전체삭제, s10·s16·s17·s22·s27 일부제거). s6~s9·s26은 재확인 결과 정상 본문으로 판명, 유지."
+      ]
+    },
+    {
+      "no": 32,
+      "id": "혈",
+      "title": "血",
+      "source": "醫碥",
+      "author": "淸·何夢瑤",
+      "bookPage": 201,
+      "pdfPageStart": 215,
+      "pdfPageEnd": 220,
+      "file": "32-혈.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 33,
+      "id": "중풍변",
+      "title": "中風辨",
+      "source": "醫經溯洄集",
+      "author": "元·王履",
+      "bookPage": 207,
+      "pdfPageStart": 221,
+      "pdfPageEnd": 228,
+      "file": "33-중풍변.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 34,
+      "id": "외감온열",
+      "title": "外感溫熱",
+      "source": "溫熱論",
+      "author": "淸·葉桂",
+      "bookPage": 215,
+      "pdfPageStart": 229,
+      "pdfPageEnd": 232,
+      "file": "34-외감온열.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 35,
+      "id": "종창",
+      "title": "腫脹",
+      "source": "景岳全書·雜證謨",
+      "author": "明·張介賓",
+      "bookPage": 219,
+      "pdfPageStart": 233,
+      "pdfPageEnd": 236,
+      "file": "35-종창.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 36,
+      "id": "육기설",
+      "title": "六氣說",
+      "source": "醫碥",
+      "author": "淸·何夢瑤",
+      "bookPage": 223,
+      "pdfPageStart": 237,
+      "pdfPageEnd": 238,
+      "file": "36-육기설.json",
+      "status": "done",
+      "flags": [
+        "s3: 소자 협주 포함(note 표기)",
+        "s20: 月辰未爲濕土 — 月은 원전에 없는 글자로 보이나 인쇄대로",
+        "검증 수정: 凉→涼 6곳 (지면 400dpi 확인)",
+        "협주 제거: 24→23문장 (s3 전체삭제)"
+      ]
+    },
+    {
+      "no": 37,
+      "id": "십문편",
+      "title": "十問篇",
+      "source": "景岳全書·傳忠錄",
+      "author": "明·張介賓",
+      "bookPage": 225,
+      "pdfPageStart": 239,
+      "pdfPageEnd": 254,
+      "file": "37-십문편.json",
+      "status": "done",
+      "flags": [
+        "소제목(一問~十問)은 각 절 첫 문장 note에 기록",
+        "s22: 焂 — 자구해가 오식 명시, 인쇄자대로",
+        "s31: 盡全(원전 추정 盡去) 인쇄대로",
+        "s148: 殘狼(원전 추정 殘狠) 인쇄대로",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 38,
+      "id": "변치대법론",
+      "title": "辨治大法論",
+      "source": "醫宗必讀",
+      "author": "明·李中梓",
+      "bookPage": 241,
+      "pdfPageStart": 255,
+      "pdfPageEnd": 258,
+      "file": "38-변치대법론.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 39,
+      "id": "한열허실표리음양변",
+      "title": "寒熱虛實表裏陰陽辨",
+      "source": "醫學心悟",
+      "author": "淸·程國彭",
+      "bookPage": 245,
+      "pdfPageStart": 259,
+      "pdfPageEnd": 264,
+      "file": "39-한열허실표리음양변.json",
+      "status": "done",
+      "flags": [
+        "s6: 胸腰脹痛 — 통행본 胸腹, 인쇄대로",
+        "s23: 澤水 — 통행본 泥水, 인쇄대로",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 40,
+      "id": "제맥체상",
+      "title": "諸脈體狀",
+      "source": "醫學入門",
+      "author": "明·李梴",
+      "bookPage": 251,
+      "pdfPageStart": 265,
+      "pdfPageEnd": 270,
+      "file": "40-제맥체상.json",
+      "status": "done",
+      "flags": [
+        "s7: 中空踈 — 필기 겹침, 踈로 판독(통행본 虛 계열)",
+        "s10: 最牢堅라 — 현토 '라' 인쇄대로",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 41,
+      "id": "잡치부",
+      "title": "雜治賦",
+      "source": "醫學入門",
+      "author": "明·李梴",
+      "bookPage": 257,
+      "pdfPageStart": 271,
+      "pdfPageEnd": 288,
+      "file": "41-잡치부.json",
+      "status": "done",
+      "flags": [
+        "s25: '但滋隆이' 인쇄대로('滋降' 오식 가능성)",
+        "s37: 현토 '上者하며 下之하며…' 인쇄 그대로",
+        "검증 통과(표본 지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 42,
+      "id": "논치편",
+      "title": "論治篇",
+      "source": "景岳全書·傳忠錄",
+      "author": "明·張介賓",
+      "bookPage": 275,
+      "pdfPageStart": 289,
+      "pdfPageEnd": 302,
+      "file": "42-논치편.json",
+      "status": "done",
+      "flags": [
+        "s60: '棄之' 뒤 토 '온' 판독 다소 불확실",
+        "검증 통과(표본 지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 43,
+      "id": "한하토삼법해진치병전",
+      "title": "汗下吐三法該盡治病詮",
+      "source": "儒門事親",
+      "author": "元·張從正",
+      "bookPage": 289,
+      "pdfPageStart": 303,
+      "pdfPageEnd": 312,
+      "file": "43-한하토삼법해진치병전.json",
+      "status": "done",
+      "flags": [
+        "s25: 痲/痳 자형 모호 — 문맥상 痲",
+        "s42: 莞花 인쇄대로(원전 芫花)",
+        "검증 수정: s31·s32 渗→滲 (지면 확인)"
+      ]
+    },
+    {
+      "no": 44,
+      "id": "약유일물이성혹부동론",
+      "title": "藥有一物而性或不同論",
+      "source": "夢溪筆談",
+      "author": "宋·沈括",
+      "bookPage": 299,
+      "pdfPageStart": 313,
+      "pdfPageEnd": 316,
+      "file": "44-약유일물이성혹부동론.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 45,
+      "id": "기미편",
+      "title": "氣味篇",
+      "source": "景岳全書·傳忠錄",
+      "author": "明·張介賓",
+      "bookPage": 303,
+      "pdfPageStart": 317,
+      "pdfPageEnd": 320,
+      "file": "45-기미편.json",
+      "status": "done",
+      "flags": [
+        "s10: 其行也上라 — 현토 '上라' 인쇄대로",
+        "검증 통과(표본 지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 46,
+      "id": "약성음양론",
+      "title": "藥性陰陽論",
+      "source": "珍珠囊補遺藥性賦",
+      "author": "金·李杲",
+      "bookPage": 307,
+      "pdfPageStart": 321,
+      "pdfPageEnd": 321,
+      "file": "46-약성음양론.json",
+      "status": "done",
+      "flags": [
+        "s3: 不可混用이오 — '이오' 인쇄대로",
+        "검증 통과(표본 지면 대조)",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)"
+      ]
+    },
+    {
+      "no": 47,
+      "id": "약물칠정론",
+      "title": "藥物七情論",
+      "source": "本草綱目",
+      "author": "明·李時珍",
+      "bookPage": 308,
+      "pdfPageStart": 322,
+      "pdfPageEnd": 322,
+      "file": "47-약물칠정론.json",
+      "status": "done",
+      "flags": [
+        "형광펜·필기 겹침 심함, 전 구절 확대 판독 완료",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 48,
+      "id": "인경약론",
+      "title": "引經藥論",
+      "source": "醫醫病書",
+      "author": "淸·吳瑭",
+      "bookPage": 309,
+      "pdfPageStart": 323,
+      "pdfPageEnd": 326,
+      "file": "48-인경약론.json",
+      "status": "done",
+      "flags": [
+        "s5: 香葇 — 자구해 근거로 葇 판독",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 49,
+      "id": "약성가",
+      "title": "藥性歌",
+      "source": "方藥合編",
+      "author": "黃度淵",
+      "bookPage": 313,
+      "pdfPageStart": 327,
+      "pdfPageEnd": 338,
+      "file": "49-약성가.json",
+      "status": "done",
+      "flags": [
+        "방약합편 2구+의학입문 4구 병기 구성, (『醫學入門』) 표기 유지",
+        "s8: 觧毒 속자 그대로",
+        "s10: 필기 겹침 확대 판독",
+        "검증 통과(표본 지면 대조)"
+      ]
+    },
+    {
+      "no": 50,
+      "id": "용약법상",
+      "title": "用藥法象",
+      "source": "湯液本草",
+      "author": "元·李杲",
+      "bookPage": 325,
+      "pdfPageStart": 339,
+      "pdfPageEnd": 342,
+      "file": "50-용약법상.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 51,
+      "id": "상한명리약방론서",
+      "title": "傷寒明理藥方論序",
+      "source": "仲景全書",
+      "author": "金·成無己",
+      "bookPage": 329,
+      "pdfPageStart": 343,
+      "pdfPageEnd": 348,
+      "file": "51-상한명리약방론서.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 52,
+      "id": "약론",
+      "title": "藥論",
+      "source": "壽世保元",
+      "author": "明·龔廷賢",
+      "bookPage": 335,
+      "pdfPageStart": 349,
+      "pdfPageEnd": 354,
+      "file": "52-약론.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 53,
+      "id": "신방팔략인",
+      "title": "新方八略引",
+      "source": "景岳全書",
+      "author": "明·張介賓",
+      "bookPage": 341,
+      "pdfPageStart": 355,
+      "pdfPageEnd": 360,
+      "file": "53-신방팔략인.json",
+      "status": "done",
+      "flags": [
+        "s38: '이나 然實而誤補면' — 然이나 식자 도치 추정, 인쇄 순서대로",
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 54,
+      "id": "옥룡부",
+      "title": "玉龍賦",
+      "source": "針灸聚英",
+      "author": "明·高武",
+      "bookPage": 347,
+      "pdfPageStart": 361,
+      "pdfPageEnd": 366,
+      "file": "54-옥룡부.json",
+      "status": "done",
+      "flags": [
+        "s5: 驅膇 — 자구해 훈('다리 부을 추') 근거 膇 판독",
+        "s11: 脚氣 — 문맥·용례 근거 脚 판독",
+        "검증 수정: s15 토 '이' 누락 보완(지면 확인)"
+      ]
+    },
+    {
+      "no": 55,
+      "id": "조경문",
+      "title": "調經門",
+      "source": "婦人大全良方",
+      "author": "宋·陳自明",
+      "bookPage": 353,
+      "pdfPageStart": 367,
+      "pdfPageEnd": 370,
+      "file": "55-조경문.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 56,
+      "id": "부인문",
+      "title": "婦人門",
+      "source": "丹溪心法附餘",
+      "author": "明·方廣",
+      "bookPage": 357,
+      "pdfPageStart": 371,
+      "pdfPageEnd": 374,
+      "file": "56-부인문.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 57,
+      "id": "소아칙총론",
+      "title": "小兒則總論",
+      "source": "景岳全書",
+      "author": "明·張介賓",
+      "bookPage": 361,
+      "pdfPageStart": 375,
+      "pdfPageEnd": 380,
+      "file": "57-소아칙총론.json",
+      "status": "done",
+      "flags": [
+        "s4: 토 '之類히' 인쇄대로(이례적, 확대 확인)",
+        "s15: 其脈侯 — 侯(候의 이체) 인쇄대로",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 58,
+      "id": "소아칙발열",
+      "title": "小兒則發熱",
+      "source": "景岳全書",
+      "author": "明·張介賓",
+      "bookPage": 367,
+      "pdfPageStart": 381,
+      "pdfPageEnd": 384,
+      "file": "58-소아칙발열.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: 凉→涼 (36번과 동일 이슈, 400dpi 확대 확인)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 59,
+      "id": "옹저치법총론",
+      "title": "癰疽治法總論",
+      "source": "景岳全書",
+      "author": "明·張介賓",
+      "bookPage": 371,
+      "pdfPageStart": 385,
+      "pdfPageEnd": 385,
+      "file": "59-옹저치법총론.json",
+      "status": "done",
+      "flags": [
+        "s5: 非有眞實眞滯者 — 4배 확대로 眞 확인(통행본 堅滯와 다름), 인쇄대로",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 60,
+      "id": "원도통설",
+      "title": "原道統說",
+      "source": "醫學入門",
+      "author": "明·李梴",
+      "bookPage": 372,
+      "pdfPageStart": 386,
+      "pdfPageEnd": 406,
+      "file": "60-원도통설.json",
+      "status": "done",
+      "flags": [
+        "경계 실측 완료: 본문 책 372~388, 練習 389~392 — 목차 표기 정확했음",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 61,
+      "id": "습의규격",
+      "title": "習醫規格",
+      "source": "醫學入門",
+      "author": "明·李梴",
+      "bookPage": 393,
+      "pdfPageStart": 407,
+      "pdfPageEnd": 418,
+      "file": "61-습의규격.json",
+      "status": "done",
+      "flags": [
+        "소자 협주 다수 포함: s5,s8,s9,s10,s17,s20,s25,s30,s33,s57 (포함 여부 사용자 결정 대상)",
+        "s53: 靈精(통행본 零星) 인쇄대로",
+        "s65: 인명 뒤 토 '이' 인쇄대로",
+        "s1·s2·s41·s42·s45·s46·s51·s52·s61 曰: 지면은 日로 보이나 의미상 曰로 최종 확정(원서 오식 판단, 29번과 동일 패턴)",
+        "검증 완료(지면 대조, 曰/日 판정 포함)",
+        "협주 제거: 65→64문장 (s33 전체삭제). s5·s8~s10·s17·s20·s25·s30·s57은 재확인 결과 정상 본문으로 판명, 유지."
+      ]
+    },
+    {
+      "no": 62,
+      "id": "황제내경소문주서",
+      "title": "黃帝內經素問注·序",
+      "source": "黃帝內經素問注",
+      "author": "唐·王冰",
+      "bookPage": 405,
+      "pdfPageStart": 419,
+      "pdfPageEnd": 432,
+      "file": "62-황제내경소문주서.json",
+      "status": "done",
+      "flags": [
+        "s8: 蔵謀 — 자구해·연습 표제어 근거로 蔵 전사",
+        "검증 수정: s15·s27 편명 인용부호(「」) 8곳 복원(지면 확인)"
+      ]
+    },
+    {
+      "no": 63,
+      "id": "상한론원서",
+      "title": "傷寒論·原序",
+      "source": "傷寒論",
+      "author": "漢·張仲景",
+      "bookPage": 419,
+      "pdfPageStart": 433,
+      "pdfPageEnd": 444,
+      "file": "63-상한론원서.json",
+      "status": "done",
+      "flags": [
+        "s6: '持至貴之重器' 뒤 현토 '어늘' 판독(필기 겹침)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 64,
+      "id": "맥경서",
+      "title": "脈經·序",
+      "source": "脈經",
+      "author": "晉·王熙",
+      "bookPage": 431,
+      "pdfPageStart": 445,
+      "pdfPageEnd": 450,
+      "file": "64-맥경서.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: s6 末→未(자구해 불일치, 지면 인쇄 우선)"
+      ]
+    },
+    {
+      "no": 65,
+      "id": "침구갑을경서",
+      "title": "針灸甲乙經·序",
+      "source": "針灸甲乙經",
+      "author": "晉·皇甫謐",
+      "bookPage": 437,
+      "pdfPageStart": 451,
+      "pdfPageEnd": 458,
+      "file": "65-침구갑을경서.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 66,
+      "id": "동의보감서문",
+      "title": "東醫寶鑑·序文",
+      "source": "東醫寶鑑",
+      "author": "李廷龜",
+      "bookPage": 445,
+      "pdfPageStart": 459,
+      "pdfPageEnd": 466,
+      "file": "66-동의보감서문.json",
+      "status": "done",
+      "flags": [
+        "s3: 其與靈樞本旨 — 통행본 靈素와 다름, 인쇄대로",
+        "검증 수정: s16 採→探"
+      ]
+    },
+    {
+      "no": 67,
+      "id": "동의보감집례",
+      "title": "東醫寶鑑·集例",
+      "source": "東醫寶鑑",
+      "author": "許浚",
+      "bookPage": 453,
+      "pdfPageStart": 467,
+      "pdfPageEnd": 471,
+      "file": "67-동의보감집례.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: s4 토 에→이 (지면 1200dpi 확인)",
+        "검증 수정: s4 에→이(지면 확인, 반영 완료)"
+      ]
+    },
+    {
+      "no": 68,
+      "id": "방약합편원인",
+      "title": "方藥合編·源因",
+      "source": "方藥合編",
+      "author": "黃泌秀",
+      "bookPage": 458,
+      "pdfPageStart": 472,
+      "pdfPageEnd": 476,
+      "file": "68-방약합편원인.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(전수 지면 대조)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 69,
+      "id": "의원론",
+      "title": "醫源論",
+      "source": "東醫壽世保元",
+      "author": "李濟馬",
+      "bookPage": 463,
+      "pdfPageStart": 477,
+      "pdfPageEnd": 482,
+      "file": "69-의원론.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(전수 지면 대조)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 70,
+      "id": "권학문우성사설",
+      "title": "勸學文, 偶成, 師說",
+      "source": "古文眞寶 외",
+      "author": "宋·黃堅",
+      "bookPage": 469,
+      "pdfPageStart": 483,
+      "pdfPageEnd": 484,
+      "file": "70-권학문우성사설.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(전수 지면 대조)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 71,
+      "id": "종수곽탁타전",
+      "title": "種樹郭橐駝傳",
+      "source": "古文眞寶",
+      "author": "柳宗元",
+      "bookPage": 471,
+      "pdfPageStart": 485,
+      "pdfPageEnd": 488,
+      "file": "71-종수곽탁타전.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(전수 지면 대조)",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 72,
+      "id": "태극도설",
+      "title": "太極圖說",
+      "source": "性理大典",
+      "author": "宋·周敦頤",
+      "bookPage": 475,
+      "pdfPageStart": 489,
+      "pdfPageEnd": 492,
+      "file": "72-태극도설.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 73,
+      "id": "주역삼조",
+      "title": "周易 三條",
+      "source": "周易·繫辭傳",
+      "author": "",
+      "bookPage": 479,
+      "pdfPageStart": 493,
+      "pdfPageEnd": 496,
+      "file": "73-주역삼조.json",
+      "status": "done",
+      "flags": [
+        "s10: 토 '니' 확대 판독(학생 원표시 겹침)",
+        "s11: 百性 — 통행본 百姓, 인쇄대로 性",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 74,
+      "id": "노자삼장",
+      "title": "老子 三章",
+      "source": "老子",
+      "author": "",
+      "bookPage": 483,
+      "pdfPageStart": 497,
+      "pdfPageEnd": 500,
+      "file": "74-노자삼장.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 75,
+      "id": "논어십조",
+      "title": "論語 十條",
+      "source": "論語",
+      "author": "",
+      "bookPage": 487,
+      "pdfPageStart": 501,
+      "pdfPageEnd": 504,
+      "file": "75-논어십조.json",
+      "status": "done",
+      "flags": [
+        "s3: 구두점 필기 가림 — 문맥상 쉼표",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 76,
+      "id": "소요유",
+      "title": "逍遙遊",
+      "source": "莊子",
+      "author": "",
+      "bookPage": 491,
+      "pdfPageStart": 505,
+      "pdfPageEnd": 512,
+      "file": "76-소요유.json",
+      "status": "done",
+      "flags": [
+        "s15: 宿舂糧 — 활자 春 흡사, 문맥상 舂",
+        "s7/s24: 扶遙·扶搖 지면 표기 상이를 인쇄대로 반영",
+        "검증 통과(지면 대조) — 舂/春 기존 판독 유지 확인"
+      ]
+    },
+    {
+      "no": 77,
+      "id": "부양론",
+      "title": "扶陽論",
+      "source": "素問大要·素問附說",
+      "author": "李圭晙",
+      "bookPage": 499,
+      "pdfPageStart": 513,
+      "pdfPageEnd": 518,
+      "file": "77-부양론.json",
+      "status": "done",
+      "flags": [
+        "검증 수정: s18 이니→이라"
+      ]
+    },
+    {
+      "no": 78,
+      "id": "기혈론",
+      "title": "氣血論",
+      "source": "素問大要·素問附說",
+      "author": "李圭晙",
+      "bookPage": 505,
+      "pdfPageStart": 519,
+      "pdfPageEnd": 524,
+      "file": "78-기혈론.json",
+      "status": "done",
+      "flags": [
+        "s6: 上下和 뒤 토 '하고' 판독(필기 가림)",
+        "s18: 본문 擬 vs 자구해 凝 — 본문대로 擬",
+        "검증 통과(지면 대조)"
+      ]
+    },
+    {
+      "no": 79,
+      "id": "신유양장변",
+      "title": "腎有兩藏辨",
+      "source": "素問大要·素問附說",
+      "author": "李圭晙",
+      "bookPage": 511,
+      "pdfPageStart": 525,
+      "pdfPageEnd": 528,
+      "file": "79-신유양장변.json",
+      "status": "done",
+      "flags": [
+        "검증 통과(지면 대조)"
+      ]
+    }
+  ]
+}

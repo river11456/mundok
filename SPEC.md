@@ -1,6 +1,6 @@
 # SPEC.md — 文讀 기능·데이터 명세 (as-is)
 
-> **기준**: v1.19.2 + 미커밋 작업(해석 순서 `interp`, 교재 스테이징 `src/data/textbook/`). 2026-07-29 전수 조사.
+> **기준**: v1.19.2 + 미커밋 작업(해석 순서 `interp`). 2026-07-29 전수 조사 — 교재 스테이징은 2026-07-31 정리됨(4.1절).
 >
 > **문서 역할 구분** — 겹치지 않게 유지할 것:
 > | 문서 | 답하는 질문 |
@@ -142,11 +142,10 @@
 | `src/data/_groups.json` | 1 | 선반 + 참고문헌 관계 | `GroupsJSON` | Content(조직화) |
 | `catalog/*.json` | 73 | 다운로드 배포 문헌 | `DocJSON` (+`version`) | Content |
 | `dist/catalog/index.json` | 빌드 산출 | 카탈로그 목록 | `{docs:[{id,title,sub,color,version,cards}]}` | Content |
-| `src/data/textbook/*.json` | 75 | **미커밋** — 교재 OCR 스테이징 | `DocJSON` (파일명 `NN-<id>.json`) | 파이프라인 중간물 |
-| `src/data/textbook/_manifest.json` | 1 | **미커밋** — 출처 메타 (원전·저자·교재 지면·PDF 페이지·검증 status) | 독자 스키마 | 파이프라인 중간물 |
-| `src/data/textbook/*.pdf` | 1 (123MB) | 원본 OCR PDF — `.gitignore`의 `*.pdf`로 제외됨 ✅ | — | — |
+| `src/data/textbook/_manifest.json` | 1 | 교재 79문헌 출처 메타 — 원전·저자·교재 지면·PDF 페이지·검증 status, skipped 6건(베이킹 중복) 판단 기록 포함 | 독자 스키마 | Content(메타) |
 
-- `src/data/textbook/`은 **런타임에 로드되지 않는다**: `docs.ts`의 glob이 `./data/*.json`이라 하위 디렉터리를 타지 않고, `lint-data.mjs`도 `src/data` 최상위만 스캔한다. 스테이징 영역이다.
+- `src/data/textbook/`은 **런타임에 로드되지 않는다**: `docs.ts`의 glob이 `./data/*.json`이라 하위 디렉터리를 타지 않고, `lint-data.mjs`도 `src/data` 최상위만 스캔한다.
+- 스테이징 정리(2026-07-31): JSON 사본 73개는 catalog와 전수 대조(id·title·sub·levels 동일, catalog 쪽 `order`만 추가) 후 삭제, OCR PDF는 `~/Documents/문독-원본PDF/` 이동(체크섬 검증). `_manifest.json`만 커밋 보존 — DocJSON 이전은 v2에서(P9).
 - `catalog/`는 `lint-data.mjs`가 `src/data/`와 같은 규칙으로 검사한다 (+`id`=파일명, `version`≥1 정수).
 
 ### 4.2 localStorage (사용자 소유) — 전 9종
@@ -206,7 +205,7 @@
 
 | # | 문제 | 근거 | 영향 |
 |---|---|---|---|
-| **P1** | **콘텐츠 정본 4곳** — `src/data/`(8) · `catalog/`(73) · `src/data/textbook/`(75 스테이징) · `user-docs`(설치본) | 4.1 | 같은 문헌이 파이프라인 단계마다 사본. 승격·동기화 규칙이 코드에 없고 수동 |
+| **P1** | **콘텐츠 정본 3곳** — `src/data/`(8) · `catalog/`(73) · `user-docs`(설치본). textbook 스테이징 사본은 2026-07-31 정리 | 4.1 | 같은 문헌이 단계마다 사본(카탈로그↔설치본 등). 승격·동기화 규칙이 코드에 없고 수동 |
 | **P2** | **편집 경로 2종** — 베이킹 문헌은 텍스트 키 델타, 사용자 문헌은 id 직접 | 3.2, `types.ts:44,55` | 2026-06-30에 해소한 "텍스트=식별자" 버그가 델타 경로에만 잔존 (Phase 4b 보류). 텍스트 수정 시 문법·해석 고아화 — `docs-merge.ts:65` 주석이 "알려진 한계"로 명시 |
 | **P3** | **Progress가 `Store` 밖** | 4.2, `localStorage` 직접 22곳 | `BackendStore` 하나 추가로 동기화된다는 설계 의도가 성립하지 않음 |
 | **P4** | **전역 id 없음** — `docId`=한글 파일명 / `u{n}`, `cardId`=문헌 내 순번, 델타 추가 카드는 합성 id `${docId}_${type}_${text}` | `local.ts:62`, `user-docs.ts:19` | 다기기·다사용자에서 충돌. 카탈로그 업데이트를 머지할 수 없어 통째 교체 |
@@ -214,7 +213,7 @@
 | **P6** | **Progress가 스칼라** — 카드별 `fail_count` 하나 | 4.2 | 언제·어떻게 틀렸는지 이력이 없어 SRS·통계·취약점 분석 전부 불가. 나중에 도입하면 과거 기록 소실 |
 | **P7** | **카탈로그 업데이트 = 통째 교체** | `user-docs.ts:137`, `catalog.ts:131` | 사용자 수정분 소실을 confirm으로 경고할 뿐. 3-way 머지 불가 |
 | **P8** | **조직화가 관리자 전유** | 3.4, `render.ts:413` | 사용자는 자기 서가를 정리할 수 없음. 카탈로그 73개 규모에서 `내 문헌` 선반이 무너짐 |
-| **P9** | **출처 메타 유실** | 4.1 | `_manifest.json`의 원전·저자·교재 지면·검증 status가 `catalog/` DocJSON으로 안 넘어감. `DocJSON`에 해당 필드가 없음 — 상용 서비스에서 표시해야 할 정보 |
+| **P9** | **출처 메타 유실** | 4.1 | `_manifest.json`의 원전·저자·교재 지면·검증 status가 `catalog/` DocJSON으로 안 넘어감. `DocJSON`에 해당 필드가 없음 — 상용 서비스에서 표시해야 할 정보. (`_manifest.json`은 2026-07-31 커밋 보존 — 스키마 이전은 v2에서) |
 | **P10** | **완성도 표현 없음** | 6절 | 카탈로그 2,119장 전부 공란인데 목록은 장수만 노출 |
 | **P11** | 드릴다운이 매 렌더 substring 추측 | 5절, `render.ts:149` | `drill` 필드는 스키마에 있으나 미사용. 데이터 늘면 오매칭·비용 증가 |
 | **P12** | 문서 stale — `mode` 화면 | 2절 | PROGRESS의 화면 흐름이 실제와 다름 (README에는 화면 흐름 서술 없음 — 2026-07-31 확인) |

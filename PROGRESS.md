@@ -31,14 +31,14 @@
 ### 미커밋 작업 (워킹트리, 2026-07-31 현재)
 
 - **해석 순서(interp) 기능** — 편집(文 메뉴 `해석 순서 편집`, 드래그 토글)·재생(카드 도구 ▶). 신규 `src/interp.ts`·`src/interp-play.ts`·`test/interp.test.ts` + 15개 파일 수정(서버 API `save-interp`·스토리지·렌더·데이터 1건 포함). 정적 모드 델타는 `userdata.interp`(cardFront 키). **검증 후 커밋 필요** (v1.20.0 후보)
-- **`src/data/textbook/`** — 교재 OCR 스테이징 73문헌 + `_manifest.json`(출처 메타). catalog/ 승격 완료로 역할 종료 — 단 `_manifest.json`의 원전·저자·교재 지면·검증 status는 **유일본**(SPEC P9), 카탈로그 스키마로 이전하기 전 삭제 금지
 
-### 문서 정리 (07-29 ~ 07-31)
+### 문서·스테이징 정리 (07-29 ~ 07-31)
 
 - `SPEC.md` 작성(07-29 as-is 전수 조사)·편입 — 구조 문제 P1~P12, v2 방향(8절) 확정
 - `IMPROVEMENTS.md` 삭제 — 전 항목 완료 (잔여 '문독.bat Windows 검증'은 폐기). 개선 항목 관리는 SPEC 7절로 일원화
 - PROGRESS를 세션 로그 전용으로 축소 — 과거 로그는 `PROGRESS-archive.md` 분리, stale 참조 섹션(파일 구조·스키마·기능·단축키) 삭제
 - `ROADMAP.md` 재작성·`RENEWAL.md` 삭제 — 계획 문서 일원화 (미착수 D·E는 ROADMAP Phase 3·4로 이식). **8월 우선순위 확정**(사용자): Phase 3·4 → 동결·베타 유지, v2는 8월 설계만·구현은 개강 후. **2.0.0 기준 변경**: 리뉴얼 완료 시 → v2 완성 시 (CLAUDE.md 예외 조항 폐기)
+- `src/data/textbook/` 스테이징 정리 — JSON 사본 73개는 catalog와 전수 대조(동일 확인) 후 삭제, OCR PDF(123MB)는 `~/Documents/문독-원본PDF/` 이동(체크섬 검증). **`_manifest.json`(79문헌 출처 메타 — skipped 6건 판단 기록 포함 유일본)만 커밋 보존**, DocJSON 스키마 이전은 v2에서 (SPEC P9)
 
 ### 다음 후보
 
