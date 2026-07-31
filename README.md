@@ -63,7 +63,7 @@ git push
 
 푸시하면 GitHub Actions가 자동으로 빌드하여 GitHub Pages에 배포합니다 (약 1~2분 후 반영).
 
-> **새 문헌 추가**: JSON 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. JSON 스키마는 `PROGRESS.md` 참고.
+> **새 문헌 추가**: JSON 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. JSON 스키마는 `src/types.ts`의 `DocJSON`(정본)과 `SPEC.md` 4절 참고.
 
 > **원본 PDF**: 문헌 원본 PDF(참고용, 8.4MB)는 저장소 용량 문제로 git에서 분리해 관리자 로컬 `~/Documents/문독-원본PDF/`에 보관합니다 (2026-07-08, git 히스토리에서도 제거).
 
