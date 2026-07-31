@@ -39,6 +39,7 @@
 - PROGRESS를 세션 로그 전용으로 축소 — 과거 로그는 `PROGRESS-archive.md` 분리, stale 참조 섹션(파일 구조·스키마·기능·단축키) 삭제
 - `ROADMAP.md` 재작성·`RENEWAL.md` 삭제 — 계획 문서 일원화 (미착수 D·E는 ROADMAP Phase 3·4로 이식). **8월 우선순위 확정**(사용자): Phase 3·4 → 동결·베타 유지, v2는 8월 설계만·구현은 개강 후. **2.0.0 기준 변경**: 리뉴얼 완료 시 → v2 완성 시 (CLAUDE.md 예외 조항 폐기)
 - `src/data/textbook/` 스테이징 정리 — JSON 사본 73개는 catalog와 전수 대조(동일 확인) 후 삭제, OCR PDF(123MB)는 `~/Documents/문독-원본PDF/` 이동(체크섬 검증). **`_manifest.json`(79문헌 출처 메타 — skipped 6건 판단 기록 포함 유일본)만 커밋 보존**, DocJSON 스키마 이전은 v2에서 (SPEC P9)
+- `문독.bat` 삭제 — Windows 런처 폐기(사용자 결정), 관리자 저작은 macOS `문독.command` 단일 경로
 
 ### 다음 후보
 
