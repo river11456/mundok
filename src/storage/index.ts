@@ -1,5 +1,6 @@
 import type { Store } from './types';
 import { LocalStore } from './local';
+import { V3_DOCS_KEY, V3_SESSION_KEY, V3_PREFS_KEY } from '../migrate-v1';
 
 export type { Store } from './types';
 
@@ -20,15 +21,15 @@ export function store(): Store {
 }
 
 // ── 백업: 내보내기 / 가져오기 (사용자 데이터 보험) ────────────────────────
-//   과도기(백업 포맷 v2, S3에서 v3로 교체 예정):
-//   - 내보내기: 구 hanja-v2/*(Progress·구키) + mundok-v3/*(콘텐츠) 모두 담는다
-//   - 가져오기: v3 콘텐츠가 없는 백업(v1 시절)이면 mundok-v3/*를 지워
-//     다음 로드에서 재마이그레이션되게 한다 (SPEC 9절 단계 7)
+//   포맷 v3 (SPEC 3.5) — 3계층이 그대로 드러난다:
+//     { version: 3, exportedAt, content: { docs }, progress: { logs, session }, preference }
+//   가져오기 호환: v3 / v2(hanja-v2 키 덤프 — v1 상태 복원 후 재마이그레이션, SPEC 9절 7단계)
+//   / 구 단일 userdata 객체.
 
 const V1_PREFIX = 'hanja-v2/';
 const V3_PREFIX = 'mundok-v3/';
+const V3_LOG_PREFIX = 'mundok-v3/log/';
 const V1_USERDATA_KEY = 'hanja-v2/userdata';
-const BACKUP_VERSION = 2;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -54,13 +55,28 @@ function validateUserData(d: unknown): void {
   }
 }
 
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T : null;
+  } catch {
+    return null;
+  }
+}
+
 export function exportUserData(): void {
-  const keys: Record<string, string> = {};
+  const logs: Record<string, unknown> = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k && (k.startsWith(V1_PREFIX) || k.startsWith(V3_PREFIX))) keys[k] = localStorage.getItem(k) ?? '';
+    if (k?.startsWith(V3_LOG_PREFIX)) logs[k.slice(V3_LOG_PREFIX.length)] = readJson(k) ?? [];
   }
-  const backup = { version: BACKUP_VERSION, exportedAt: new Date().toISOString(), keys };
+  const backup = {
+    version:    3,
+    exportedAt: new Date().toISOString(),
+    content:    { docs: readJson(V3_DOCS_KEY) ?? [] },
+    progress:   { logs, session: readJson(V3_SESSION_KEY) },
+    preference: readJson(V3_PREFS_KEY) ?? {},
+  };
   const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -83,7 +99,37 @@ export async function importUserData(file: File): Promise<void> {
   const text = await file.text();
   const d    = JSON.parse(text) as unknown;
 
-  if (isPlainObject(d) && d.version === BACKUP_VERSION) {
+  // v3 — 3계층 구조 (현행)
+  if (isPlainObject(d) && d.version === 3) {
+    const content = d.content;
+    const progress = isPlainObject(d.progress) ? d.progress : {};
+    if (!isPlainObject(content) || !Array.isArray(content.docs)) {
+      throw new Error('백업 파일 형식이 올바르지 않습니다 (content.docs).');
+    }
+    for (const doc of content.docs) {
+      if (!isPlainObject(doc) || typeof doc.id !== 'string' || !isPlainObject(doc.levels)) {
+        throw new Error('백업 파일 형식이 올바르지 않습니다 (문헌 항목).');
+      }
+    }
+    const logs = isPlainObject(progress.logs) ? progress.logs : {};
+    for (const ev of Object.values(logs)) {
+      if (!Array.isArray(ev)) throw new Error('백업 파일 형식이 올바르지 않습니다 (리뷰 로그).');
+    }
+    clearV3Keys();
+    localStorage.setItem(V3_DOCS_KEY, JSON.stringify(content.docs));
+    for (const [docId, ev] of Object.entries(logs)) {
+      localStorage.setItem(`${V3_LOG_PREFIX}${docId}`, JSON.stringify(ev));
+    }
+    // session은 반드시 기록 — 재마이그레이션 가드가 기기 잔재를 되살리지 않게
+    localStorage.setItem(V3_SESSION_KEY, JSON.stringify(
+      isPlainObject(progress.session) ? progress.session : { last: null, streak: { lastDate: '', count: 0, todayCards: 0 } },
+    ));
+    localStorage.setItem(V3_PREFS_KEY, JSON.stringify(isPlainObject(d.preference) ? d.preference : {}));
+    return;
+  }
+
+  // v2 — hanja-v2/* 키 덤프 (v1 시절) → v1 상태 복원 후 재마이그레이션
+  if (isPlainObject(d) && d.version === 2) {
     const keys = d.keys;
     if (!isPlainObject(keys)) throw new Error('백업 파일 형식이 올바르지 않습니다.');
     for (const [k, v] of Object.entries(keys)) {
