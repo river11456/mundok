@@ -22,56 +22,29 @@
 소중한 내용은 화면 **왼쪽 아래 ⤓ 버튼 → "내 데이터 내보내기"** 로 백업해 두세요.
 기기를 바꿀 때는 같은 메뉴의 "가져오기"로 복원할 수 있습니다.
 
-> 관리자가 배포하는 기본 콘텐츠(문헌·카드)는 항상 최신 상태로 자동 제공되며 사라지지 않습니다.
+> 문헌은 홈의 **문헌 받기**(카탈로그)에서 내려받거나 직접 만들 수 있습니다. 받은 문헌도 자유롭게 고칠 수 있고, 업데이트가 오면 직접 수정한 카드는 보존됩니다.
 
 ---
 
-## 콘텐츠 저작 (관리자 전용)
+## 콘텐츠 저작·승격 (관리자)
 
-새 문헌·카드를 추가하거나 기존 콘텐츠를 수정하려면 로컬에서 저작 도구를 실행합니다.
-저작 결과는 `src/data/*.json`(문헌별 단일 진실)에 직접 기록되고, `git push` 하면 자동으로 배포됩니다.
+v2부터 별도 저작 모드가 없습니다 — 관리자도 앱에서는 일반 사용자와 똑같이 저작합니다 (`SPEC.md` 공리 4).
 
-### 준비물
+1. **저작**: 앱(배포본 또는 `npm run dev`)에서 문헌을 만들고 카드·문법·해석 순서를 다듬는다.
+2. **내보내기**: 문헌 상세 오버레이 → **내보내기** — `<문헌id>.json` 다운로드.
+3. **승격**: `node scripts/promote.mjs <내보낸.json>` — 유저 전용 필드 정리 + version 증가 + lint 검사 후 `catalog/<id>.json` 배치.
+4. **배포**: `node scripts/lint-data.mjs` 확인 → `git add catalog && git commit && git push` → GitHub Actions가 자동 배포 (약 1~2분).
 
-- Git, Python 3, Node.js (LTS)
-
-### 1. 내려받기
-
-```
-git clone https://github.com/river11456/mundok.git ~/문독
-cd ~/문독
-npm install
-```
-
-### 2. 저작 도구 실행
-
-- macOS: `문독.command` 더블클릭 (또는 터미널에서 `python3 server.py`)
-
-브라우저가 열리고, 서버가 떠 있는 동안에는 카드 추가/수정/삭제·문법 표시가 **파일에 저장**됩니다.
-(서버 없이 그냥 위 URL로 접속하면 편집 내용은 브라우저에만 저장됩니다.)
-
-### 3. 배포
-
-편집을 마치면 변경분을 커밋·푸시합니다.
-
-```
-git add src/data
-git commit -m "콘텐츠 업데이트"
-git push
-```
-
-푸시하면 GitHub Actions가 자동으로 빌드하여 GitHub Pages에 배포합니다 (약 1~2분 후 반영).
-
-> **새 문헌 추가**: JSON 파일을 `src/data/`에 넣으면 빌드 시 자동 번들링됩니다. JSON 스키마는 `src/types.ts`의 `DocJSON`(정본)과 `SPEC.md` 4절 참고.
-
-> **원본 PDF**: 문헌 원본 PDF(참고용, 8.4MB)는 저장소 용량 문제로 git에서 분리해 관리자 로컬 `~/Documents/문독-원본PDF/`에 보관합니다 (2026-07-08, git 히스토리에서도 제거).
+> **폰트**: 새 문헌에 새 한자가 들어오면 lint가 WARN을 낸다 → `npm run font:subset` 재실행 후 산출물 커밋.
+> **원본 PDF**: 문헌 원본 PDF는 git에서 분리해 관리자 로컬 `~/Documents/문독-원본PDF/`에 보관 (2026-07-08).
 
 ---
 
 ## 배포 구조 (개발자 참고)
 
 - **호스팅**: GitHub Pages (`.github/workflows/deploy.yml` 가 `main` push마다 빌드·배포)
-- **콘텐츠**: `src/data/*.json` (문헌별 단일 진실) → 빌드 시 번들에 베이킹 (서버 불필요)
-- **사용자 편집**: 브라우저 `localStorage` (`src/storage/local.ts`)
-- **저장 추상화**: `src/storage/` — 정적(`LocalStore`) / 관리자 저작(`ServerStore`) 을 인터페이스 뒤로 분리.
+- **콘텐츠 정본**: `catalog/*.json` → 빌드 시 `dist/catalog/`(+`index.json`) 정적 배포. 선반·참고문헌 관계는 `catalog/_collections.json`
+- **유저 공간**: 브라우저 `localStorage` `mundok-v3/*` — 문헌(`docs`)·리뷰 로그(`log/<docId>`)·세션·설정. 문헌은 출처(직접 생성/카탈로그) 무관 동등
+- **저장 추상화**: `src/storage/` — `LocalStore`가 Content·Progress·Preference 3계층 전담.
   향후 백엔드 동기화가 필요하면 `BackendStore` 하나만 추가하면 됩니다.
+- **개발**: `npm run dev` (vite) / 테스트 `npm test` / 빌드 `npm run build` (데이터 lint → tsc → vite)
