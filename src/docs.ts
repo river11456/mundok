@@ -2,7 +2,7 @@ import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON } from './types';
 import { LEVEL_ORDER, LEVEL_LABEL } from './types';
 import { initGrammar } from './grammar';
 import { initStore } from './storage';
-import { migrateV1IfNeeded } from './migrate-v1';
+import { migrateV1IfNeeded, migrateProgressIfNeeded } from './migrate-v1';
 import { loadUserDocs } from './user-docs';
 import collectionsJson from '../catalog/_collections.json';
 
@@ -128,7 +128,8 @@ function collectGrammar(): GrammarEntry[] {
 
 export async function initDocs(): Promise<void> {
   await initStore();
-  migrateV1IfNeeded(V1_BAKED);   // v1 → v3 1회 (신규 사용자는 빈 유저 공간)
+  migrateV1IfNeeded(V1_BAKED);              // v1 → v3 콘텐츠 1회 (신규 사용자는 빈 유저 공간)
+  migrateProgressIfNeeded(loadUserDocs());  // v1 → v3 학습기록·설정 1회
   syncUserDocs();
   initGrammar(collectGrammar());
 }

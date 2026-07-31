@@ -1,9 +1,14 @@
 import type { NewDocInput, Store } from './types';
-import type { UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk } from '../types';
+import type {
+  UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk,
+  ReviewEvent, SessionData, PrefsData,
+} from '../types';
 import {
   createUserDoc,
   userAddCard, userEditCard, userDeleteCard, userSaveGrammar, userSaveInterp,
 } from '../user-docs';
+import { V3_SESSION_KEY, V3_PREFS_KEY, v3LogKey } from '../migrate-v1';
+import { compact } from '../review-log';
 
 /**
  * 유일한 Store 구현 — 유저 공간(mundok-v3/docs)의 문헌 객체를 카드 id로 직접 수정한다.
@@ -37,5 +42,56 @@ export class LocalStore implements Store {
 
   async saveInterp(docId: string, cardId: string, _cardFront: string, chunks: InterpChunk[]): Promise<void> {
     userSaveInterp(docId, cardId, chunks);
+  }
+
+  // ── Progress ─────────────────────────────────────────────────────────────
+
+  loadLog(docId: string): ReviewEvent[] {
+    try {
+      const arr = JSON.parse(localStorage.getItem(v3LogKey(docId)) ?? '[]') as unknown;
+      return Array.isArray(arr) ? arr as ReviewEvent[] : [];
+    } catch {
+      return [];
+    }
+  }
+
+  appendLog(docId: string, events: ReviewEvent[]): void {
+    const log = compact([...this.loadLog(docId), ...events]);
+    localStorage.setItem(v3LogKey(docId), JSON.stringify(log));
+  }
+
+  deleteLog(docId: string): void {
+    localStorage.removeItem(v3LogKey(docId));
+  }
+
+  loadSession(): SessionData {
+    try {
+      const s = JSON.parse(localStorage.getItem(V3_SESSION_KEY) ?? 'null') as SessionData | null;
+      if (s && typeof s === 'object' && 'streak' in s) return { last: s.last ?? null, streak: s.streak };
+    } catch { /* ignore */ }
+    return { last: null, streak: { lastDate: '', count: 0, todayCards: 0 } };
+  }
+
+  saveSession(s: SessionData): void {
+    localStorage.setItem(V3_SESSION_KEY, JSON.stringify(s));
+  }
+
+  // ── Preference ───────────────────────────────────────────────────────────
+
+  loadPrefs(): PrefsData {
+    try {
+      const p = JSON.parse(localStorage.getItem(V3_PREFS_KEY) ?? 'null') as PrefsData | null;
+      if (p && typeof p === 'object') {
+        return {
+          shelvesCollapsed: Array.isArray(p.shelvesCollapsed) ? p.shelvesCollapsed : [],
+          onboardingSeen:   p.onboardingSeen === true,
+        };
+      }
+    } catch { /* ignore */ }
+    return { shelvesCollapsed: [], onboardingSeen: false };
+  }
+
+  savePrefs(p: PrefsData): void {
+    localStorage.setItem(V3_PREFS_KEY, JSON.stringify(p));
   }
 }

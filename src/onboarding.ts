@@ -1,5 +1,5 @@
 // ── Onboarding ────────────────────────────────────────────
-const OB_KEY = 'hanja-v2/onboarding-seen';
+import { isOnboardingSeen, markOnboardingSeen } from './state';
 
 const OB_SLIDES: { title: string; html: string }[] = [
   {
@@ -120,7 +120,7 @@ export function initOnboarding(): void {
   const panel = overlay.querySelector<HTMLElement>('#ob-panel')!;
   panel.addEventListener('click', e => e.stopPropagation());
   overlay.addEventListener('click', () => {
-    localStorage.setItem(OB_KEY, '1');
+    markOnboardingSeen();
     hideOnboarding();
   });
 
@@ -132,7 +132,7 @@ export function initOnboarding(): void {
       _obIdx++;
       _obRender();
     } else {
-      localStorage.setItem(OB_KEY, '1');
+      markOnboardingSeen();
       hideOnboarding();
     }
   });
@@ -144,11 +144,11 @@ export function initOnboarding(): void {
     if (e.code === 'Space' || e.key === 'ArrowRight') {
       e.preventDefault();
       if (_obIdx < OB_SLIDES.length - 1) { _obIdx++; _obRender(); }
-      else { localStorage.setItem(OB_KEY, '1'); hideOnboarding(); }
+      else { markOnboardingSeen(); hideOnboarding(); }
     } else if (e.key === 'ArrowLeft') {
       if (_obIdx > 0) { _obIdx--; _obRender(); }
     } else if (e.key === 'Escape') {
-      localStorage.setItem(OB_KEY, '1');
+      markOnboardingSeen();
       hideOnboarding();
     }
   });
@@ -167,5 +167,5 @@ export function initOnboarding(): void {
   document.body.appendChild(guide);
 
   // 첫 방문 자동 표시
-  if (!localStorage.getItem(OB_KEY)) showOnboarding();
+  if (!isOnboardingSeen()) showOnboarding();
 }

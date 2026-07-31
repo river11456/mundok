@@ -1,4 +1,4 @@
-import type { CardJSON, DocJSON, LevelKey, UserData } from './types';
+import type { CardJSON, DocJSON, LevelKey, PrefsData, ReviewEvent, SessionData, UserData } from './types';
 
 /**
  * v1 → v3 콘텐츠 마이그레이션 순수 로직 (SPEC 9절).
@@ -16,7 +16,13 @@ import type { CardJSON, DocJSON, LevelKey, UserData } from './types';
  */
 
 export const SCHEMA_VERSION = 3;
-export const V3_DOCS_KEY = 'mundok-v3/docs';
+export const V3_DOCS_KEY    = 'mundok-v3/docs';
+export const V3_SESSION_KEY = 'mundok-v3/session';
+export const V3_PREFS_KEY   = 'mundok-v3/prefs';
+
+export function v3LogKey(docId: string): string {
+  return `mundok-v3/log/${docId}`;
+}
 
 const LEVELS: readonly LevelKey[] = ['char', 'word', 'sentence', 'paragraph'];
 
@@ -178,4 +184,60 @@ export function migrateV1IfNeeded(baked: DocJSON[]): void {
       )
     : [];
   localStorage.setItem(V3_DOCS_KEY, JSON.stringify(docs));
+}
+
+/**
+ * v1 Progress·Preference → v3 1회 마이그레이션 (SPEC 9절 단계 4~5).
+ * 콘텐츠 마이그레이션(위) 이후, 유저 공간 문헌 목록을 받아 실행한다.
+ * - fails 맵 → legacy 이벤트 (카드 id 그대로 — 콘텐츠 쪽 id 보존 원칙과 한 쌍)
+ * - 구구 포맷(Card[] 배열, v1 이전) — front 매칭으로 최종 상속 (구 migrateOldAnki 대체)
+ * - `<lv>_ts`만 있으면 시각 승계 이벤트(card '')로 '최근 학습' 표시를 잇는다
+ * - last-session·streak → session, shelves-collapsed·onboarding-seen → prefs
+ * - 가드: mundok-v3/session 존재 여부 (신규 사용자도 기본값 기록 — 가드 겸용)
+ */
+export function migrateProgressIfNeeded(docs: DocJSON[]): void {
+  if (localStorage.getItem(V3_SESSION_KEY) !== null) return;
+  const now = Date.now();
+
+  for (const d of docs) {
+    const events: ReviewEvent[] = [];
+    for (const lv of LEVELS) {
+      const tsRaw = localStorage.getItem(`${V1_PREFIX}${d.id}/${lv}_ts`);
+      const ts    = (tsRaw ? parseInt(tsRaw) : 0) || now;
+      const fails = readJson<Record<string, number>>(`${V1_PREFIX}${d.id}/${lv}/fails`);
+      if (fails && typeof fails === 'object' && !Array.isArray(fails)) {
+        for (const [card, n] of Object.entries(fails)) {
+          if (typeof n === 'number' && n > 0) events.push({ t: 'legacy', card, lv, ts, fails: n });
+        }
+      } else {
+        const old = readJson<{ front?: string; fail_count?: number }[]>(`${V1_PREFIX}${d.id}/${lv}`);
+        if (Array.isArray(old)) {
+          const idByText = new Map((d.levels[lv] ?? []).map(c => [c.text, c.id]));
+          for (const c of old) {
+            const id = c?.front ? idByText.get(c.front) : undefined;
+            if (id && (c.fail_count ?? 0) > 0) events.push({ t: 'legacy', card: id, lv, ts, fails: c.fail_count! });
+          }
+        }
+      }
+      if (tsRaw && !events.some(e => e.lv === lv)) {
+        events.push({ t: 'legacy', card: '', lv, ts, fails: 0 });   // 학습 시각만 승계
+      }
+    }
+    if (events.length) localStorage.setItem(v3LogKey(d.id), JSON.stringify(events));
+  }
+
+  const last   = readJson<SessionData['last']>(`${V1_PREFIX}last-session`);
+  const streak = readJson<SessionData['streak']>(`${V1_PREFIX}streak`);
+  const session: SessionData = {
+    last:   last ?? null,
+    streak: streak && typeof streak.count === 'number' ? streak : { lastDate: '', count: 0, todayCards: 0 },
+  };
+  localStorage.setItem(V3_SESSION_KEY, JSON.stringify(session));
+
+  const collapsed = readJson<string[]>(`${V1_PREFIX}shelves-collapsed`);
+  const prefs: PrefsData = {
+    shelvesCollapsed: Array.isArray(collapsed) ? collapsed : [],
+    onboardingSeen:   localStorage.getItem(`${V1_PREFIX}onboarding-seen`) === '1',
+  };
+  localStorage.setItem(V3_PREFS_KEY, JSON.stringify(prefs));
 }

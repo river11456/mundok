@@ -1,4 +1,4 @@
-import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
@@ -167,6 +167,7 @@ export function setupClick(): void {
         if (!id || !doc) break;
         if (!confirm(`'${doc.title}' 문헌을 삭제합니다.\n\n카드와 학습 기록이 모두 지워지며 복구할 수 없습니다. 계속하시겠습니까?`)) break;
         deleteUserDoc(id);
+        deleteDocProgress(id);
         syncUserDocs();
         S.docOverlay = null;
         render();

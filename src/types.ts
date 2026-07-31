@@ -100,6 +100,39 @@ export interface InterpEntry {
   chunks: InterpChunk[];
 }
 
+// ── Progress·Preference (SPEC 2.4, 4.2) ─────────────────────────────────
+
+/**
+ * 학습 이벤트 — 문헌별 append-only 리뷰 로그 (mundok-v3/log/<docId>).
+ * 파생값(오답 수·최근 학습)은 review-log.ts가 계산한다. SRS 도입 시에도 과거가 남는다.
+ */
+export type ReviewEvent =
+  | { t: 'anki';   card: string; lv: LevelKey; ts: number; grade: 1 | 2 | 3 }
+  | { t: 'seq';    card: string; lv: LevelKey; ts: number }                    // 순차 첫 플립
+  | { t: 'legacy'; card: string; lv: LevelKey; ts: number; fails: number }     // v1 fail_count 승계 (card '' = 시각만)
+  | { t: 'reset';  lv: LevelKey; ts: number };                                 // 안키 기록 초기화 (Ctrl+Shift+R)
+
+export interface LastSession {
+  docId: string;
+  lvKey: LevelKey;
+  mode:  Mode;
+  idx:   number;   // seq: 현재 카드 인덱스 / anki: 완료 장수 (표시용)
+  total: number;
+  ts:    number;
+}
+
+export interface StreakData { lastDate: string; count: number; todayCards: number; }
+
+export interface SessionData {
+  last:   LastSession | null;
+  streak: StreakData;
+}
+
+export interface PrefsData {
+  shelvesCollapsed: string[];
+  onboardingSeen:   boolean;
+}
+
 // ── 문헌별 JSON 콘텐츠 스키마 (CSV + userdata.json 통합본) ──────────────
 //   src/data/<문헌>.json 의 형태. 안정적 카드 id를 1급 시민으로 갖는다.
 

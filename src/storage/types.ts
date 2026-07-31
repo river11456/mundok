@@ -1,4 +1,7 @@
-import type { UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey } from '../types';
+import type {
+  UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey,
+  ReviewEvent, SessionData, PrefsData,
+} from '../types';
 
 /** 문헌 추가 마법사 입력 — texts가 비면 빈 문헌 */
 export interface NewDocInput {
@@ -33,4 +36,17 @@ export interface Store {
   saveGrammar(docId: string, cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void>;
   /** 해석 순서 청크 저장 (sentence 전용). 빈 배열이면 제거. */
   saveInterp(docId: string, cardId: string, cardFront: string, chunks: InterpChunk[]): Promise<void>;
+
+  // ── Progress — 리뷰 로그(문헌별 append-only)·세션 (SPEC 2.4, 4.2) ────────
+  //   동기 메서드: localStorage가 동기라 UI(렌더 경로)를 단순하게 유지한다.
+  //   BackendStore는 로컬 캐시 + write-behind 업로드로 같은 계약을 구현할 것.
+  loadLog(docId: string): ReviewEvent[];
+  appendLog(docId: string, events: ReviewEvent[]): void;
+  deleteLog(docId: string): void;
+  loadSession(): SessionData;
+  saveSession(s: SessionData): void;
+
+  // ── Preference ───────────────────────────────────────────────────────────
+  loadPrefs(): PrefsData;
+  savePrefs(p: PrefsData): void;
 }

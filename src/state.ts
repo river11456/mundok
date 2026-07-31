@@ -1,7 +1,10 @@
-import type { Card, Doc, Level, LevelKey, Mode, Screen, Side } from './types';
+import type { Card, Doc, Level, Mode, Screen, Side, LastSession, ReviewEvent } from './types';
 import { DOCS } from './docs';
+import { store } from './storage';
+import { deriveFails, lastTs } from './review-log';
 
 export { DOCS };
+export type { LastSession };
 
 export const S = {
   scr:        'home' as Screen,
@@ -41,99 +44,66 @@ export const DRILL_LEVELS: Record<string, string[]> = {
   word:      ['char'],
 };
 
-const LS = 'hanja-v2';
-
 export function curDoc(): Doc {
   return DOCS.find(d => d.id === S.docId)!;
 }
 
-/** 안키 진행 상태의 베이스 키. 접미사를 붙여 파생 키를 만든다. */
-export function lsKey(): string {
-  return `${LS}/${S.docId}/${S.lv!.key}`;
+// ── Progress — 리뷰 로그 경유 (SPEC 2.4). localStorage 직접 접근 금지 — Store가 전담. ──
+
+/** 문헌별 최근 학습 시각 캐시 — 홈 렌더마다 로그 전체 파싱을 피한다. append 시 무효화. */
+const lastStudiedCache = new Map<string, number>();
+
+function appendLog(events: ReviewEvent[]): void {
+  if (!S.docId) return;
+  store().appendLog(S.docId, events);
+  lastStudiedCache.delete(S.docId);
 }
 
-/** 카드 id → fail_count 맵 저장 키. 카드 수·순서 변화에 견고. */
-function failKey(): string {
-  return `${lsKey()}/fails`;
-}
-
-type FailMap = Record<string, number>;
-
-function readFails(): FailMap | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(failKey()) ?? 'null') as unknown;
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw as FailMap;
-  } catch { /* ignore */ }
-  return null;
-}
-
-/**
- * 구 포맷(Card[] 배열, `개수 일치` 방식)을 1회 마이그레이션.
- * front 매칭으로 fail_count 를 카드 id 맵으로 옮긴 뒤 구 키를 제거한다.
- */
-function migrateOldAnki(cards: Card[]): FailMap {
-  const fails: FailMap = {};
-  try {
-    const old = JSON.parse(localStorage.getItem(lsKey()) ?? 'null') as unknown;
-    if (Array.isArray(old)) {
-      const byFront = new Map<string, number>();
-      for (const c of old as Card[]) if (c?.front && c.fail_count > 0) byFront.set(c.front, c.fail_count);
-      for (const c of cards) { const f = byFront.get(c.front); if (f) fails[c.id] = f; }
-    }
-  } catch { /* ignore */ }
-  localStorage.removeItem(lsKey());                       // 구 배열 키 정리
-  localStorage.setItem(failKey(), JSON.stringify(fails)); // 이후엔 readFails 가 성공 → 1회만 실행
-  return fails;
-}
-
+/** 카드 목록에 리뷰 로그에서 파생한 오답 수를 입힌다 (안키 큐 재구성용). */
 export function loadAnki(cards: Card[]): Card[] {
-  const fails = readFails() ?? migrateOldAnki(cards);
+  const fails = deriveFails(store().loadLog(S.docId!), S.lv!.key);
   return cards.map(c => ({ ...c, fail_count: fails[c.id] ?? 0 }));
 }
 
-/** 홈 화면 "최근 학습" 표시용 타임스탬프만 갱신(안키 fail_count는 건드리지 않음). 순차 모드에서 사용. */
+/** 안키 난이도 평가 기록 — fail_count 파생의 원천 이벤트. */
+export function recordRating(card: Card, grade: 1 | 2 | 3): void {
+  appendLog([{ t: 'anki', card: card.id, lv: S.lv!.key, ts: Date.now(), grade }]);
+}
+
+/** 순차 모드 첫 플립 — 학습 흔적 기록 (홈 '최근 학습' 표시의 원천). */
 export function touchLastStudied(): void {
-  localStorage.setItem(lsKey() + '_ts', Date.now().toString());
+  const card = S.lv?.cards[S.seqIdx];
+  if (!card) return;
+  appendLog([{ t: 'seq', card: card.id, lv: S.lv!.key, ts: Date.now() }]);
 }
 
-export function persist(): void {
-  const fails: FailMap = {};
-  for (const c of S.allCards) if (c.fail_count > 0) fails[c.id] = c.fail_count;
-  localStorage.setItem(failKey(), JSON.stringify(fails));
-  touchLastStudied();
-}
-
-/** 안키 기록 초기화 (Ctrl+Shift+R). */
+/** 안키 기록 초기화 (Ctrl+Shift+R) — 리셋 이벤트를 남긴다 (append-only). */
 export function resetAnki(): void {
-  localStorage.removeItem(failKey());
+  appendLog([{ t: 'reset', lv: S.lv!.key, ts: Date.now() }]);
+}
+
+/** 문헌 삭제 시 리뷰 로그 정리 (events.ts doc-delete가 호출). */
+export function deleteDocProgress(docId: string): void {
+  store().deleteLog(docId);
+  lastStudiedCache.delete(docId);
 }
 
 // ── Per-doc last-studied date ─────────────────────────────
 export function getDocLastStudied(docId: string): string | null {
-  let latest = 0;
-  for (const key of ['char', 'word', 'sentence', 'paragraph']) {
-    const ts = parseInt(localStorage.getItem(`${LS}/${docId}/${key}_ts`) ?? '0');
-    if (ts > latest) latest = ts;
+  let ts = lastStudiedCache.get(docId);
+  if (ts === undefined) {
+    ts = lastTs(store().loadLog(docId));
+    lastStudiedCache.set(docId, ts);
   }
-  if (!latest) return null;
-  return new Date(latest).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+  if (!ts) return null;
+  return new Date(ts).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
-// ── 이어서 학습 (A3) — 마지막 학습 위치를 저장해 홈 히어로에서 원터치 복귀 ──
-const LAST_KEY = `${LS}/last-session`;
-
-export interface LastSession {
-  docId: string;
-  lvKey: LevelKey;
-  mode:  Mode;
-  idx:   number;   // seq: 현재 카드 인덱스 / anki: 완료 장수 (표시용)
-  total: number;
-  ts:    number;
-}
+// ── 이어서 학습 — 마지막 학습 위치를 저장해 홈 히어로에서 원터치 복귀 ──
 
 export function saveLastSession(): void {
   if (!S.docId || !S.lv || !S.mode) return;
-  const s: LastSession = {
+  const last: LastSession = {
     docId: S.docId,
     lvKey: S.lv.key,
     mode:  S.mode,
@@ -141,39 +111,40 @@ export function saveLastSession(): void {
     total: S.mode === 'seq' ? S.lv.cards.length : S.total,
     ts:    Date.now(),
   };
-  localStorage.setItem(LAST_KEY, JSON.stringify(s));
+  const s = store().loadSession();
+  store().saveSession({ ...s, last });
 }
 
 export function getLastSession(): LastSession | null {
-  try {
-    const d = JSON.parse(localStorage.getItem(LAST_KEY) ?? 'null') as LastSession | null;
-    if (d && typeof d.docId === 'string' && typeof d.lvKey === 'string'
-      && (d.mode === 'seq' || d.mode === 'anki') && typeof d.idx === 'number') return d;
-  } catch { /* ignore */ }
+  const d = store().loadSession().last;
+  if (d && typeof d.docId === 'string' && typeof d.lvKey === 'string'
+    && (d.mode === 'seq' || d.mode === 'anki') && typeof d.idx === 'number') return d;
   return null;
 }
 
-// ── 선반(그룹) 접기 상태 (A1) ─────────────────────────────
-const SHELF_KEY = `${LS}/shelves-collapsed`;
-
+// ── 선반(그룹) 접기 상태 ─────────────────────────────────
 export function collapsedShelves(): Set<string> {
-  try {
-    const a = JSON.parse(localStorage.getItem(SHELF_KEY) ?? '[]');
-    if (Array.isArray(a)) return new Set(a.filter((x): x is string => typeof x === 'string'));
-  } catch { /* ignore */ }
-  return new Set();
+  return new Set(store().loadPrefs().shelvesCollapsed);
 }
 
 export function toggleShelf(id: string): void {
-  const s = collapsedShelves();
+  const p = store().loadPrefs();
+  const s = new Set(p.shelvesCollapsed);
   if (s.has(id)) s.delete(id); else s.add(id);
-  localStorage.setItem(SHELF_KEY, JSON.stringify([...s]));
+  store().savePrefs({ ...p, shelvesCollapsed: [...s] });
+}
+
+// ── 온보딩 ────────────────────────────────────────────────
+export function isOnboardingSeen(): boolean {
+  return store().loadPrefs().onboardingSeen;
+}
+
+export function markOnboardingSeen(): void {
+  store().savePrefs({ ...store().loadPrefs(), onboardingSeen: true });
 }
 
 // ── Daily streak ──────────────────────────────────────────
-const STREAK_KEY = `${LS}/streak`;
-
-interface StreakData { lastDate: string; count: number; todayCards: number; }
+export interface StreakView { lastDate: string; count: number; todayCards: number; }
 
 function localDateStr(d: Date): string {
   const y = d.getFullYear();
@@ -184,29 +155,26 @@ function localDateStr(d: Date): string {
 
 function todayStr(): string { return localDateStr(new Date()); }
 
-export function getStreak(): StreakData {
-  try {
-    const d = JSON.parse(localStorage.getItem(STREAK_KEY) ?? 'null');
-    if (d && typeof d.count === 'number') return d as StreakData;
-  } catch { /* ignore */ }
-  return { lastDate: '', count: 0, todayCards: 0 };
+export function getStreak(): StreakView {
+  return store().loadSession().streak;
 }
 
-export function recordStudySession(cardsCount: number): StreakData {
+export function recordStudySession(cardsCount: number): StreakView {
   const today = todayStr();
-  const prev  = getStreak();
+  const s     = store().loadSession();
+  const prev  = s.streak;
+  let next: StreakView;
   if (prev.lastDate === today) {
-    const next = { ...prev, todayCards: prev.todayCards + cardsCount };
-    localStorage.setItem(STREAK_KEY, JSON.stringify(next));
-    return next;
+    next = { ...prev, todayCards: prev.todayCards + cardsCount };
+  } else {
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    next = {
+      lastDate: today,
+      count: prev.lastDate === localDateStr(yest) ? prev.count + 1 : 1,
+      todayCards: cardsCount,
+    };
   }
-  const yest = new Date(); yest.setDate(yest.getDate() - 1);
-  const next: StreakData = {
-    lastDate: today,
-    count: prev.lastDate === localDateStr(yest) ? prev.count + 1 : 1,
-    todayCards: cardsCount,
-  };
-  localStorage.setItem(STREAK_KEY, JSON.stringify(next));
+  store().saveSession({ ...s, streak: next });
   return next;
 }
 
