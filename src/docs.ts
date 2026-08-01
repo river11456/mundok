@@ -4,6 +4,7 @@ import { initGrammar } from './grammar';
 import { initStore } from './storage';
 import { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } from './migrate-v1';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
+import { seedCollectionsIfNeeded } from './collections';
 import collectionsJson from '../catalog/_collections.json';
 
 // v1 베이킹 8문헌 — 마이그레이션 전용 번들 (S0에서 카탈로그에 동일 사본·카드 id 고정).
@@ -142,6 +143,7 @@ export async function initDocs(): Promise<void> {
   purgeV1IfMigrated();                      // 이전 로드에서 마이그레이션 완료 시 구 hanja-v2/* 제거
   migrateV1IfNeeded(V1_BAKED);              // v1 → v3 콘텐츠 1회 (신규 사용자는 빈 유저 공간)
   migrateProgressIfNeeded(loadUserDocs());  // v1 → v3 학습기록·설정 1회
+  seedCollectionsIfNeeded(GROUPS.shelves, loadUserDocs().map(d => d.id));  // 사용자 선반 1회 시드 (SPEC 3.4)
   syncUserDocs();
   initGrammar(collectGrammar());
 }

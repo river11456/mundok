@@ -1,6 +1,6 @@
 import type {
   UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk, LevelKey,
-  ReviewEvent, SessionData, PrefsData,
+  ReviewEvent, SessionData, PrefsData, ShelfJSON,
 } from '../types';
 
 /** 문헌 추가 마법사 입력 — texts가 비면 빈 문헌 */
@@ -36,6 +36,11 @@ export interface Store {
   saveGrammar(docId: string, cardId: string, cardFront: string, annotations: GrammarAnnotation[]): Promise<void>;
   /** 해석 순서 청크 저장 (sentence 전용). 빈 배열이면 제거. */
   saveInterp(docId: string, cardId: string, cardFront: string, chunks: InterpChunk[]): Promise<void>;
+
+  // ── Content — 조직화: 사용자 선반 (SPEC 3.4 O1) ──────────────────────────
+  //   동기 메서드 — prefs와 같은 이유(렌더 경로 단순화). BackendStore도 같은 계약.
+  loadCollections(): ShelfJSON[];
+  saveCollections(shelves: ShelfJSON[]): void;
 
   // ── Progress — 리뷰 로그(문헌별 append-only)·세션 (SPEC 2.4, 4.2) ────────
   //   동기 메서드: localStorage가 동기라 UI(렌더 경로)를 단순하게 유지한다.

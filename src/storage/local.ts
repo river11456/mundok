@@ -1,12 +1,13 @@
 import type { NewDocInput, Store } from './types';
 import type {
   UserAddition, UserEdit, UserDeletion, GrammarAnnotation, InterpChunk,
-  ReviewEvent, SessionData, PrefsData,
+  ReviewEvent, SessionData, PrefsData, ShelfJSON,
 } from '../types';
 import {
   createUserDoc,
   userAddCard, userEditCard, userDeleteCard, userSaveGrammar, userSaveInterp,
 } from '../user-docs';
+import { loadCollections as loadUserShelves, saveCollections as saveUserShelves } from '../collections';
 import { V3_SESSION_KEY, V3_PREFS_KEY, v3LogKey } from '../migrate-v1';
 import { compact } from '../review-log';
 
@@ -42,6 +43,16 @@ export class LocalStore implements Store {
 
   async saveInterp(docId: string, cardId: string, _cardFront: string, chunks: InterpChunk[]): Promise<void> {
     userSaveInterp(docId, cardId, chunks);
+  }
+
+  // ── Content — 조직화 ─────────────────────────────────────────────────────
+
+  loadCollections(): ShelfJSON[] {
+    return loadUserShelves();
+  }
+
+  saveCollections(shelves: ShelfJSON[]): void {
+    saveUserShelves(shelves);
   }
 
   // ── Progress ─────────────────────────────────────────────────────────────
