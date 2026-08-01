@@ -4,7 +4,7 @@ import { initGrammar } from './grammar';
 import { initStore } from './storage';
 import { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } from './migrate-v1';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
-import { seedCollectionsIfNeeded } from './collections';
+import { loadCollections, seedCollectionsIfNeeded } from './collections';
 import collectionsJson from '../catalog/_collections.json';
 
 // v1 베이킹 8문헌 — 마이그레이션 전용 번들 (S0에서 카탈로그에 동일 사본·카드 id 고정).
@@ -23,7 +23,7 @@ const V1_BAKED = [
   대의정성, 불치이병치미병, 사기조신대론, 상고천진론, 식무구포, 양성편, 여담론, 편작육불치,
 ] as DocJSON[];
 
-/** DocJSON → 런타임 Doc 변환. userDoc = 직접 생성(source 없음) — '내 문헌' 선반 기준. */
+/** DocJSON → 런타임 Doc 변환. */
 function toDoc(dj: DocJSON): Doc {
   const levels: Level[] = LEVEL_ORDER
     .filter(k => dj.levels[k]?.length)
@@ -43,7 +43,6 @@ function toDoc(dj: DocJSON): Doc {
   return {
     id: dj.id, title: dj.title, sub: dj.sub, color: dj.color,
     ...(dj.order !== undefined ? { order: dj.order } : {}),
-    ...(dj.source ? {} : { userDoc: true }),
     levels,
   };
 }
@@ -55,12 +54,11 @@ export function syncUserDocs(): void {
   DOCS = loadUserDocs().map(toDoc);
 }
 
-// ── 서가: 카탈로그 컬렉션 (catalog/_collections.json — 선반 + 참고문헌 관계) ──
-//   구 src/data/_groups.json 승계 (SPEC 3.4). 사용자 컬렉션 편집 UI는 2.x.
+// ── 서가 (SPEC 3.4): 참고문헌 관계(refs)는 카탈로그 소유, 선반은 사용자 소유 ──
+//   카탈로그 _collections.json의 선반은 seedCollectionsIfNeeded의 1회 시드로만 쓰인다 (O1).
 const GROUPS = collectionsJson as GroupsJSON;
 
-export const SHELVES = GROUPS.shelves;
-export const REFS    = GROUPS.refs;
+export const REFS = GROUPS.refs;
 
 /** 참고문헌(자식) 문헌들. 없으면 빈 배열. */
 export function refsOf(docId: string): Doc[] {
@@ -73,34 +71,41 @@ export function refsOf(docId: string): Doc[] {
 
 /**
  * 홈 화면에 최상위로 노출되는 문헌 목록(참고문헌 자식 제외).
- * 선반 정의 순서대로 나열 + 선반에 없는 문헌은 뒤에(미분류 → 내 문헌).
+ * 사용자 선반 순서대로 나열 + 선반에 없는 문헌은 뒤에(미분류).
  * 홈 렌더(renderHome)와 키보드 단축키(1~9)가 같은 출처를 쓰도록 한다.
  */
 export function homeDocs(): Doc[] {
   return shelvesForHome().flatMap(s => s.docs);
 }
 
-/** 홈 서가 구성: 컬렉션 선반 → 미분류(설치본, order순) → 내 문헌(직접 생성). */
-export function shelvesForHome(): { id: string; name: string; docs: Doc[] }[] {
+export interface HomeShelf {
+  id:   string;
+  name: string;
+  docs: Doc[];
+  /** 시스템 영역(미분류) — 이름변경·삭제 불가, 새 문헌·문헌 받기 타일 상주 */
+  system?: boolean;
+}
+
+/** 홈 서가 구성: 사용자 선반(저장 순 — 빈 선반도 이동 목적지로 렌더) → 미분류. */
+export function shelvesForHome(): HomeShelf[] {
   const childIds = new Set(REFS.flatMap(g => g.childIds));
   const byId     = new Map(DOCS.map(d => [d.id, d]));
   const placed   = new Set<string>();
 
-  const shelves = SHELVES.map(s => ({
+  // 사용자 선반 — 명시 배치가 참고문헌 자식 숨김보다 우선한다
+  const shelves: HomeShelf[] = loadCollections().map(s => ({
     id:   s.id,
     name: s.name,
     docs: s.docIds
       .map(id => byId.get(id))
-      .filter((d): d is Doc => d !== undefined && !childIds.has(d.id) && !placed.has(d.id) && (placed.add(d.id), true)),
+      .filter((d): d is Doc => d !== undefined && !placed.has(d.id) && (placed.add(d.id), true)),
   }));
 
-  const rest = DOCS.filter(d => !childIds.has(d.id) && !placed.has(d.id) && !d.userDoc)
+  // 미분류 — 어느 선반에도 없는 문헌 (참고문헌 자식 제외). 카탈로그 order 우선, 나머지 생성순.
+  const rest = DOCS.filter(d => !placed.has(d.id) && !childIds.has(d.id))
     .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-  if (rest.length) shelves.push({ id: '_unshelved', name: '미분류', docs: rest });
-
-  const mine = DOCS.filter(d => !childIds.has(d.id) && !placed.has(d.id) && d.userDoc);
-  if (mine.length) shelves.push({ id: '_user', name: '내 문헌', docs: mine });
-  return shelves.filter(s => s.docs.length > 0);
+  shelves.push({ id: '_unshelved', name: '미분류', docs: rest, system: true });
+  return shelves;
 }
 
 // ── 표지색 — DocJSON.color 우선, 없으면 팔레트 순환 자동 배정 (tokens.md) ──

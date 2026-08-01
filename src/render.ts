@@ -1,5 +1,5 @@
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession, collapsedShelves } from './state';
-import { homeDocs, shelvesForHome, refsOf, docColor } from './docs';
+import { homeDocs, shelvesForHome, refsOf, docColor, type HomeShelf } from './docs';
 import { resetCellSelect } from './cell-select';
 import { stopInterpPlay } from './interp-play';
 import { getAnnotations } from './grammar';
@@ -359,6 +359,7 @@ function docOverlayHtml(docId: string): string {
       <div class="detail-user-actions">
         <button data-action="doc-append" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2.6v8.8M2.6 7h8.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>본문 추가</button>
         <button data-action="doc-edit-info" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.8 2.2l2 2-7.3 7.3-2.7.7.7-2.7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>정보 수정</button>
+        <button data-action="doc-move-shelf" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1.9 11.8h10.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3.6 11.8V5.3c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v6.5M7.2 11.8V3.4c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v8.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>선반 이동</button>
         <button data-action="doc-export" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 8.8V2.4M4.4 4.9L7 2.3l2.6 2.6M2.4 9.6v1.2c0 .7.6 1.3 1.3 1.3h6.6c.7 0 1.3-.6 1.3-1.3V9.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>내보내기</button>
         <button data-action="doc-delete" class="dua-btn danger"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.4 3.9h9.2M5.6 3.9V2.7c0-.4.3-.7.7-.7h1.4c.4 0 .7.3.7.7v1.2M3.6 3.9l.5 6.9c0 .7.6 1.2 1.3 1.2h3.2c.7 0 1.3-.5 1.3-1.2l.5-6.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>문헌 삭제</button>
       </div>
@@ -401,8 +402,26 @@ function renderHome(): void {
       <div class="book-label"><div class="k">&nbsp;</div></div>
     </div>`;
 
-  const shelves = shelfData.map(sh => {
+  /** 선반 섹션 하나 — 사용자 선반은 관리 아이콘·널판, 접으면 내용물 색칩 미리보기. */
+  const section = (sh: HomeShelf): string => {
     const isCollapsed = collapsed.has(sh.id);
+    const chips = isCollapsed && sh.docs.length ? `
+        <span class="shelf-chips" aria-hidden="true">${sh.docs.slice(0, 8).map(d => `<i style="background:${docColor(d)}"></i>`).join('')}</span>` : '';
+    const tools = sh.system ? '' : `
+        <span class="shelf-tools">
+          <button data-action="shelf-rename" data-arg="${sh.id}" class="shelf-tool" title="이름 변경" aria-label="${esc(sh.name)} 선반 이름 변경">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.8 2.2l2 2-7.3 7.3-2.7.7.7-2.7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          </button>
+          <button data-action="shelf-delete" data-arg="${sh.id}" class="shelf-tool danger" title="선반 삭제" aria-label="${esc(sh.name)} 선반 삭제">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.4 3.9h9.2M5.6 3.9V2.7c0-.4.3-.7.7-.7h1.4c.4 0 .7.3.7.7v1.2M3.6 3.9l.5 6.9c0 .7.6 1.2 1.3 1.2h3.2c.7 0 1.3-.5 1.3-1.2l.5-6.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </span>`;
+    const covers = sh.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('');
+    const body = isCollapsed ? '' : sh.system
+      ? `<div class="covers">${covers}${addTile}</div>`
+      : (sh.docs.length
+          ? `<div class="covers">${covers}</div><div class="shelf-ledge"></div>`
+          : `<div class="shelf-empty">빈 선반 — 문헌 표지를 눌러 <b>선반 이동</b>으로 옮겨 오세요</div><div class="shelf-ledge"></div>`);
     return `
     <div>
       <div class="shelf-head">
@@ -410,18 +429,15 @@ function renderHome(): void {
           aria-label="${esc(sh.name)} ${isCollapsed ? '펼치기' : '접기'}" aria-expanded="${!isCollapsed}">
           <svg class="chev" style="transform:rotate(${isCollapsed ? 0 : 90}deg)" width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>
+        <h2>${esc(sh.name)}</h2><span class="cnt num">${sh.docs.length}</span>${chips}${tools}
       </div>
-      ${isCollapsed ? '' : `<div class="covers">${sh.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('')}${sh.id === '_user' ? addTile : ''}</div>`}
+      ${body}
     </div>`;
-  }).join('');
+  };
 
-  // '내 문헌' 선반이 없으면(사용자 문헌 0개) 새 문헌 타일만 담은 섹션을 맨 아래에
-  const newDocSection = shelfData.some(sh => sh.id === '_user') ? '' : `
-    <div>
-      <div class="shelf-head"><h2>내 문헌</h2></div>
-      <div class="covers">${addTile}</div>
-    </div>`;
+  const userShelves = shelfData.filter(sh => !sh.system).map(section).join('');
+  const unshelved   = section(shelfData.find(sh => sh.system)!);
+  const newShelfBar = `<button data-action="shelf-create" class="shelf-new">＋ 새 선반</button>`;
 
   $app().innerHTML = `
     <div class="screen-enter home">
@@ -433,8 +449,9 @@ function renderHome(): void {
         ${streak.count > 0 ? `<div class="streak-pill">연속 학습 <b class="num">${streak.count}</b>일</div>` : ''}
       </div>
       ${heroHtml()}
-      ${shelves}
-      ${newDocSection}
+      ${userShelves}
+      ${newShelfBar}
+      ${unshelved}
       <div class="home-foot">
         해석 작성에 생성형 AI가 참여해 일부 내용이 부정확할 수 있습니다. 원문과 수업 자료로 직접 확인하며 학습해 주세요.
         <div class="ver">v${version} · KJH</div>

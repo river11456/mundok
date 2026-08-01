@@ -34,7 +34,6 @@ export interface Doc {
   sub: string;
   color?: string;   // 표지색 (#RRGGBB). 미지정 시 팔레트 순환 자동 배정.
   order?: number;   // 정렬 우선순위 (카탈로그 order 승계) — 미분류 선반 정렬에 사용
-  userDoc?: boolean; // 직접 생성 문헌 (source 없음) — 홈 '내 문헌' 선반 배치 기준
   levels: Level[];
 }
 

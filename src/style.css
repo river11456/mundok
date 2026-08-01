@@ -48,6 +48,8 @@ button { touch-action: manipulation; }
   .detail .close { padding: 15px; top: 6px; right: 6px; }
   .dua-btn { padding: 12px 11px; }
   .shelf-toggle { padding: 12px; margin: -10px -8px; } /* 히트 영역만 확장, 헤더 레이아웃 유지 */
+  .shelf-tool { padding: 11px 10px; margin: -8px 0; }
+  .sp-row { padding: 14px 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -412,6 +414,35 @@ button { touch-action: manipulation; }
     border: 1px solid var(--line-soft); border-radius: 999px; transition: color .15s, border-color .15s;
   }
   @media (hover: hover) { .shelf-head .edit:hover { color: var(--ink); border-color: rgba(0, 0, 0, .2); } }
+  /* 선반 관리 아이콘 — hover 기기에선 헤더 호버·포커스 시에만 노출, 터치 기기에선 상시 */
+  .shelf-tools { display: flex; gap: 2px; margin-left: auto; }
+  .shelf-tool { display: flex; padding: 5px; border-radius: 7px; color: var(--faint); transition: color .15s, background .15s, opacity .15s; }
+  @media (hover: hover) {
+    .shelf-head .shelf-tool { opacity: 0; }
+    .shelf-head:hover .shelf-tool, .shelf-head:focus-within .shelf-tool { opacity: 1; }
+    .shelf-tool:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
+    .shelf-tool.danger:hover { color: var(--fail); background: rgba(215, 0, 21, .06); }
+  }
+  /* 접힌 선반의 내용물 미리보기 — 문헌 표지색 미니 책등 (닫힌 폴더의 등가물) */
+  .shelf-chips { display: inline-flex; align-items: center; gap: 3px; margin-left: 7px; }
+  .shelf-chips i { width: 5px; height: 15px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+  /* 널판 — 표지가 "놓인" 선반의 물성. 시스템 영역(미분류 = 바닥)에는 그리지 않는다 */
+  .shelf-ledge {
+    height: 6px; margin-top: 14px; border-radius: 3px;
+    background: linear-gradient(180deg, #EAE2D6, #DAD0C0);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .55);
+  }
+  .shelf-empty {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 24px 16px;
+    text-align: center; font-size: 12.5px; color: var(--faint); line-height: 1.6;
+  }
+  .shelf-empty b { font-weight: 700; color: var(--sub); }
+  .shelf-new {
+    width: 100%; border: 2px dashed var(--line); border-radius: 12px; padding: 11px;
+    font-size: 12.5px; font-weight: 600; color: var(--faint); text-align: center;
+    transition: color .15s, border-color .15s;
+  }
+  @media (hover: hover) { .shelf-new:hover { color: var(--accent-deep); border-color: var(--accent); } }
   .covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 20px 16px; }
   .book { display: flex; flex-direction: column; gap: 9px; }
   .cover {
@@ -496,6 +527,18 @@ button { touch-action: manipulation; }
   .ct-title { font-size: 16px; color: var(--ink); letter-spacing: .06em; }
   .ct-sub { font-size: 12px; color: var(--sub); margin-top: 2px; }
   .ct-btn { flex: none; padding: 8px 14px; font-size: 12px; }
+  /* 선반 선택 시트 (shelf-ui.ts) — 행 클릭 즉시 이동, 현재 위치는 체크 */
+  .sp-row {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 11px 12px; border-radius: 10px; font-size: 13.5px; color: var(--ink);
+    transition: background .15s;
+  }
+  @media (hover: hover) { .sp-row:hover { background: rgba(0, 0, 0, .045); } }
+  .sp-row .sp-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sp-row .cnt { font-size: 12px; color: var(--faint); }
+  .sp-row .sp-check { flex: none; color: var(--accent-deep); visibility: hidden; }
+  .sp-row.on .sp-check { visibility: visible; }
+  .sp-row.sp-new { color: var(--accent-deep); font-weight: 600; border-top: 1px solid var(--line-soft); border-radius: 0 0 10px 10px; margin-top: 4px; padding-top: 13px; }
   /* 참고문헌 있는 문헌 — 뒤에 여러 권이 겹친 무더기 (호버 시 부채꼴) */
   .case-wrap { position: relative; }
   .case-wrap .stack { position: absolute; inset: 0; pointer-events: none; }

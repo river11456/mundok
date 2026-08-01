@@ -2,6 +2,9 @@ import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNa
 import { homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
+import { showShelfCreate, showShelfRename, showShelfPicker } from './shelf-ui';
+import { loadCollections, saveCollections, deleteShelf, moveDoc } from './collections';
+import { store } from './storage';
 import { deleteUserDoc, loadUserDocs } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
@@ -143,6 +146,19 @@ export function setupClick(): void {
       case 'overlay-mode': startOverlayMode(arg! as Mode); break;
       case 'overlay-ref':  openDoc(arg!);               break;
       case 'toggle-shelf': toggleShelf(arg!); render(); break;
+      case 'shelf-create': showShelfCreate();           break;
+      case 'shelf-rename': showShelfRename(arg!);       break;
+      case 'shelf-delete': {
+        const sh = loadCollections().find(s => s.id === arg);
+        if (!sh) break;
+        if (!confirm(`'${sh.name}' 선반을 삭제합니다.\n\n담긴 문헌은 지워지지 않고 미분류로 이동합니다. 계속하시겠습니까?`)) break;
+        saveCollections(deleteShelf(loadCollections(), sh.id));
+        const p = store().loadPrefs();   // 접힘 상태 잔재 청소
+        store().savePrefs({ ...p, shelvesCollapsed: p.shelvesCollapsed.filter(x => x !== sh.id) });
+        render();
+        break;
+      }
+      case 'doc-move-shelf': if (S.docOverlay) showShelfPicker(S.docOverlay); break;
       case 'resume':      resumeStudy();                break;
       case 'new-doc':     showDocCreate();              break;
       case 'open-catalog': showCatalog();               break;
@@ -168,6 +184,7 @@ export function setupClick(): void {
         if (!confirm(`'${doc.title}' 문헌을 삭제합니다.\n\n카드와 학습 기록이 모두 지워지며 복구할 수 없습니다. 계속하시겠습니까?`)) break;
         deleteUserDoc(id);
         deleteDocProgress(id);
+        saveCollections(moveDoc(loadCollections(), id, null));   // 선반 배치 잔재 청소
         syncUserDocs();
         S.docOverlay = null;
         render();
@@ -242,7 +259,7 @@ export function setupClick(): void {
 // ── Keyboard ──────────────────────────────────────────────
 export function setupKeyboard(): void {
   document.addEventListener('keydown', e => {
-    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay', 'ct-overlay'].some(id => {
+    const modalOpen = ['ac-overlay', 'ec-overlay', 'ce-overlay', 'ge-overlay', 'dc-overlay', 'ct-overlay', 'sn-overlay', 'sp-overlay'].some(id => {
       const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
       return el !== null && !el.classList.contains('hidden');
     });
