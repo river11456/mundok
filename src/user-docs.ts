@@ -150,14 +150,9 @@ export function updateUserDocMeta(docId: string, meta: { title: string; sub: str
   });
 }
 
-/** 문헌 삭제 + 딸린 학습기록(hanja-v2/<docId>/…) 정리 (Progress 키는 S2까지 구 접두사) */
+/** 문헌 삭제 — 학습기록(mundok-v3/log/*)은 호출측이 deleteDocProgress로 정리 */
 export function deleteUserDoc(docId: string): void {
   save(loadUserDocs().filter(d => d.id !== docId));
-  const prefix = `hanja-v2/${docId}/`;
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(prefix)) localStorage.removeItem(k);
-  }
 }
 
 /** 본문 추가 마법사 — 추가된 카드 수 반환 */

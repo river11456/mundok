@@ -167,11 +167,27 @@ function hasV1Keys(): boolean {
 }
 
 /**
+ * v1 잔재 키 일괄 제거 (SPEC 9절 6단계 — 검증 기간 종료, 2.1.1).
+ * 마이그레이션이 **이전 로드에서** 완료된 상태(v3 docs·session 선재)에서만 지운다 —
+ * 이번 로드에서 갓 마이그레이션하는 경우는 다음 로드까지 원본을 남긴다(최소 1회 로드분 롤백 보험).
+ * 반드시 migrateV1IfNeeded보다 먼저 호출할 것.
+ * 백업 v2 가져오기가 복원한 hanja-v2/* 키도 재마이그레이션 후 다음 로드에서 같은 경로로 청소된다.
+ */
+export function purgeV1IfMigrated(): void {
+  if (localStorage.getItem(V3_DOCS_KEY) === null) return;
+  if (localStorage.getItem(V3_SESSION_KEY) === null) return;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k?.startsWith(V1_PREFIX)) localStorage.removeItem(k);
+  }
+}
+
+/**
  * v1 → v3 1회 마이그레이션 (SPEC 9절). 앱 초기화 최초에 호출.
  * - mundok-v3/docs가 이미 있으면 아무것도 안 함
  * - v1 흔적(hanja-v2/*)이 있으면: 베이킹 8문헌(baked)+델타+user-docs를 유저 공간으로 변환
  * - v1 흔적이 없으면(신규 사용자): 빈 유저 공간 — 콘텐츠는 카탈로그·온보딩 스타터로
- * - 구 hanja-v2/* 키는 보존한다 (검증 기간 후 제거 — 롤백 보험)
+ * - 구 hanja-v2/* 키는 여기서 지우지 않는다 — 다음 로드의 purgeV1IfMigrated가 제거 (롤백 보험 1로드 유지)
  */
 export function migrateV1IfNeeded(baked: DocJSON[]): void {
   if (localStorage.getItem(V3_DOCS_KEY) !== null) return;

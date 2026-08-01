@@ -2,7 +2,7 @@ import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON } from './types';
 import { LEVEL_ORDER, LEVEL_LABEL } from './types';
 import { initGrammar } from './grammar';
 import { initStore } from './storage';
-import { migrateV1IfNeeded, migrateProgressIfNeeded } from './migrate-v1';
+import { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } from './migrate-v1';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
 import collectionsJson from '../catalog/_collections.json';
 
@@ -139,6 +139,7 @@ export function installStarterDoc(): void {
 
 export async function initDocs(): Promise<void> {
   await initStore();
+  purgeV1IfMigrated();                      // 이전 로드에서 마이그레이션 완료 시 구 hanja-v2/* 제거
   migrateV1IfNeeded(V1_BAKED);              // v1 → v3 콘텐츠 1회 (신규 사용자는 빈 유저 공간)
   migrateProgressIfNeeded(loadUserDocs());  // v1 → v3 학습기록·설정 1회
   syncUserDocs();
