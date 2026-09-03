@@ -171,9 +171,12 @@ export interface DocJSON {
 //   선반(shelves) = 홈 화면 그룹, refs = 참고문헌(부모-자식, 겹침 무더기+오버레이).
 
 export interface ShelfJSON {
-  id:     string;    // 안정 id (g1, g2, …)
-  name:   string;    // 선반 표시 이름
-  docIds: string[];  // 소속 문헌 (표시 순서)
+  id:        string;    // 안정 id (g1, g2, …)
+  name:      string;    // 폴더 표시 이름
+  docIds:    string[];  // 소속 문헌 (표시 순서)
+  parentId?: string | null; // 상위 폴더. 없음/null = 라이브러리 루트 (구 선반 호환)
+  color?:    string;    // 폴더 커스터마이즈 예약
+  icon?:     string;    // 폴더 커스터마이즈 예약
 }
 
 export interface RefGroupJSON {

@@ -1,10 +1,10 @@
-import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON } from './types';
+import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON, ShelfJSON } from './types';
 import { LEVEL_ORDER, LEVEL_LABEL } from './types';
 import { initGrammar } from './grammar';
 import { initStore } from './storage';
 import { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } from './migrate-v1';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
-import { loadCollections, seedCollectionsIfNeeded } from './collections';
+import { canCreateChildFolder, loadCollections, seedCollectionsIfNeeded } from './collections';
 import collectionsJson from '../catalog/_collections.json';
 
 // v1 베이킹 8문헌 — 마이그레이션 전용 번들 (S0에서 카탈로그에 동일 사본·카드 id 고정).
@@ -74,38 +74,124 @@ export function refsOf(docId: string): Doc[] {
  * 사용자 선반 순서대로 나열 + 선반에 없는 문헌은 뒤에(미분류).
  * 홈 렌더(renderHome)와 키보드 단축키(1~9)가 같은 출처를 쓰도록 한다.
  */
-export function homeDocs(): Doc[] {
-  return shelvesForHome().flatMap(s => s.docs);
+export type FolderShelfJSON = ShelfJSON & {
+  parentId?: string | null;
+  color?: string;
+  icon?: string;
+};
+
+export interface HomeFolder {
+  id: string;
+  name: string;
+  parentId: string | null;
+  docCount: number;
+  folderCount: number;
+  depth: number;
+  color?: string;
+  icon?: string;
 }
 
 export interface HomeShelf {
-  id:   string;
+  id: string;
   name: string;
+  folderId: string | null;
+  parentId: string | null;
   docs: Doc[];
-  /** 시스템 영역(미분류) — 이름변경·삭제 불가, 새 문헌·문헌 받기 타일 상주 */
+  folders: HomeFolder[];
+  ancestors: HomeFolder[];
+  canCreateFolder: boolean;
+  /** 루트는 시스템 위치라 이름변경·삭제 불가. */
   system?: boolean;
 }
 
-/** 홈 서가 구성: 사용자 선반(저장 순 — 빈 선반도 이동 목적지로 렌더) → 미분류. */
-export function shelvesForHome(): HomeShelf[] {
+function asFolders(shelves = loadCollections()): FolderShelfJSON[] {
+  const ids = new Set(shelves.map(s => s.id));
+  return shelves.map(s => {
+    const f = s as FolderShelfJSON;
+    const parentId = typeof f.parentId === 'string' && ids.has(f.parentId) && f.parentId !== f.id
+      ? f.parentId
+      : null;
+    return { ...f, parentId };
+  });
+}
+
+export function folderDepth(folderId: string | null, shelves = loadCollections()): number {
+  if (folderId === null) return 0;
+  const byId = new Map(asFolders(shelves).map(s => [s.id, s]));
+  let depth = 0;
+  let cur = byId.get(folderId);
+  const seen = new Set<string>();
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    depth += 1;
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return depth;
+}
+
+function toHomeFolder(s: FolderShelfJSON, shelves: FolderShelfJSON[]): HomeFolder {
+  return {
+    id: s.id,
+    name: s.name,
+    parentId: s.parentId ?? null,
+    docCount: s.docIds.length,
+    folderCount: shelves.filter(x => (x.parentId ?? null) === s.id).length,
+    depth: folderDepth(s.id, shelves),
+    ...(s.color ? { color: s.color } : {}),
+    ...(s.icon ? { icon: s.icon } : {}),
+  };
+}
+
+export function folderPath(folderId: string | null, shelves = loadCollections()): HomeFolder[] {
+  if (folderId === null) return [];
+  const folders = asFolders(shelves);
+  const byId = new Map(folders.map(s => [s.id, s]));
+  const path: HomeFolder[] = [];
+  const seen = new Set<string>();
+  let cur = byId.get(folderId);
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    path.unshift(toHomeFolder(cur, folders));
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+  }
+  return path;
+}
+
+export function homeDocs(folderId: string | null = null): Doc[] {
+  return shelvesForHome(folderId).flatMap(s => s.docs);
+}
+
+/** 홈 라이브러리 구성: 현재 폴더의 하위 폴더와 문헌만 노출한다. */
+export function shelvesForHome(folderId: string | null = null): HomeShelf[] {
   const childIds = new Set(REFS.flatMap(g => g.childIds));
   const byId     = new Map(DOCS.map(d => [d.id, d]));
-  const placed   = new Set<string>();
+  const folders  = asFolders();
+  const byFolder = new Map(folders.map(s => [s.id, s]));
+  const current  = folderId ? byFolder.get(folderId) : null;
+  const currentId = current?.id ?? null;
 
-  // 사용자 선반 — 명시 배치가 참고문헌 자식 숨김보다 우선한다
-  const shelves: HomeShelf[] = loadCollections().map(s => ({
-    id:   s.id,
-    name: s.name,
-    docs: s.docIds
+  const docs = current
+    ? current.docIds
       .map(id => byId.get(id))
-      .filter((d): d is Doc => d !== undefined && !placed.has(d.id) && (placed.add(d.id), true)),
-  }));
+      .filter((d): d is Doc => d !== undefined)
+    : DOCS.filter(d => !folders.some(s => s.docIds.includes(d.id)) && !childIds.has(d.id))
+      .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
 
-  // 미분류 — 어느 선반에도 없는 문헌 (참고문헌 자식 제외). 카탈로그 order 우선, 나머지 생성순.
-  const rest = DOCS.filter(d => !placed.has(d.id) && !childIds.has(d.id))
-    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-  shelves.push({ id: '_unshelved', name: '미분류', docs: rest, system: true });
-  return shelves;
+  const childFolders = folders
+    .filter(s => (s.parentId ?? null) === currentId)
+    .map(s => toHomeFolder(s, folders));
+
+  return [{
+    id: current?.id ?? '_root',
+    name: current?.name ?? '라이브러리',
+    folderId: currentId,
+    parentId: current?.parentId ?? null,
+    docs,
+    folders: childFolders,
+    ancestors: folderPath(currentId, folders),
+    canCreateFolder: canCreateChildFolder(folders, currentId),
+    system: currentId === null,
+  }];
 }
 
 // ── 표지색 — DocJSON.color 우선, 없으면 팔레트 순환 자동 배정 (tokens.md) ──

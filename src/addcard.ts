@@ -1,6 +1,8 @@
 import { S, DRILL_NEXT, curDoc } from './state';
 import { render } from './render';
 import { store } from './storage';
+import { syncUserDocs } from './docs';
+import { resolveRuntimeAddition } from './card-runtime';
 import type { Card, LevelKey } from './types';
 
 const TYPE_LABELS: [string, string][] = [
@@ -50,15 +52,22 @@ async function submitCard(): Promise<void> {
   $('ac-error').classList.add('hidden');
 
   try {
+    const previousDoc = curDoc();
     const id = await store().addCard({ docId, type: type as LevelKey, text: front, reading, meaning: back, note });
-    const newCard: Card = { id, front, reading, back, note, fail_count: 0 };
-    const targetLevel = curDoc().levels.find(l => l.key === type);
-    if (targetLevel) {
-      targetLevel.cards.push(newCard);
-      if (S.lv?.key === type) {
-        // 현재 학습 중인 레벨이면 세션에도 반영. 안키는 같은 객체를 allCards·queue에
-        // 함께 넣어(fail_count 공유) 이번 세션에서 학습되게 하고 진행 수를 늘린다.
-        const sessionCard: Card = { ...newCard };
+
+    // 저장소를 정본으로 다시 읽어 새 레벨까지 런타임 문헌 구조에 반영한다.
+    // 기존에는 word 레벨이 없으면 저장에는 성공해도 DOCS에 레벨이 생기지 않아
+    // 문장 → 단어 드릴다운 링크가 렌더되지 않았다.
+    syncUserDocs();
+    const { targetLevel, storedCard, isNew } = resolveRuntimeAddition(
+      previousDoc, curDoc(), type as LevelKey, id,
+    );
+
+    if (S.lv?.key === type && targetLevel) {
+      S.lv = targetLevel;
+      if (isNew && storedCard) {
+        // 현재 학습 중인 레벨이면 세션에도 반영한다.
+        const sessionCard: Card = { ...storedCard };
         S.allCards.push(sessionCard);
         if (S.mode === 'anki' && S.side !== 'result') {
           S.queue.push(sessionCard);

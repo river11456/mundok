@@ -5,6 +5,7 @@ import { DOCS, COVER_PALETTE, syncUserDocs } from './docs';
 import { splitClassical } from './doc-text';
 import { appendUserTexts, updateUserDocMeta } from './user-docs';
 import { esc } from './render-shared';
+import { loadCollections, placeCreatedDoc, saveCollections } from './collections';
 import type { LevelKey } from './types';
 
 /**
@@ -18,6 +19,7 @@ type DcMode = 'create' | 'append' | 'edit';
 
 let mode: DcMode = 'create';
 let targetId = '';          // append·edit 대상 docId
+let createFolderId: string | null = null; // 생성 창을 연 시점의 대상 폴더
 let chunks: string[] = [];  // 미리보기 단계의 분할 결과
 let color = '';             // 선택 표지색 ('' = 자동)
 
@@ -71,9 +73,10 @@ function renderSwatches(): void {
 
 // ── 열기 (모드별) ─────────────────────────────────────────
 
-function open(m: DcMode, docId = ''): void {
+function open(m: DcMode, docId = '', folderId: string | null = null): void {
   mode = m;
   targetId = docId;
+  createFolderId = m === 'create' ? folderId : null;
   chunks = [];
   clearErrors();
   toStepA();
@@ -96,7 +99,7 @@ function open(m: DcMode, docId = ''): void {
   setTimeout(() => $(m === 'append' ? 'dc-text' : 'dc-name').focus(), 50);
 }
 
-export const showDocCreate = (): void => open('create');
+export const showDocCreate = (folderId: string | null = null): void => open('create', '', folderId);
 export const showDocAppend = (docId: string): void => open('append', docId);
 export const showDocEdit   = (docId: string): void => open('edit', docId);
 
@@ -120,6 +123,7 @@ async function finalize(): Promise<void> {
       render();
       if (n < chunks.length) alert(`${chunks.length - n}장은 이미 있는 텍스트라 건너뛰었습니다.`);
     } else {
+      const destinationFolderId = createFolderId;
       const id = await store().createDoc({
         title: $<HTMLInputElement>('dc-name').value.trim(),
         sub:   $<HTMLInputElement>('dc-sub').value.trim(),
@@ -127,6 +131,10 @@ async function finalize(): Promise<void> {
         type,
         texts: chunks,
       });
+      // 비동기 생성 도중 화면 상태가 바뀌더라도, 창을 연 위치에 문헌을 배치한다.
+      const collections = loadCollections();
+      const placed = placeCreatedDoc(collections, id, destinationFolderId);
+      if (placed !== collections) saveCollections(placed);
       hide();
       syncUserDocs();
       S.docOverlay = id;   // 새 문헌 상세를 바로 열어 다음 행동(본문 추가·학습) 유도

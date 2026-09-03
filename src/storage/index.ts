@@ -1,7 +1,7 @@
 import type { Store } from './types';
 import { LocalStore } from './local';
 import { V3_DOCS_KEY, V3_SESSION_KEY, V3_PREFS_KEY } from '../migrate-v1';
-import { V3_COLLECTIONS_KEY } from '../collections';
+import { V3_COLLECTIONS_KEY, normalizeShelves } from '../collections';
 
 export type { Store } from './types';
 
@@ -74,7 +74,7 @@ export function exportUserData(): void {
   const backup = {
     version:    3,
     exportedAt: new Date().toISOString(),
-    content:    { docs: readJson(V3_DOCS_KEY) ?? [], collections: readJson(V3_COLLECTIONS_KEY) ?? [] },
+    content:    { docs: readJson(V3_DOCS_KEY) ?? [], collections: normalizeShelves(readJson(V3_COLLECTIONS_KEY) ?? []) },
     progress:   { logs, session: readJson(V3_SESSION_KEY) },
     preference: readJson(V3_PREFS_KEY) ?? {},
   };
@@ -123,7 +123,7 @@ export async function importUserData(file: File): Promise<void> {
     clearV3Keys();
     localStorage.setItem(V3_DOCS_KEY, JSON.stringify(content.docs));
     if (Array.isArray(content.collections)) {
-      localStorage.setItem(V3_COLLECTIONS_KEY, JSON.stringify(content.collections));
+      localStorage.setItem(V3_COLLECTIONS_KEY, JSON.stringify(normalizeShelves(content.collections)));
     }
     for (const [docId, ev] of Object.entries(logs)) {
       localStorage.setItem(`${V3_LOG_PREFIX}${docId}`, JSON.stringify(ev));

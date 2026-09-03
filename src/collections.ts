@@ -7,8 +7,9 @@ import type { ShelfJSON } from './types.ts';
  * 조직화는 사용자 소유다 (구 P8): 카탈로그 선반(_collections.json)은 최초 1회
  * 시드로만 쓰이고, 이후 이 키가 유일한 정본이다. 키 존재(빈 배열 포함) = 시드 완료.
  *
- * 불변식: 문헌의 위치는 1곳 — 어느 선반에도 없으면 미분류. moveDoc이 이를 보장한다.
- * 선반 순서 = 배열 순서, 선반 내 문헌 순서 = docIds 순서.
+ * 불변식: 문헌의 위치는 1곳 — 어느 폴더에도 없으면 라이브러리 루트(미분류).
+ * 데이터 모델은 parentId로 임의 깊이 폴더 트리를 표현한다. UI는 별도 정책으로 깊이를 제한할 수 있다.
+ * 폴더 순서 = 배열 순서, 폴더 내 문헌 순서 = docIds 순서.
  */
 
 export const V3_COLLECTIONS_KEY = 'mundok-v3/collections';
@@ -40,18 +41,98 @@ export function seedFromCatalog(catalogShelves: ShelfJSON[], presentDocIds: stri
   return out;
 }
 
-export function createShelf(shelves: ShelfJSON[], name: string): { shelves: ShelfJSON[]; id: string } {
+function parentOf(s: ShelfJSON): string | null {
+  return s.parentId ?? null;
+}
+
+export function childShelves(shelves: ShelfJSON[], parentId: string | null): ShelfJSON[] {
+  return shelves.filter(s => parentOf(s) === parentId);
+}
+
+export function shelfById(shelves: ShelfJSON[], id: string | null): ShelfJSON | null {
+  if (id === null) return null;
+  return shelves.find(s => s.id === id) ?? null;
+}
+
+export function shelfDepth(shelves: ShelfJSON[], id: string | null): number {
+  let cur = shelfById(shelves, id);
+  let depth = 0;
+  const seen = new Set<string>();
+  while (cur) {
+    if (seen.has(cur.id)) return depth;
+    seen.add(cur.id);
+    depth += 1;
+    cur = shelfById(shelves, parentOf(cur));
+  }
+  return depth;
+}
+
+/** 첫 폴더 UI 정책: 루트 아래 maxDepth 단계까지만 새 폴더를 만든다. 저장 모델 자체 깊이는 제한하지 않는다. */
+export function canCreateChildFolder(shelves: ShelfJSON[], parentId: string | null, maxDepth = 2): boolean {
+  return shelfDepth(shelves, parentId) < maxDepth;
+}
+
+export function shelfPath(shelves: ShelfJSON[], id: string | null): ShelfJSON[] {
+  const path: ShelfJSON[] = [];
+  let cur = shelfById(shelves, id);
+  const seen = new Set<string>();
+  while (cur && !seen.has(cur.id)) {
+    path.unshift(cur);
+    seen.add(cur.id);
+    cur = shelfById(shelves, parentOf(cur));
+  }
+  return path;
+}
+
+export function descendantShelfIds(shelves: ShelfJSON[], id: string): Set<string> {
+  const out = new Set<string>();
+  const walk = (parentId: string): void => {
+    for (const child of childShelves(shelves, parentId)) {
+      if (out.has(child.id)) continue;
+      out.add(child.id);
+      walk(child.id);
+    }
+  };
+  walk(id);
+  return out;
+}
+
+export function canMoveShelf(shelves: ShelfJSON[], id: string, parentId: string | null): boolean {
+  if (!shelfById(shelves, id)) return false;
+  if (parentId === null) return true;
+  if (id === parentId) return false;
+  if (!shelfById(shelves, parentId)) return false;
+  return !descendantShelfIds(shelves, id).has(parentId);
+}
+
+export function createShelf(shelves: ShelfJSON[], name: string, parentId: string | null = null): { shelves: ShelfJSON[]; id: string } {
   const id = newShelfId(shelves.map(s => s.id));
-  return { shelves: [...shelves, { id, name, docIds: [] }], id };
+  const validParent = parentId !== null && shelfById(shelves, parentId) ? parentId : null;
+  return { shelves: [...shelves, { id, name, docIds: [], ...(validParent ? { parentId: validParent } : {}) }], id };
 }
 
 export function renameShelf(shelves: ShelfJSON[], id: string, name: string): ShelfJSON[] {
   return shelves.map(s => (s.id === id ? { ...s, name } : s));
 }
 
-/** 선반 삭제 — 담겨 있던 문헌은 지워지지 않고 미분류가 된다. */
+/** 폴더 삭제 — 담긴 문헌과 하위 폴더는 삭제 폴더의 부모로 승격된다. 루트 부모면 문헌은 미분류가 된다. */
 export function deleteShelf(shelves: ShelfJSON[], id: string): ShelfJSON[] {
-  return shelves.filter(s => s.id !== id);
+  const target = shelfById(shelves, id);
+  if (!target) return shelves;
+  const parentId = parentOf(target);
+  return shelves
+    .filter(s => s.id !== id)
+    .map(s => {
+      if (s.id === parentId) return { ...s, docIds: [...s.docIds, ...target.docIds] };
+      if (parentOf(s) === id) {
+        if (parentId === null) {
+          const { parentId: _oldParent, ...rootShelf } = s;
+          return rootShelf;
+        }
+        return { ...s, parentId };
+      }
+      return s;
+    });
 }
 
 /**
@@ -65,6 +146,26 @@ export function moveDoc(shelves: ShelfJSON[], docId: string, shelfId: string | n
   return removed.map(s => (s.id === shelfId ? { ...s, docIds: [...s.docIds, docId] } : s));
 }
 
+/** 새로 생긴 문헌의 배치. 업데이트는 기존 위치를 그대로 보존한다. */
+export function placeCreatedDoc(
+  shelves: ShelfJSON[], docId: string, folderId: string | null, updating = false,
+): ShelfJSON[] {
+  if (updating || folderId === null) return shelves;
+  return moveDoc(shelves, docId, folderId);
+}
+
+export function moveShelf(shelves: ShelfJSON[], id: string, parentId: string | null): ShelfJSON[] {
+  if (!canMoveShelf(shelves, id, parentId)) return shelves;
+  return shelves.map(s => {
+    if (s.id !== id) return s;
+    if (parentId === null) {
+      const { parentId: _oldParent, ...rootShelf } = s;
+      return rootShelf;
+    }
+    return { ...s, parentId };
+  });
+}
+
 /** 문헌이 놓인 선반. 미분류면 null. */
 export function shelfOf(shelves: ShelfJSON[], docId: string): ShelfJSON | null {
   return shelves.find(s => s.docIds.includes(docId)) ?? null;
@@ -76,14 +177,55 @@ function isShelf(v: unknown): v is ShelfJSON {
   const s = v as ShelfJSON;
   return typeof v === 'object' && v !== null
     && typeof s.id === 'string' && typeof s.name === 'string'
-    && Array.isArray(s.docIds) && s.docIds.every(d => typeof d === 'string');
+    && Array.isArray(s.docIds) && s.docIds.every(d => typeof d === 'string')
+    && (s.parentId === undefined || s.parentId === null || typeof s.parentId === 'string');
+}
+
+export function normalizeShelves(input: unknown): ShelfJSON[] {
+  if (!Array.isArray(input)) return [];
+  const ids = new Set<string>();
+  const placedDocs = new Set<string>();
+  const shelves: ShelfJSON[] = [];
+  for (const raw of input) {
+    if (!isShelf(raw) || ids.has(raw.id)) continue;
+    ids.add(raw.id);
+    const docIds = raw.docIds.filter(d => !placedDocs.has(d) && (placedDocs.add(d), true));
+    shelves.push({
+      id: raw.id,
+      name: raw.name,
+      docIds,
+      ...(raw.parentId ? { parentId: raw.parentId } : {}),
+      ...(typeof raw.color === 'string' ? { color: raw.color } : {}),
+      ...(typeof raw.icon === 'string' ? { icon: raw.icon } : {}),
+    });
+  }
+
+  const byId = new Map(shelves.map(s => [s.id, s]));
+  const hasCycle = (s: ShelfJSON): boolean => {
+    const seen = new Set<string>([s.id]);
+    let cur = s.parentId ? byId.get(s.parentId) : undefined;
+    while (cur) {
+      if (seen.has(cur.id)) return true;
+      seen.add(cur.id);
+      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+    }
+    return false;
+  };
+
+  return shelves.map(s => {
+    if (!s.parentId || !byId.has(s.parentId) || hasCycle(s)) {
+      const { parentId: _badParent, ...rootShelf } = s;
+      return rootShelf;
+    }
+    return s;
+  });
 }
 
 export function loadCollections(): ShelfJSON[] {
   try {
     const raw = localStorage.getItem(V3_COLLECTIONS_KEY);
     const arr = raw ? JSON.parse(raw) as unknown : [];
-    return Array.isArray(arr) ? arr.filter(isShelf) : [];
+    return normalizeShelves(arr);
   } catch {
     return [];
   }

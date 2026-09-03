@@ -190,7 +190,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     warns.push('_collections.json 없음 — 홈 화면이 미분류·내 문헌 선반만으로 표시됩니다');
   }
 
-  // 폰트 커버리지 — 콘텐츠 한자가 self-host WenKai 서브셋에 전부 있는지 (베이킹+카탈로그 합산).
+  // 폰트 커버리지 — 카탈로그 한자가 self-host WenKai 서브셋에 전부 있는지.
   // 서브셋에 없는 글자 중 missing.txt(원본 폰트 자체 미지원, subset-font.mjs 가 기록)에 있으면
   // 재실행으로 해결 안 되는 글자 → 명조 폴백 안내로 구분한다.
   const fontsDir = join(__dirname, '..', 'public', 'fonts');
@@ -198,7 +198,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     const subsetChars = readFileSync(join(fontsDir, 'wenkai-tc-sub.chars.txt'), 'utf-8');
     let unsupported = '';
     try { unsupported = readFileSync(join(fontsDir, 'wenkai-tc-sub.missing.txt'), 'utf-8'); } catch {}
-    const missing = missingHanChars([...djs, ...catalogDjs], subsetChars);
+    const missing = missingHanChars(catalogDjs, subsetChars);
     const stale = missing.filter(ch => !unsupported.includes(ch));
     const known = missing.filter(ch =>  unsupported.includes(ch));
     if (stale.length) {

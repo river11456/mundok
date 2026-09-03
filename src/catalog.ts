@@ -2,6 +2,7 @@ import { render } from './render';
 import { syncUserDocs, COVER_PALETTE } from './docs';
 import { loadUserDocs, installCatalogDoc } from './user-docs';
 import { esc } from './render-shared';
+import { loadCollections, placeCreatedDoc, saveCollections } from './collections';
 import type { DocJSON } from './types';
 
 /**
@@ -19,6 +20,7 @@ interface CatalogEntry {
 
 let overlay: HTMLElement | null = null;
 let entries: CatalogEntry[] | null = null;
+let installFolderId: string | null = null;
 
 function $(id: string): HTMLElement {
   return document.getElementById(id)!;
@@ -69,7 +71,8 @@ export function isCatalogOpen(): boolean {
   return overlay !== null && !overlay.classList.contains('hidden');
 }
 
-export function showCatalog(): void {
+export function showCatalog(folderId: string | null = null): void {
+  installFolderId = folderId;
   ensureOverlay().classList.remove('hidden');
   if (entries) renderList();
   else loadIndex();
@@ -127,6 +130,7 @@ async function install(id: string, btn: HTMLButtonElement): Promise<void> {
   const entry = entries?.find(e => e.id === id);
   if (!entry) return;
   const updating = stateFor(entry).label === '업데이트';
+  const destinationFolderId = installFolderId;
   if (updating && !confirm('새 버전으로 업데이트합니다. 직접 수정한 카드와 학습 기록은 유지됩니다. 계속할까요?')) return;
 
   btn.disabled = true;
@@ -139,6 +143,10 @@ async function install(id: string, btn: HTMLButtonElement): Promise<void> {
       throw new Error('문헌 파일 형식이 올바르지 않습니다');
     }
     const kept = installCatalogDoc(dj, { catalogId: id, version: entry.version });
+    // 신규 설치만 카탈로그를 연 시점의 폴더에 배치한다. 업데이트는 기존 위치를 보존한다.
+    const collections = loadCollections();
+    const placed = placeCreatedDoc(collections, id, destinationFolderId, updating);
+    if (placed !== collections) saveCollections(placed);
     syncUserDocs();
     renderList();   // '설치됨'으로 갱신
     render();       // 뒤 홈 화면에 새 표지 반영

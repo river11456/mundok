@@ -1,9 +1,9 @@
-import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, toggleShelf, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
-import { homeDocs, refsOf, syncUserDocs } from './docs';
+import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { folderPath, homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
 import { showShelfCreate, showShelfRename, showShelfPicker } from './shelf-ui';
-import { loadCollections, saveCollections, deleteShelf, moveDoc } from './collections';
+import { deleteShelf, loadCollections, saveCollections, moveDoc } from './collections';
 import { store } from './storage';
 import { deleteUserDoc, loadUserDocs } from './user-docs';
 import { render } from './render';
@@ -17,10 +17,27 @@ import { showEditModal } from './editcard';
 import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
-function navHome(): void  { resetGrammarView(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; render(); }
+function closeLibraryAddMenu(): void { S.libraryAddMenu = false; }
+
+function closeLibraryAddMenuView(): void {
+  closeLibraryAddMenu();
+  render();
+}
+
+function focusLibraryAddTrigger(): void {
+  document.querySelector<HTMLButtonElement>('.library-add-trigger')?.focus();
+}
+
+function focusLibraryAddOption(index = 0): void {
+  const options = [...document.querySelectorAll<HTMLButtonElement>('.library-add-option:not(:disabled)')];
+  options[Math.max(0, Math.min(index, options.length - 1))]?.focus();
+}
+
+function navHome(): void  { resetGrammarView(); closeLibraryAddMenu(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; S.folderId = null; render(); }
 
 /** 문헌 열기 = 상세 오버레이 — 홈 표지·참고문헌·level 뒤로가기 공통 단일 창구. */
 function openDoc(id: string): void {
+  closeLibraryAddMenu();
   S.scr = 'home';
   S.mode = null;
   S.docId = id;
@@ -29,7 +46,7 @@ function openDoc(id: string): void {
 }
 
 function closeOverlay(): void { S.docOverlay = null; render(); }
-function navLevel(m: Mode): void    { S.mode  = m;  S.scr = 'level'; render(); }
+function navLevel(m: Mode): void    { closeLibraryAddMenu(); S.mode  = m;  S.scr = 'level'; render(); }
 
 /** 오버레이에서 모드 시작 — mode 화면 없이 바로 단위 선택으로. */
 function startOverlayMode(m: Mode): void {
@@ -41,10 +58,24 @@ function startOverlayMode(m: Mode): void {
 }
 
 function navBack(): void {
+  closeLibraryAddMenu();
   resetGrammarView();   // 드릴다운 복귀 포함 — 카드 이동은 항상 문법 리셋
   if (S.scr === 'study' && popNav()) { render(); return; }
   if      (S.scr === 'level') openDoc(S.docId!);
   else if (S.scr === 'study') navLevel(S.mode!);
+  else if (S.scr === 'home' && S.folderId) {
+    const path = folderPath(S.folderId);
+    S.folderId = path[path.length - 1]?.parentId ?? null;
+    render();
+  }
+}
+
+function openFolder(id: string | null): void {
+  closeLibraryAddMenu();
+  S.folderId = id;
+  S.docOverlay = null;
+  S.scr = 'home';
+  render();
 }
 
 function startStudy(lvIdx: number, seqStart = 0): void {
@@ -122,6 +153,12 @@ export function setupClick(): void {
       render();
       if (!btn) return;
     }
+    // 라이브러리 추가 메뉴 바깥 클릭 → 닫기 (닫은 뒤 클릭된 액션은 계속 처리)
+    if (S.libraryAddMenu && !(e.target as Element).closest('.library-add')) {
+      S.libraryAddMenu = false;
+      render();
+      if (!btn) return;
+    }
     if (!btn) {
       // 카드 본문 탭 = 플립 (터치 기본 조작) — 문법 편집 중에는 제외
       // (셀 선택 중 탭은 위 consumeSuppressedClick이 걸러낸다)
@@ -145,23 +182,43 @@ export function setupClick(): void {
         break;
       case 'overlay-mode': startOverlayMode(arg! as Mode); break;
       case 'overlay-ref':  openDoc(arg!);               break;
-      case 'toggle-shelf': toggleShelf(arg!); render(); break;
-      case 'shelf-create': showShelfCreate();           break;
+      case 'open-folder':  openFolder(arg ? arg : null); break;
+      case 'library-add-toggle': {
+        const opening = !S.libraryAddMenu;
+        S.libraryAddMenu = opening;
+        S.grammarMenu = false;
+        render();
+        if (opening) focusLibraryAddOption(); else focusLibraryAddTrigger();
+        break;
+      }
+      case 'shelf-create': closeLibraryAddMenuView(); showShelfCreate(S.folderId); break;
       case 'shelf-rename': showShelfRename(arg!);       break;
       case 'shelf-delete': {
         const sh = loadCollections().find(s => s.id === arg);
         if (!sh) break;
-        if (!confirm(`'${sh.name}' 선반을 삭제합니다.\n\n담긴 문헌은 지워지지 않고 미분류로 이동합니다. 계속하시겠습니까?`)) break;
+        if (!confirm(`'${sh.name}' 폴더를 삭제합니다.\n\n담긴 문헌과 하위 폴더는 상위 폴더로 이동합니다. 계속하시겠습니까?`)) break;
+        const nextFolderId = sh.parentId ?? null;
         saveCollections(deleteShelf(loadCollections(), sh.id));
         const p = store().loadPrefs();   // 접힘 상태 잔재 청소
         store().savePrefs({ ...p, shelvesCollapsed: p.shelvesCollapsed.filter(x => x !== sh.id) });
+        if (S.folderId === sh.id) S.folderId = nextFolderId;
         render();
         break;
       }
       case 'doc-move-shelf': if (S.docOverlay) showShelfPicker(S.docOverlay); break;
       case 'resume':      resumeStudy();                break;
-      case 'new-doc':     showDocCreate();              break;
-      case 'open-catalog': showCatalog();               break;
+      case 'new-doc': {
+        const folderId = S.folderId;
+        closeLibraryAddMenuView();
+        showDocCreate(folderId);
+        break;
+      }
+      case 'open-catalog': {
+        const folderId = S.folderId;
+        closeLibraryAddMenuView();
+        showCatalog(folderId);
+        break;
+      }
       case 'doc-append':    if (S.docOverlay) showDocAppend(S.docOverlay); break;
       case 'doc-edit-info': if (S.docOverlay) showDocEdit(S.docOverlay);   break;
       case 'doc-export': {
@@ -184,7 +241,7 @@ export function setupClick(): void {
         if (!confirm(`'${doc.title}' 문헌을 삭제합니다.\n\n카드와 학습 기록이 모두 지워지며 복구할 수 없습니다. 계속하시겠습니까?`)) break;
         deleteUserDoc(id);
         deleteDocProgress(id);
-        saveCollections(moveDoc(loadCollections(), id, null));   // 선반 배치 잔재 청소
+        saveCollections(moveDoc(loadCollections(), id, null));   // 폴더 배치 잔재 청소
         syncUserDocs();
         S.docOverlay = null;
         render();
@@ -265,6 +322,19 @@ export function setupKeyboard(): void {
     });
     if (modalOpen || isOnboardingOpen()) return;
 
+    if (S.libraryAddMenu && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+      const options = [...document.querySelectorAll<HTMLButtonElement>('.library-add-option:not(:disabled)')];
+      if (!options.length) return;
+      e.preventDefault();
+      const current = options.indexOf(document.activeElement as HTMLButtonElement);
+      const next = e.key === 'Home' ? 0
+        : e.key === 'End' ? options.length - 1
+        : e.key === 'ArrowUp' ? (current <= 0 ? options.length - 1 : current - 1)
+        : (current + 1) % options.length;
+      focusLibraryAddOption(next);
+      return;
+    }
+
     // Hard reset (anki only)
     if (e.ctrlKey && e.shiftKey && e.key === 'R') {
       e.preventDefault();
@@ -281,6 +351,7 @@ export function setupKeyboard(): void {
       if (isShortcutHelpOpen()) { hideShortcutHelp(); return; }
       if (dismissCellSelect()) return;   // 셀 선택 해제가 뒤로가기보다 우선
       if (S.grammarMenu) { S.grammarMenu = false; render(); return; }
+      if (S.libraryAddMenu) { S.libraryAddMenu = false; render(); focusLibraryAddTrigger(); return; }
       if (S.scr === 'home' && S.docOverlay) { closeOverlay(); return; }
       navBack();
       return;
@@ -298,8 +369,8 @@ export function setupKeyboard(): void {
         if (refs[i]) openDoc(refs[i].id);
         return;
       }
-      const doc = homeDocs()[i];   // 서가 표시 순서(참고문헌 제외)와 일치
-      if (doc) openDoc(doc.id);
+      const doc = homeDocs(S.folderId);   // 서가 표시 순서(참고문헌 제외)와 일치
+      if (doc[i]) openDoc(doc[i].id);
 
     } else if (S.scr === 'level') {
       const i = +e.key - 1;
@@ -331,4 +402,3 @@ export function setupKeyboard(): void {
     }
   });
 }
-

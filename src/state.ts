@@ -26,10 +26,13 @@ export const S = {
   grammarOn:       false,
   grammarEditMode: false,   // 문법 보기·편집은 카드 단위 — 카드 이동 시 resetGrammarView()
   grammarMenu:     false,   // 文 아이콘 확장 메뉴 열림 여부
+  libraryAddMenu:  false,   // 홈 라이브러리 추가 메뉴 열림 여부
   interpEditMode:  false,   // 해석 순서 편집 (문법 편집과 상호 배타)
 
   /** 홈 문헌 상세 오버레이 — 열려 있으면 해당 docId */
   docOverlay: null as string | null,
+  /** 홈 라이브러리의 현재 폴더. null = 루트. */
+  folderId:   null as string | null,
 };
 
 export const DRILL_NEXT: Record<string, string> = {
