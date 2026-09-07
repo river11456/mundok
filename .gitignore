@@ -5,6 +5,7 @@ __pycache__/
 **/.DS_Store
 *.local
 .omc/
+.omx/
 .claude/
 문독.app/
 

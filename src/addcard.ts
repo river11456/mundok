@@ -4,6 +4,11 @@ import { store } from './storage';
 import { syncUserDocs } from './docs';
 import { resolveRuntimeAddition } from './card-runtime';
 import type { Card, LevelKey } from './types';
+import {
+  applyCandidateToValues, codePointLength, createAutofillState, isSingleHanja, markFieldDirty,
+  prepareValuesForFrontChange, shouldAcceptDictionaryResponse, type AddCardAutofillState,
+} from './addcard-autofill';
+import { loadHanjaDictionaryResult, type HanjaCandidate } from './hanja-dictionary';
 
 const TYPE_LABELS: [string, string][] = [
   ['char',      '개별 글자'],
@@ -18,21 +23,139 @@ function $<T extends HTMLElement>(id: string): T {
 
 function hideModal(): void {
   $('ac-overlay').classList.add('hidden');
+  modalSession++;
+}
+
+let modalSession = 0;
+let dictionaryRequest = 0;
+let autofillState: AddCardAutofillState = createAutofillState({ reading: '', meaning: '' });
+let activeCandidates: HanjaCandidate[] = [];
+let activeCandidateIndex = -1;
+let noteDirty = false;
+
+function currentFieldValues(): { reading: string; meaning: string } {
+  return {
+    reading: $<HTMLInputElement>('ac-reading').value,
+    meaning: $<HTMLTextAreaElement>('ac-back').value,
+  };
+}
+
+function setFieldValues(values: { reading: string; meaning: string }): void {
+  $<HTMLInputElement>('ac-reading').value = values.reading;
+  $<HTMLTextAreaElement>('ac-back').value = values.meaning;
+}
+
+function findExistingCharCard(text: string): Card | undefined {
+  if (!S.docId || !isSingleHanja(text)) return undefined;
+  return curDoc().levels.find(l => l.key === 'char')?.cards.find(c => c.front === text);
+}
+
+function existingValuesForFront(front: string): { reading?: string; meaning?: string; note?: string } {
+  const existing = findExistingCharCard(front);
+  return {
+    ...(existing?.reading ? { reading: existing.reading } : {}),
+    ...(existing?.back ? { meaning: existing.back } : {}),
+    ...(existing?.note ? { note: existing.note } : {}),
+  };
+}
+
+function setDictionaryStatus(message: string, tone: 'muted' | 'error' = 'muted'): void {
+  const el = $('ac-dict-status');
+  el.textContent = message;
+  el.classList.toggle('text-[var(--fail)]', tone === 'error');
+  el.classList.toggle('t-sub', tone !== 'error');
+}
+
+function renderCandidates(candidates: HanjaCandidate[]): void {
+  const list = $('ac-candidates');
+  list.innerHTML = '';
+  activeCandidates = candidates;
+  candidates.forEach((candidate, index) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ac-candidate-chip';
+    btn.setAttribute('aria-pressed', String(index === activeCandidateIndex));
+    btn.dataset.index = String(index);
+    btn.textContent = `${candidate.reading} · ${candidate.meaning}`;
+    list.appendChild(btn);
+  });
+}
+
+function applyCandidate(index: number): void {
+  const candidate = activeCandidates[index];
+  if (!candidate) return;
+  activeCandidateIndex = index;
+  setFieldValues(applyCandidateToValues(autofillState, currentFieldValues(), candidate));
+  renderCandidates(activeCandidates);
+}
+
+function resetDictionaryUi(): void {
+  activeCandidates = [];
+  activeCandidateIndex = -1;
+  $('ac-candidates').innerHTML = '';
+  setDictionaryStatus('');
+}
+
+async function refreshDictionarySuggestion(session: number): Promise<void> {
+  const front = $<HTMLInputElement>('ac-front').value.trim();
+  resetDictionaryUi();
+  if (!isSingleHanja(front)) return;
+
+  const request = ++dictionaryRequest;
+  const requestedFront = front;
+  const daum = $<HTMLAnchorElement>('ac-daum');
+  daum.href = `https://dic.daum.net/search.do?dic=hanja&q=${encodeURIComponent(front)}`;
+  daum.classList.remove('hidden');
+  setDictionaryStatus('사전 후보를 불러오는 중…');
+
+  const result = await loadHanjaDictionaryResult();
+  if (!shouldAcceptDictionaryResponse(
+    session,
+    modalSession,
+    request,
+    dictionaryRequest,
+    requestedFront,
+    $<HTMLInputElement>('ac-front').value.trim(),
+  )) return;
+
+  if (!result.ok) {
+    renderCandidates([]);
+    setDictionaryStatus('사전 후보를 불러오지 못했습니다. 직접 입력하거나 Daum에서 확인하세요.', 'error');
+    return;
+  }
+
+  const candidates = result.dictionary.entries[front] ?? [];
+  renderCandidates(candidates);
+  if (!candidates.length) {
+    setDictionaryStatus('내장 사전에 후보가 없습니다. 직접 입력하거나 Daum에서 확인하세요.');
+    return;
+  }
+  setDictionaryStatus(candidates.length === 1 ? '내장 사전 후보 1개' : `내장 사전 후보 ${candidates.length}개`);
+  applyCandidate(0);
 }
 
 /** 카드 추가 모달 — 셀 선택(cell-select.ts)이 확정한 텍스트를 프리필해 연다. */
 export function showAddCardModal(text: string): void {
-  const nextType = text.length === 1 ? 'char' : (S.lv ? (DRILL_NEXT[S.lv.key] ?? 'word') : 'word');
+  const session = ++modalSession;
+  const singleHanja = isSingleHanja(text);
+  const singleCodePoint = codePointLength(text) === 1;
+  const existing = existingValuesForFront(text);
+  const nextType = singleCodePoint ? 'char' : (S.lv ? (DRILL_NEXT[S.lv.key] ?? 'word') : 'word');
   $<HTMLSelectElement>('ac-type').value   = nextType;
   $<HTMLInputElement>('ac-front').value   = text;
-  $<HTMLInputElement>('ac-reading').value = '';
-  $<HTMLTextAreaElement>('ac-back').value = '';
-  $<HTMLInputElement>('ac-note').value    = '';
+  $<HTMLInputElement>('ac-reading').value = existing.reading ?? '';
+  $<HTMLTextAreaElement>('ac-back').value = existing.meaning ?? '';
+  $<HTMLInputElement>('ac-note').value    = existing.note ?? '';
+  noteDirty = false;
+  autofillState = createAutofillState(currentFieldValues());
+  resetDictionaryUi();
+  $<HTMLAnchorElement>('ac-daum').classList.toggle('hidden', !singleHanja);
   $('ac-error').classList.add('hidden');
   $('ac-submit').textContent = '저장';
   $('ac-submit').removeAttribute('disabled');
   $('ac-overlay').classList.remove('hidden');
-  setTimeout(() => $('ac-back').focus(), 50);
+  void refreshDictionarySuggestion(session);
+  setTimeout(() => (singleHanja ? $('ac-reading') : $('ac-back')).focus(), 50);
 }
 
 async function submitCard(): Promise<void> {
@@ -73,6 +196,9 @@ async function submitCard(): Promise<void> {
           S.queue.push(sessionCard);
           S.total++;
         }
+      } else if (storedCard) {
+        S.allCards = S.allCards.map(c => c.id === storedCard.id ? { ...storedCard } : c);
+        S.queue = S.queue.map(c => c.id === storedCard.id ? { ...storedCard } : c);
       }
     }
     hideModal();
@@ -120,7 +246,7 @@ export function initAddCard(): void {
   const opts = TYPE_LABELS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
 
   overlay.innerHTML = `
-    <div id="ac-modal" class="modal-surface px-5 py-6 sm:px-8 sm:py-8 w-full max-w-sm flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 추가">
+    <div id="ac-modal" class="modal-surface px-5 py-6 sm:px-8 sm:py-8 w-full max-w-md flex flex-col gap-5 mx-4" role="dialog" aria-modal="true" aria-label="카드 추가">
       <div class="text-sm font-bold t-ink">카드 추가</div>
       <div class="flex flex-col gap-1">
         <label class="text-xs t-sub">타입</label>
@@ -151,6 +277,13 @@ export function initAddCard(): void {
         <input id="ac-note"
           class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
       </div>
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-3">
+          <div id="ac-dict-status" class="text-xs t-sub" aria-live="polite"></div>
+          <a id="ac-daum" class="text-xs t-sub underline underline-offset-2 hidden" target="_blank" rel="noopener">Daum 확인</a>
+        </div>
+        <div id="ac-candidates" class="flex flex-wrap gap-2" aria-label="사전 후보"></div>
+      </div>
       <div id="ac-error" class="text-xs text-[var(--fail)] hidden"></div>
       <div class="flex gap-3 justify-end pt-1">
         <button id="ac-cancel"
@@ -166,9 +299,29 @@ export function initAddCard(): void {
   overlay.addEventListener('click', hideModal);
   document.getElementById('ac-cancel')!.addEventListener('click', hideModal);
   document.getElementById('ac-submit')!.addEventListener('click', submitCard);
+  document.getElementById('ac-reading')!.addEventListener('input', () => markFieldDirty(autofillState, 'reading'));
+  document.getElementById('ac-back')!.addEventListener('input', () => markFieldDirty(autofillState, 'meaning'));
+  document.getElementById('ac-front')!.addEventListener('input', () => {
+    dictionaryRequest++;
+    const session = modalSession;
+    const front = $<HTMLInputElement>('ac-front').value.trim();
+    const existing = existingValuesForFront(front);
+    const prepared = prepareValuesForFrontChange(autofillState, currentFieldValues(), existing);
+    autofillState = prepared.state;
+    setFieldValues(prepared.values);
+    if (!noteDirty) $<HTMLInputElement>('ac-note').value = existing.note ?? '';
+    $<HTMLAnchorElement>('ac-daum').classList.add('hidden');
+    void refreshDictionarySuggestion(session);
+  });
+  document.getElementById('ac-note')!.addEventListener('input', () => { noteDirty = true; });
+  document.getElementById('ac-candidates')!.addEventListener('click', e => {
+    const btn = (e.target as Element).closest<HTMLButtonElement>('button[data-index]');
+    if (!btn) return;
+    applyCandidate(Number(btn.dataset.index));
+  });
   document.getElementById('ac-search')!.addEventListener('click', () => {
     const q = $<HTMLInputElement>('ac-front').value.trim();
-    if (q) window.open(`https://hanja.dict.naver.com/search?query=${encodeURIComponent(q)}`, '_blank');
+    if (q) window.open(`https://dic.daum.net/search.do?dic=hanja&q=${encodeURIComponent(q)}`, '_blank', 'noopener');
   });
 
   // Keyboard: Escape closes modal

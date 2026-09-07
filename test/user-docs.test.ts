@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { splitClassical } from '../src/doc-text.ts';
-import { newUserDocId, nextCardId, addTexts, mergeCatalogUpdate } from '../src/user-docs.ts';
+import {
+  USER_DOCS_KEY, newUserDocId, nextCardId, addTexts, mergeCatalogUpdate, loadUserDocs, userAddCard,
+} from '../src/user-docs.ts';
 import type { CardJSON, DocJSON } from '../src/types.ts';
 
 // ── splitClassical — 붙여넣기 마법사 분할 규칙 ─────────────────────────────
@@ -124,4 +126,102 @@ test('머지 — 유저 추가 카드(상류에 없는 id)는 뒤에 보존된�
 test('머지 — 문헌 메타는 상류를 따른다', () => {
   const { doc } = mergeCatalogUpdate(installed([]), upstream([mCard('s1', '甲')]));
   assert.equal(doc.title, '新');
+});
+
+// ── userAddCard — 중복 카드 빈 필드 보강 ────────────────────────────────
+
+class MemoryStorage {
+  data = new Map<string, string>();
+  writes = 0;
+
+  get length(): number {
+    return this.data.size;
+  }
+
+  getItem(key: string): string | null {
+    return this.data.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.writes += 1;
+    this.data.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.data.delete(key);
+  }
+
+  key(index: number): string | null {
+    return [...this.data.keys()][index] ?? null;
+  }
+
+  clear(): void {
+    this.data.clear();
+  }
+}
+
+function useDocs(doc: DocJSON): MemoryStorage {
+  const storage = new MemoryStorage();
+  storage.data.set(USER_DOCS_KEY, JSON.stringify([doc]));
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storage,
+    configurable: true,
+  });
+  return storage;
+}
+
+test('userAddCard — 중복 텍스트는 reading/meaning/note 빈 필드만 보강한다', () => {
+  const doc: DocJSON = {
+    id: 'u1',
+    title: '試',
+    sub: '시',
+    updatedAt: 'old-doc',
+    levels: { char: [{ id: 'c1', text: '學', reading: '', meaning: '', note: '사용자 메모' }] },
+  };
+  useDocs(doc);
+
+  const id = userAddCard('u1', 'char', { text: '學', reading: '학', meaning: '배울 학', note: '새 메모' });
+  const card = loadUserDocs()[0].levels.char![0];
+
+  assert.equal(id, 'c1');
+  assert.equal(card.reading, '학');
+  assert.equal(card.meaning, '배울 학');
+  assert.equal(card.note, '사용자 메모');
+  assert.equal(typeof card.editedAt, 'number');
+  assert.notEqual(loadUserDocs()[0].updatedAt, 'old-doc');
+});
+
+test('userAddCard — 완성 중복 카드는 no-op이라 저장과 타임스탬프를 바꾸지 않는다', () => {
+  const doc: DocJSON = {
+    id: 'u1',
+    title: '試',
+    sub: '시',
+    updatedAt: 'old-doc',
+    levels: { char: [{ id: 'c1', text: '學', reading: '학', meaning: '배울 학', note: '사용자 메모', editedAt: 100 }] },
+  };
+  const storage = useDocs(doc);
+  const before = storage.getItem(USER_DOCS_KEY);
+
+  const id = userAddCard('u1', 'char', { text: '學', reading: '다른 음', meaning: '다른 뜻', note: '다른 메모' });
+
+  assert.equal(id, 'c1');
+  assert.equal(storage.writes, 0);
+  assert.equal(storage.getItem(USER_DOCS_KEY), before);
+});
+
+test('userAddCard — 부분 필드가 있어도 기존 비어있지 않은 값은 보호한다', () => {
+  const doc: DocJSON = {
+    id: 'u1',
+    title: '試',
+    sub: '시',
+    levels: { char: [{ id: 'c1', text: '不', reading: '부', meaning: '', note: '' }] },
+  };
+  useDocs(doc);
+
+  userAddCard('u1', 'char', { text: '不', reading: '불', meaning: '아닐 불', note: '다음 후보' });
+  const card = loadUserDocs()[0].levels.char![0];
+
+  assert.equal(card.reading, '부');
+  assert.equal(card.meaning, '아닐 불');
+  assert.equal(card.note, '다음 후보');
 });

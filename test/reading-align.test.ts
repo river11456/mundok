@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alignReading, isHan } from '../src/reading-align.ts';
+import {
+  alignReading, isHan, readingDraftFromText, readingFromDraftCells,
+} from '../src/reading-align.ts';
 
 test('isHan — 한자만 참', () => {
   assert.equal(isHan('春'), true);
@@ -61,4 +63,40 @@ test('꼬리 공백·부호는 허용', () => {
 test('BMP 밖 벽자도 1글자로 정렬된다', () => {
   const rare = String.fromCodePoint(0x20000); // 𠀀 (Ext-B)
   assert.deepEqual(alignReading(`${rare}春`, '가춘'), ['가', '춘']);
+});
+
+test('편집 draft — 완성 전 독음도 입력된 만큼 한자 칸에 배치한다', () => {
+  assert.deepEqual(readingDraftFromText('春三月 此謂', '춘삼월차'), {
+    cells: [
+      { ch: '春', textIndex: 0, value: '춘' },
+      { ch: '三', textIndex: 1, value: '삼' },
+      { ch: '月', textIndex: 2, value: '월' },
+      { ch: '此', textIndex: 4, value: '차' },
+      { ch: '謂', textIndex: 5, value: '' },
+    ],
+    overflow: '',
+  });
+});
+
+test('편집 draft — 현토와 공백을 소비해 한자 독음만 분리한다', () => {
+  const draft = readingDraftFromText('上古之人은 其知道者라', '상고지인은 기지도자라');
+  assert.deepEqual(draft.cells.map(cell => cell.value), ['상', '고', '지', '인', '기', '지', '도', '자']);
+  assert.equal(draft.overflow, '');
+});
+
+test('편집 draft — 한자 수를 넘는 독음은 overflow로 보존한다', () => {
+  assert.deepEqual(readingDraftFromText('春三月', '춘삼월차위').overflow, '차위');
+});
+
+test('한자별 draft 저장값은 기존 alignReading과 호환된다', () => {
+  const reading = readingFromDraftCells(['춘', '삼', '', '차']);
+  assert.equal(reading, '춘삼·차');
+  assert.deepEqual(readingFromDraftCells(['춘', '삼', '월']), '춘삼월');
+  assert.deepEqual(alignReading('春三月', readingFromDraftCells(['춘', '삼', '월'])), ['춘', '삼', '월']);
+});
+
+test('편집 draft — 중간 빈칸도 저장 후 같은 위치로 복원한다', () => {
+  const saved = readingFromDraftCells(['춘', '', '월']);
+  assert.equal(saved, '춘·월');
+  assert.deepEqual(readingDraftFromText('春三月', saved).cells.map(cell => cell.value), ['춘', '', '월']);
 });

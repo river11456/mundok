@@ -120,6 +120,20 @@ function withDoc<T>(docId: string, fn: (d: DocJSON) => T): T {
   return r;
 }
 
+/** 문헌을 찾아 fn 적용. fn이 changed=false를 반환하면 타임스탬프와 저장을 생략한다. */
+function withDocChange<T>(docId: string, fn: (d: DocJSON) => { result: T; changed: boolean }): T {
+  const docs = loadUserDocs();
+  const doc  = docs.find(d => d.id === docId);
+  if (!doc) throw new Error(`문헌을 찾을 수 없습니다: ${docId}`);
+  const { result, changed } = fn(doc);
+  if (changed) {
+    doc.schemaVersion = SCHEMA_VERSION;
+    doc.updatedAt = new Date().toISOString();
+    save(docs);
+  }
+  return result;
+}
+
 export function createUserDoc(
   meta: { title: string; sub: string; color?: string },
   type: LevelKey,
@@ -202,13 +216,20 @@ export function userAddCard(
   docId: string, type: LevelKey,
   c: { text: string; reading: string; meaning: string; note: string },
 ): string {
-  return withDoc(docId, d => {
+  return withDocChange(docId, d => {
     const cards = (d.levels[type] ??= []);
     const existing = cards.find(x => x.text === c.text);
-    if (existing) return existing.id;   // 중복 텍스트 = 기존 id (v1과 동일 계약)
+    if (existing) {
+      let changed = false;
+      if (!existing.reading && c.reading) { existing.reading = c.reading; changed = true; }
+      if (!existing.meaning && c.meaning) { existing.meaning = c.meaning; changed = true; }
+      if (!existing.note && c.note) { existing.note = c.note; changed = true; }
+      if (changed) existing.editedAt = Date.now();
+      return { result: existing.id, changed };
+    }
     const id = nextCardId(cards, type);
     cards.push({ id, ...c, editedAt: Date.now() });
-    return id;
+    return { result: id, changed: true };
   });
 }
 

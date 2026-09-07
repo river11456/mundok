@@ -398,7 +398,7 @@ function docOverlayHtml(docId: string): string {
           <div class="detail-cover"><span class="slip kai hanja">${esc(d.title)}</span></div>
           <div class="detail-info">
             <div class="detail-title kai hanja">${esc(d.title)}</div>
-            <div class="detail-sub">${esc(d.sub)} · <span class="num">${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
+            <div class="detail-sub"><span class="num">총 ${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
             <div class="detail-actions">
               <button data-action="overlay-mode" data-arg="seq" class="btn-primary">순차 재생</button>
               <button data-action="overlay-mode" data-arg="anki" class="btn-ghost">안키 모드</button>
@@ -406,31 +406,32 @@ function docOverlayHtml(docId: string): string {
           </div>
         </div>
       </div>
-      <div class="detail-stats">
-        ${d.levels.map(lv => `<div class="dstat"><b class="num">${lv.cards.length}</b><span>${esc(lv.label)}</span></div>`).join('')}
+      <div class="detail-disclosures">
+        <details class="detail-disclosure">
+          <summary>문헌 관리</summary>
+          <div class="detail-user-actions">
+            <button data-action="doc-append" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2.6v8.8M2.6 7h8.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>본문 추가</button>
+            <button data-action="doc-edit-info" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.8 2.2l2 2-7.3 7.3-2.7.7.7-2.7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>정보 수정</button>
+            <button data-action="doc-move-shelf" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1.9 11.8h10.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3.6 11.8V5.3c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v6.5M7.2 11.8V3.4c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v8.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>폴더 이동</button>
+            <button data-action="doc-export" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 8.8V2.4M4.4 4.9L7 2.3l2.6 2.6M2.4 9.6v1.2c0 .7.6 1.3 1.3 1.3h6.6c.7 0 1.3-.6 1.3-1.3V9.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>내보내기</button>
+            <button data-action="doc-delete" class="dua-btn danger"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.4 3.9h9.2M5.6 3.9V2.7c0-.4.3-.7.7-.7h1.4c.4 0 .7.3.7.7v1.2M3.6 3.9l.5 6.9c0 .7.6 1.2 1.3 1.2h3.2c.7 0 1.3-.5 1.3-1.2l.5-6.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>문헌 삭제</button>
+          </div>
+        </details>
+        ${refs.length ? `
+        <details class="detail-disclosure detail-refs">
+          <summary>참고문헌 <span class="num">${refs.length}</span></summary>
+          <div class="dref-grid">
+            ${refs.map((r, i) => `
+            <div class="dref">
+              <button data-action="overlay-ref" data-arg="${r.id}" class="dref-cover" style="--cbg:${docColor(r)}">
+                <span class="slip kai hanja">${esc(r.title)}</span><span class="key num kb-only">${i + 1}</span>
+                <span class="cmeta num">${docTotalCards(r)}장</span>
+              </button>
+              <div class="k">${esc(r.sub)}</div>
+            </div>`).join('')}
+          </div>
+        </details>` : ''}
       </div>
-      <div class="detail-user-actions">
-        <button data-action="doc-append" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2.6v8.8M2.6 7h8.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>본문 추가</button>
-        <button data-action="doc-edit-info" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9.8 2.2l2 2-7.3 7.3-2.7.7.7-2.7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>정보 수정</button>
-        <button data-action="doc-move-shelf" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1.9 11.8h10.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3.6 11.8V5.3c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v6.5M7.2 11.8V3.4c0-.4.3-.7.7-.7h.9c.4 0 .7.3.7.7v8.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>폴더 이동</button>
-        <button data-action="doc-export" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 8.8V2.4M4.4 4.9L7 2.3l2.6 2.6M2.4 9.6v1.2c0 .7.6 1.3 1.3 1.3h6.6c.7 0 1.3-.6 1.3-1.3V9.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>내보내기</button>
-        <button data-action="doc-delete" class="dua-btn danger"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2.4 3.9h9.2M5.6 3.9V2.7c0-.4.3-.7.7-.7h1.4c.4 0 .7.3.7.7v1.2M3.6 3.9l.5 6.9c0 .7.6 1.2 1.3 1.2h3.2c.7 0 1.3-.5 1.3-1.2l.5-6.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>문헌 삭제</button>
-      </div>
-      ${refs.length ? `
-      <div class="detail-refs">
-        <h3>참고문헌 ${refs.length}</h3>
-        <div class="dref-grid">
-          ${refs.map((r, i) => `
-          <div class="dref">
-            <button data-action="overlay-ref" data-arg="${r.id}" class="dref-cover" style="--cbg:${docColor(r)}">
-              <span class="slip kai hanja">${esc(r.title)}</span><span class="key num kb-only">${i + 1}</span>
-              <span class="cmeta num">${docTotalCards(r)}장</span>
-            </button>
-            <div class="k">${esc(r.sub)}</div>
-          </div>`).join('')}
-        </div>
-      </div>` : ''}
-      <div class="detail-foot kb-only"><kbd class="kbd">Enter</kbd> 순차 · <kbd class="kbd">⇧Enter</kbd> 안키 · <kbd class="kbd">Esc</kbd> 닫기</div>
     </div>
   </div>`;
 }
