@@ -27,6 +27,11 @@ const DRILL_LEVELS = { paragraph: ['sentence'], sentence: ['word', 'char'], word
 
 function trunc(s) { return s.length > 28 ? s.slice(0, 28) + '…' : s; }
 
+/** macOS(NFD)와 Linux(NFC)의 한글 파일명 표현 차이를 무시한다. */
+export function catalogFileMatchesId(file, id) {
+  return `${id}.json`.normalize('NFC') === file.normalize('NFC');
+}
+
 /** 홈 워드마크 — 콘텐츠 밖이지만 해서(WenKai)로 표시되므로 서브셋에 포함해야 한다. */
 export const WORDMARK = '文讀';
 
@@ -172,7 +177,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   for (const file of readdirSync(CATALOG_DIR).filter(f => f.endsWith('.json') && !f.startsWith('_')).sort()) {
     const dj = JSON.parse(readFileSync(join(CATALOG_DIR, file), 'utf-8'));
     catalogDjs.push(dj);
-    if (`${dj.id}.json` !== file) errors.push(`catalog/${file}: id "${dj.id}"가 파일명과 다름`);
+    // macOS는 한글 파일명을 NFD로 반환할 수 있고 Linux는 Git의 NFC를
+    // 그대로 반환한다. 운영체제와 무관하게 논리적으로 같은 이름을 비교한다.
+    if (!catalogFileMatchesId(file, dj.id)) {
+      errors.push(`catalog/${file}: id "${dj.id}"가 파일명과 다름`);
+    }
     if (dj.version !== undefined && (!Number.isInteger(dj.version) || dj.version < 1)) {
       errors.push(`catalog/${file}: version은 1 이상 정수여야 함 (${JSON.stringify(dj.version)})`);
     }

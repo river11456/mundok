@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lintDoc, lintGroups, collectHanChars, missingHanChars, WORDMARK } from '../scripts/lint-data.mjs';
+import {
+  lintDoc,
+  lintGroups,
+  collectHanChars,
+  missingHanChars,
+  catalogFileMatchesId,
+  WORDMARK,
+} from '../scripts/lint-data.mjs';
 
 function doc(levels) {
   return { id: 'doc1', title: 't', sub: 's', levels };
@@ -113,6 +120,12 @@ test('color 형식이 #RRGGBB가 아니면 ERROR', () => {
   assert.equal(errors.length, 1);
   assert.match(errors[0], /color 형식 이상/);
   assert.equal(lintDoc({ ...doc({}), color: '#F8E3D1' }).errors.length, 0);
+});
+
+test('카탈로그 파일명과 id는 한글 NFC/NFD 차이를 무시한다', () => {
+  assert.equal(catalogFileMatchesId('맹자.json', '맹자'), true);
+  assert.equal(catalogFileMatchesId('맹자.json'.normalize('NFD'), '맹자'), true);
+  assert.equal(catalogFileMatchesId('맹자.json', '다른문헌'), false);
 });
 
 test('lintGroups: 정상 그룹은 ERROR 0건', () => {
