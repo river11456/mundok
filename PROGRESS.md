@@ -11,7 +11,9 @@
 
 ## 현재 우선순위와 남은 범위
 
-- 현재 요청은 [#14 문서 최신화·불필요 자료 제거](https://github.com/river11456/mundok/issues/14)다. 기능 개발은 자동으로 이어서 시작하지 않는다.
+- 현재 작업은 [#5 백업·복원·기존 사용자 업데이트 검증](https://github.com/river11456/mundok/issues/5)이다. 합성 표본·자동 검사는 `test/backup-recovery.test.mjs`, 반복 실행·복구 절차는 [docs/recovery.md](docs/recovery.md)에 있다. 실제 기기 미검증 항목과 실행 근거는 #5에서 확인한다.
+- #5에서 재현된 저장 실패·입력 검증·구 데이터 혼입 결함은 #16·#17·#18로 분리했다. 테스트 통과가 복원 안전성을 뜻하지 않는다.
+- [#14 문서 최신화·불필요 자료 제거](https://github.com/river11456/mundok/issues/14)는 완료됐다.
 - 작업 절차는 [PROCESS.md](PROCESS.md). [#2](https://github.com/river11456/mundok/issues/2)에서 PR 필수 검사·버전 검사·출시 기록 연결을 적용했다.
 - 주요 문서 정비 범위와 완료 근거는 [#3](https://github.com/river11456/mundok/issues/3). 현재 기능은 [SPEC.md](SPEC.md), UI 기준은 [DESIGN.md](DESIGN.md), 서비스화 단계는 [ROADMAP.md](ROADMAP.md)에서 확인한다.
 - 폴더 데이터는 임의 깊이를 표현하지만 **생성 UI에는 2단계 제한이 남아 있다**. 합의된 중첩 목표를 구현하는 작업은 [#4](https://github.com/river11456/mundok/issues/4)다.
