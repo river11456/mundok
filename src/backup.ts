@@ -1,4 +1,6 @@
 import { store, exportUserData, importUserData } from './storage';
+import { hasPendingRecovery } from './storage/recovery';
+import { storageErrorMessage } from './storage/recovery-ui';
 
 /**
  * 정적 배포(LocalStore) 모드에서만 노출되는 데이터 백업 메뉴.
@@ -62,7 +64,7 @@ export function initBackup(): void {
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
-    if (!confirm('현재 이 브라우저의 카드 데이터를 백업 파일 내용으로 덮어씁니다.\n계속하시겠습니까?')) {
+    if (!confirm('다른 문독 탭과 앱 창을 모두 닫아 주세요. 이전 버전의 창은 복원을 방해할 수 있습니다.\n현재 이 브라우저의 카드 데이터를 백업 파일 내용으로 덮어씁니다.\n계속하시겠습니까?')) {
       fileInput.value = '';
       return;
     }
@@ -71,7 +73,14 @@ export function initBackup(): void {
       alert('복원했습니다. 페이지를 새로고침합니다.');
       location.reload();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '가져오기에 실패했습니다.');
+      alert(storageErrorMessage(err));
+      // Re-enter initialization before any existing study handlers can edit
+      // partial data. The startup recovery screen offers the original snapshot.
+      try {
+        if (hasPendingRecovery()) location.reload();
+      } catch {
+        location.reload();
+      }
     } finally {
       fileInput.value = '';
     }

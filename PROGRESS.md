@@ -1,6 +1,6 @@
 # 文讀 — 현재 인계
 
-> 확인 날짜: **2026-09-20**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
+> 확인 날짜: **2026-09-21**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
 
 ## 운영 기준
 
@@ -11,8 +11,9 @@
 
 ## 현재 우선순위와 남은 범위
 
-- 현재 작업은 [#5 백업·복원·기존 사용자 업데이트 검증](https://github.com/river11456/mundok/issues/5)이다. 합성 표본·자동 검사는 `test/backup-recovery.test.mjs`, 반복 실행·복구 절차는 [docs/recovery.md](docs/recovery.md)에 있다. 실제 기기 미검증 항목과 실행 근거는 #5에서 확인한다.
-- #5에서 재현된 저장 실패·입력 검증·구 데이터 혼입 결함은 #16·#17·#18로 분리했다. 테스트 통과가 복원 안전성을 뜻하지 않는다.
+- 현재 작업은 [#16 저장 실패 복구](https://github.com/river11456/mundok/issues/16)·[#17 입력 검증](https://github.com/river11456/mundok/issues/17)·[#18 구 데이터 혼입 방지](https://github.com/river11456/mundok/issues/18)의 **3.0.0 수정본**이다. 원본 저널, 내부 형식·좌표 검사, v1/v3 동시 교체, 한 창 편집 잠금을 적용한다. 아직 배포 완료 기록은 아니며 검증·리뷰·출시 결과는 각 이슈와 Release를 따른다.
+- 합성 표본·자동 검사는 `test/backup-recovery.test.mjs`·`test/backup-validation.test.mjs`·`test/editing-session.test.mjs`, 로컬 브라우저 검사는 `test/browser-backup-recovery.html`이다. 반복 실행·호환 제한·복구 절차는 [docs/recovery.md](docs/recovery.md)에 있다.
+- [#5 백업·복원·기존 사용자 업데이트 검증](https://github.com/river11456/mundok/issues/5)은 실제 iPad/폰 설치형 PWA, 기기 전체 오프라인, 실제 파일 다운로드 후 업로드 왕복이 미검증으로 남는다. 자동 검사나 데스크톱 서버 중지 검사로 대체하지 않는다.
 - [#14 문서 최신화·불필요 자료 제거](https://github.com/river11456/mundok/issues/14)는 완료됐다.
 - 작업 절차는 [PROCESS.md](PROCESS.md). [#2](https://github.com/river11456/mundok/issues/2)에서 PR 필수 검사·버전 검사·출시 기록 연결을 적용했다.
 - 주요 문서 정비 범위와 완료 근거는 [#3](https://github.com/river11456/mundok/issues/3). 현재 기능은 [SPEC.md](SPEC.md), UI 기준은 [DESIGN.md](DESIGN.md), 서비스화 단계는 [ROADMAP.md](ROADMAP.md)에서 확인한다.

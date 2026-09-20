@@ -18,6 +18,7 @@ const { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } = await 
 const { seedCollectionsIfNeeded } = await import('../src/collections.ts');
 const { loadUserDocs } = await import('../src/user-docs.ts');
 const { deriveFails } = await import('../src/review-log.ts');
+const { RECOVERY_KEY, initializeStorage, recoverInterruptedStorage, recoveryBackup } = await import('../src/storage/recovery.ts');
 hooks.deregister();
 
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/backup/${name}.json`, import.meta.url), 'utf8'));
@@ -47,10 +48,12 @@ afterEach(() => {
 
 // Same storage migration order as initDocs; catalog/DOM rendering is outside this test.
 function startAppStorage() {
-  purgeV1IfMigrated();
-  migrateV1IfNeeded(fixture('catalog'));
-  migrateProgressIfNeeded(loadUserDocs());
-  seedCollectionsIfNeeded(catalogShelves, loadUserDocs().map(d => d.id));
+  initializeStorage(() => {
+    purgeV1IfMigrated();
+    migrateV1IfNeeded(fixture('catalog'));
+    migrateProgressIfNeeded(loadUserDocs());
+    seedCollectionsIfNeeded(catalogShelves, loadUserDocs().map(d => d.id));
+  });
 }
 
 async function exported(t) {
@@ -198,55 +201,138 @@ for (const [name, data] of invalidBackups) {
   });
 }
 
-// Characterization only: these passing tests document unsafe existing behavior,
-// not a guarantee of safety. Replace with preservation/rejection tests when fixed.
-// Tracked separately in #16 (write failure), #17 (validation), #18 (legacy residue).
-test('KNOWN DEFECT: quota failure after clearing v3 keys loses original data and leaves partial restore', async () => {
+// Regression coverage for #16/#17/#18: assert preservation, never the old defect.
+for (const format of ['v3', 'v2', 'legacy-userdata']) {
+  for (const errorName of ['QuotaExceededError', 'SecurityError']) {
+    test(`${format}: every interrupted storage operation preserves the original (${errorName})`, async () => {
+      await importUserData(file(fixture('v3')));
+      storage.setItem('hanja-v2/old', '"kept on failure"');
+      storage.setItem('unrelated/key', 'keep');
+      const before = storage.snapshot();
+      const write = storage.setItem;
+      const remove = storage.removeItem;
+      let operations = 0;
+      storage.setItem = (key, value) => { operations++; write(key, value); };
+      storage.removeItem = key => { operations++; remove(key); };
+      await importUserData(file(fixture(format)));
+      storage.setItem = write;
+      storage.removeItem = remove;
+      for (let failAt = 1; failAt <= operations; failAt++) {
+        storage.clear();
+        for (const [key, value] of Object.entries(before)) write(key, value);
+        let step = 0;
+        const failOnce = () => {
+          if (++step === failAt) throw new DOMException(`Injected operation ${failAt}`, errorName);
+        };
+        storage.setItem = (key, value) => { failOnce(); write(key, value); };
+        storage.removeItem = key => { failOnce(); remove(key); };
+        await assert.rejects(importUserData(file(fixture(format))), { name: errorName });
+        assert.deepEqual(storage.snapshot(), before, `operation ${failAt}`);
+        storage.setItem = write;
+        storage.removeItem = remove;
+      }
+    });
+  }
+}
+
+test('persistent write failure keeps a durable original snapshot and next startup recovers before migration', async () => {
   await importUserData(file(fixture('v3')));
   const before = storage.snapshot();
   const write = storage.setItem;
   storage.setItem = (key, value) => {
-    if (key === 'mundok-v3/collections') throw new DOMException('Injected quota failure', 'QuotaExceededError');
+    if (key === 'mundok-v3/collections') throw new DOMException('Persistent failure', 'QuotaExceededError');
     write(key, value);
   };
-  await assert.rejects(importUserData(file(fixture('v3'))), { name: 'QuotaExceededError' });
-  assert.notDeepEqual(storage.snapshot(), before);
-  assert.notEqual(storage.getItem('mundok-v3/docs'), null);
-  assert.equal(storage.getItem('mundok-v3/log/sample'), null);
-  assert.equal(storage.getItem('mundok-v3/session'), null);
+  await assert.rejects(importUserData(file(fixture('v3'))), /원본 복구가 중단/);
+  assert.deepEqual(recoveryBackup(), { version: 2, keys: before });
+  assert.throws(startAppStorage, { name: 'QuotaExceededError' });
+  assert.deepEqual(JSON.parse(storage.getItem(RECOVERY_KEY)).before, before);
+  storage.setItem = write;
+  startAppStorage();
+  assert.deepEqual(storage.snapshot(), before);
 });
 
-test('recovery drill: an external pre-failure export restores data after storage becomes writable again', async t => {
+test('recovery drill: interrupted replacement on disk is undone before initialization and recovery dump is importable', async t => {
   await importUserData(file(fixture('v3')));
-  const safetyBackup = await exported(t);
-  const write = storage.setItem;
-  storage.setItem = (key, value) => {
-    if (key === 'mundok-v3/collections') throw new DOMException('Injected quota failure', 'QuotaExceededError');
-    write(key, value);
-  };
-  try {
-    await assert.rejects(importUserData(file(fixture('v3'))), { name: 'QuotaExceededError' });
-  } finally {
-    storage.setItem = write;
-  }
+  const before = storage.snapshot();
+  storage.setItem(RECOVERY_KEY, JSON.stringify({ version: 1, before }));
+  storage.removeItem('mundok-v3/docs');
+  storage.setItem('mundok-v3/log/partial', '[]');
+  const safetyBackup = recoveryBackup();
+  startAppStorage();
+  assert.deepEqual(storage.snapshot(), before);
+  storage.clear();
   await importUserData(file(safetyBackup));
   startAppStorage();
-  await assertRoundtrip(t, safetyBackup);
+  await assertRoundtrip(t, fixture('v3'));
 });
 
-test('KNOWN DEFECT: malformed card arrays and log events pass v3 validation and replace valid data', async () => {
+test('migration failure after session write preserves imported v1 source and retries prefs on next start', async () => {
+  await importUserData(file(fixture('v2')));
+  const before = storage.snapshot();
+  const write = storage.setItem;
+  let failed = false;
+  storage.setItem = (key, value) => {
+    if (!failed && key === 'mundok-v3/prefs') {
+      failed = true;
+      throw new DOMException('Migration prefs failure', 'QuotaExceededError');
+    }
+    write(key, value);
+  };
+  assert.throws(startAppStorage, { name: 'QuotaExceededError' });
+  assert.deepEqual(storage.snapshot(), before);
+  storage.setItem = write;
+  startAppStorage();
+  assert.deepEqual((await initStore()).loadPrefs(), fixture('v3').preference);
+  startAppStorage();
+  assert.equal(storage.getItem('hanja-v2/userdata'), null);
+});
+
+test('journal capacity failure before migration leaves raw source exportable and normal startup needs no extra storage', async () => {
+  await importUserData(file(fixture('v2')));
+  const before = storage.snapshot();
+  const write = storage.setItem;
+  storage.setItem = (key, value) => {
+    if (key === RECOVERY_KEY) throw new DOMException('Journal full', 'QuotaExceededError');
+    write(key, value);
+  };
+  assert.throws(startAppStorage, { name: 'QuotaExceededError' });
+  assert.deepEqual(storage.snapshot(), before);
+  assert.deepEqual(recoveryBackup(), { version: 2, keys: before });
+  storage.setItem = write;
+  startAppStorage();
+  startAppStorage();
+  storage.setItem = () => { throw new Error('Normal startup must not write'); };
+  startAppStorage();
+});
+
+test('malformed journal fails closed without replacing managed or unrelated keys', () => {
+  storage.setItem('unrelated/key', 'keep');
+  storage.setItem(RECOVERY_KEY, JSON.stringify({ version: 1, before: { 'unrelated/key': 'bad' } }));
+  const before = storage.snapshot();
+  assert.throws(recoverInterruptedStorage, /복구 사본/);
+  assert.deepEqual(storage.snapshot(), before);
+});
+
+test('malformed card arrays and log events are rejected before replacing valid data', async () => {
   await importUserData(file(fixture('v3')));
-  const malformed = { version: 3, content: { docs: [{ id: 'broken', levels: { char: 'not-an-array' } }] }, progress: { logs: { broken: [null] } } };
-  await importUserData(file(malformed));
-  assert.deepEqual(loadUserDocs(), malformed.content.docs);
-  assert.throws(() => loadUserDocs()[0].levels.char.map(c => c.id), TypeError);
-  assert.throws(() => deriveFails((JSON.parse(storage.getItem('mundok-v3/log/broken'))), 'char'), TypeError);
+  const before = storage.snapshot();
+  const malformed = fixture('v3');
+  malformed.content.docs[0].levels.char = 'not-an-array';
+  await assert.rejects(importUserData(file(malformed)), /백업/);
+  assert.deepEqual(storage.snapshot(), before);
+  malformed.content.docs = fixture('v3').content.docs;
+  malformed.progress.logs.sample = [null];
+  await assert.rejects(importUserData(file(malformed)), /백업/);
+  assert.deepEqual(storage.snapshot(), before);
 });
 
 for (const format of ['legacy-userdata', 'v2']) {
-  test(`KNOWN DEFECT: ${format} restore retains old v1 keys absent from backup`, async () => {
+  test(`${format} restore replaces old v1 and v3 data without resurrecting absent documents or progress`, async () => {
+    await importUserData(file(fixture('v3')));
     storage.setItem('hanja-v2/user-docs', JSON.stringify([{ id: 'stale-user', title: '백업에 없는 문헌', sub: '', levels: {} }]));
     storage.setItem('hanja-v2/streak', JSON.stringify({ lastDate: '2020-01-01', count: 999, todayCards: 99 }));
+    storage.setItem('unrelated/key', 'keep');
     const backup = fixture(format);
     if (format === 'v2') {
       delete backup.keys['hanja-v2/user-docs'];
@@ -254,7 +340,8 @@ for (const format of ['legacy-userdata', 'v2']) {
     }
     await importUserData(file(backup));
     startAppStorage();
-    assert.ok(loadUserDocs().some(d => d.id === 'stale-user'));
-    assert.equal((await initStore()).loadSession().streak.count, 999);
+    assert.ok(!loadUserDocs().some(d => d.id === 'stale-user' || d.id === 'u1'));
+    assert.equal((await initStore()).loadSession().streak.count, 0);
+    assert.equal(storage.getItem('unrelated/key'), 'keep');
   });
 }

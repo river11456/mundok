@@ -2,6 +2,8 @@ import type { Store } from './types';
 import { LocalStore } from './local';
 import { V3_DOCS_KEY, V3_SESSION_KEY, V3_PREFS_KEY } from '../migrate-v1';
 import { V3_COLLECTIONS_KEY, normalizeShelves } from '../collections';
+import { validateBackup } from './backup-validation';
+import { withStorageRecovery, replaceUserData } from './recovery';
 
 export type { Store } from './types';
 
@@ -27,33 +29,11 @@ export function store(): Store {
 //   가져오기 호환: v3 / v2(hanja-v2 키 덤프 — v1 상태 복원 후 재마이그레이션, SPEC 9절 7단계)
 //   / 구 단일 userdata 객체.
 
-const V1_PREFIX = 'hanja-v2/';
-const V3_PREFIX = 'mundok-v3/';
 const V3_LOG_PREFIX = 'mundok-v3/log/';
 const V1_USERDATA_KEY = 'hanja-v2/userdata';
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-/** v1 UserData(카드 편집 델타) 형태 검증. 어긋나면 throw. */
-function validateUserData(d: unknown): void {
-  if (!isPlainObject(d) || !Array.isArray(d.additions) || !Array.isArray(d.edits) || !Array.isArray(d.deletions)) {
-    throw new Error('백업 파일 형식이 올바르지 않습니다.');
-  }
-  if (d.grammar !== undefined) {
-    if (!Array.isArray(d.grammar)) throw new Error('백업 파일 형식이 올바르지 않습니다 (grammar).');
-    for (const g of d.grammar) {
-      if (!isPlainObject(g) || typeof g.docId !== 'string' || typeof g.cardFront !== 'string' || !Array.isArray(g.annotations)) {
-        throw new Error('백업 파일 형식이 올바르지 않습니다 (grammar 항목).');
-      }
-      for (const a of g.annotations) {
-        if (!isPlainObject(a) || typeof a.start !== 'number' || typeof a.end !== 'number' || typeof a.type !== 'string') {
-          throw new Error('백업 파일 형식이 올바르지 않습니다 (grammar annotation).');
-        }
-      }
-    }
-  }
 }
 
 function readJson<T>(key: string): T | null {
@@ -87,18 +67,11 @@ export function exportUserData(): void {
   URL.revokeObjectURL(url);
 }
 
-/** mundok-v3/* 전체 제거 — v1 백업 복원 후 재마이그레이션 유도용 */
-function clearV3Keys(): void {
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(V3_PREFIX)) localStorage.removeItem(k);
-  }
-}
-
 /** 백업 파일을 읽어 localStorage에 복원. 형식이 어긋나면 throw. */
 export async function importUserData(file: File): Promise<void> {
   const text = await file.text();
   const d    = JSON.parse(text) as unknown;
+  validateBackup(d);
 
   // v3 — 3계층 구조 (현행)
   if (isPlainObject(d) && d.version === 3) {
@@ -120,40 +93,30 @@ export async function importUserData(file: File): Promise<void> {
     if (content.collections !== undefined && !Array.isArray(content.collections)) {
       throw new Error('백업 파일 형식이 올바르지 않습니다 (content.collections).');
     }
-    clearV3Keys();
-    localStorage.setItem(V3_DOCS_KEY, JSON.stringify(content.docs));
+    const keys: Record<string, string> = {
+      [V3_DOCS_KEY]: JSON.stringify(content.docs),
+      [V3_SESSION_KEY]: JSON.stringify(isPlainObject(progress.session) ? progress.session
+        : { last: null, streak: { lastDate: '', count: 0, todayCards: 0 } }),
+      [V3_PREFS_KEY]: JSON.stringify(isPlainObject(d.preference) ? d.preference : {}),
+    };
     if (Array.isArray(content.collections)) {
-      localStorage.setItem(V3_COLLECTIONS_KEY, JSON.stringify(normalizeShelves(content.collections)));
+      keys[V3_COLLECTIONS_KEY] = JSON.stringify(normalizeShelves(content.collections));
     }
     for (const [docId, ev] of Object.entries(logs)) {
-      localStorage.setItem(`${V3_LOG_PREFIX}${docId}`, JSON.stringify(ev));
+      keys[`${V3_LOG_PREFIX}${docId}`] = JSON.stringify(ev);
     }
-    // session은 반드시 기록 — 재마이그레이션 가드가 기기 잔재를 되살리지 않게
-    localStorage.setItem(V3_SESSION_KEY, JSON.stringify(
-      isPlainObject(progress.session) ? progress.session : { last: null, streak: { lastDate: '', count: 0, todayCards: 0 } },
-    ));
-    localStorage.setItem(V3_PREFS_KEY, JSON.stringify(isPlainObject(d.preference) ? d.preference : {}));
+    withStorageRecovery(() => replaceUserData(keys));
     return;
   }
 
   // v2 — hanja-v2/* 키 덤프 (v1 시절) → v1 상태 복원 후 재마이그레이션
   if (isPlainObject(d) && d.version === 2) {
-    const keys = d.keys;
-    if (!isPlainObject(keys)) throw new Error('백업 파일 형식이 올바르지 않습니다.');
-    for (const [k, v] of Object.entries(keys)) {
-      if (!(k.startsWith(V1_PREFIX) || k.startsWith(V3_PREFIX)) || typeof v !== 'string') {
-        throw new Error('백업 파일 형식이 올바르지 않습니다.');
-      }
-    }
-    const userdataRaw = keys[V1_USERDATA_KEY];
-    if (typeof userdataRaw === 'string') validateUserData(JSON.parse(userdataRaw));
-    clearV3Keys();   // 백업에 없는 v3 잔재 제거 — v1 백업이면 재마이그레이션 경로
-    for (const [k, v] of Object.entries(keys)) localStorage.setItem(k, v as string);
+    const keys = d.keys as Record<string, string>;
+    withStorageRecovery(() => replaceUserData(keys));
     return;
   }
 
   // 구 포맷 하위호환: userdata 단일 객체만 담긴 백업 파일 → v1 상태 복원 + 재마이그레이션
-  validateUserData(d);
-  clearV3Keys();
-  localStorage.setItem(V1_USERDATA_KEY, JSON.stringify(d));
+  const keys = { [V1_USERDATA_KEY]: JSON.stringify(d) };
+  withStorageRecovery(() => replaceUserData(keys));
 }
