@@ -35,7 +35,7 @@ v2부터 별도 저작 모드가 없습니다 — 관리자도 앱에서는 일�
 1. **저작**: 앱(배포본 또는 `npm run dev`)에서 문헌을 만들고 카드·문법·해석 순서를 다듬는다.
 2. **내보내기**: 문헌 상세 오버레이 → **내보내기** — `<문헌id>.json` 다운로드.
 3. **승격**: `node scripts/promote.mjs <내보낸.json>` — 유저 전용 필드 정리 + version 증가 + lint 검사 후 `catalog/<id>.json` 배치.
-4. **배포**: `node scripts/lint-data.mjs` 확인 → `git add catalog && git commit && git push` → GitHub Actions가 자동 배포 (약 1~2분).
+4. **검토·배포**: 관련 GitHub 이슈에서 작업 범위 확인 → 작업 브랜치에서 문헌 개정 번호·앱 버전 반영 → 검사·PR 검토 → `main` 병합 → 배포 확인. 자세한 절차는 [PROCESS.md](PROCESS.md)를 따른다.
 
 > **폰트**: 새 문헌에 새 한자가 들어오면 lint가 WARN을 낸다 → `npm run font:subset` 재실행 후 산출물 커밋.
 > **원본 PDF**: 문헌 원본 PDF는 git에서 분리해 관리자 로컬 `~/Documents/문독-원본PDF/`에 보관 (2026-07-08).
@@ -44,9 +44,13 @@ v2부터 별도 저작 모드가 없습니다 — 관리자도 앱에서는 일�
 
 ## 배포 구조 (개발자 참고)
 
-- **호스팅**: GitHub Pages (`.github/workflows/deploy.yml` 가 `main` push마다 빌드·배포)
+- **호스팅**: GitHub Pages — 제품 변경 PR이 `main`에 병합되면 검사·배포하고, 운영 파일 확인 후 GitHub Release를 기록한다. 문서·테스트·관리 도구만 바뀌면 제품 배포를 생략한다.
 - **콘텐츠 정본**: `catalog/*.json` → 빌드 시 `dist/catalog/`(+`index.json`) 정적 배포. 초기 컬렉션·참고문헌 관계는 `catalog/_collections.json`
 - **유저 공간**: 브라우저 `localStorage` `mundok-v3/*` — 문헌(`docs`)·폴더 트리(`collections`)·리뷰 로그(`log/<docId>`)·세션·설정. 문헌은 출처(직접 생성/카탈로그) 무관 동등
 - **저장 추상화**: `src/storage/` — `LocalStore`가 Content·Progress·Preference 3계층 전담.
   향후 백엔드 동기화가 필요하면 `BackendStore` 하나만 추가하면 됩니다.
 - **개발**: `npm run dev` (vite) / 테스트 `npm test` / 빌드 `npm run build` (데이터 lint → tsc → vite)
+
+## 작업 관리
+
+할 일과 진행 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 결과는 [GitHub Releases](https://github.com/river11456/mundok/releases)에서 확인합니다. 작업 전에 [PROCESS.md](PROCESS.md)의 등록·검토·버전·배포 완료 기준을 확인하세요. 현재 기능은 [SPEC.md](SPEC.md), 앞으로의 목표는 [ROADMAP.md](ROADMAP.md)를 참고합니다.
