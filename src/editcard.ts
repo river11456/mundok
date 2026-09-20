@@ -257,7 +257,7 @@ export function showEditModal(card: Card, type: string): void {
   $<HTMLInputElement>('ec-text').value       = card.front;
   $<HTMLInputElement>('ec-reading').value    = card.reading;
   $<HTMLTextAreaElement>('ec-back').value    = card.back;
-  $<HTMLInputElement>('ec-note').value       = card.note;
+  $<HTMLTextAreaElement>('ec-note').value    = card.note;
   $('ec-overlay').dataset.origFront         = card.front;
   $('ec-overlay').dataset.origId            = card.id;
   $('ec-overlay').dataset.cardType          = type;
@@ -299,7 +299,7 @@ async function submitEdit(): Promise<void> {
   const text    = $<HTMLInputElement>('ec-text').value.trim();
   const reading = $<HTMLInputElement>('ec-reading').value.trim();
   const back    = $<HTMLTextAreaElement>('ec-back').value.trim();
-  const note    = $<HTMLInputElement>('ec-note').value.trim();
+  const note    = $<HTMLTextAreaElement>('ec-note').value.trim();
 
   if (!text) { showError('한자를 입력해 주세요.'); return; }
 
@@ -492,8 +492,8 @@ export function initEditCard(): void {
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-xs t-sub">메모 (선택)</label>
-        <input id="ec-note"
-          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)]" />
+        <textarea id="ec-note" rows="2"
+          class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)] resize-y"></textarea>
       </div>
       <div id="ec-error" class="text-xs text-[var(--fail)] hidden"></div>
       <div id="ec-actions" class="ec-learning-actions flex gap-3 justify-end pt-1">

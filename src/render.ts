@@ -216,7 +216,7 @@ function cardBack(card: { reading: string; back: string; note: string }, cs: Car
     <div class="card-back flex flex-col gap-3">
       ${showReading && card.reading ? `<div class="reading-line ${cs.backAlign}">${esc(card.reading)}</div>` : ''}
       ${card.back    ? `<div class="meaning ${cs.backAlign}">${esc(card.back)}</div>` : ''}
-      ${card.note    ? `<div class="text-sm t-sub ${cs.backAlign} leading-relaxed border-t border-[rgba(0,0,0,.05)] pt-3">${esc(card.note)}</div>` : ''}
+      ${card.note    ? `<div class="text-sm t-sub ${cs.backAlign} leading-relaxed whitespace-pre-line border-t border-[rgba(0,0,0,.05)] pt-3">${esc(card.note)}</div>` : ''}
     </div>`;
 }
 
