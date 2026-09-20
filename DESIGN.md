@@ -1,8 +1,23 @@
 # Design
 
+> UI·상호작용 기준 문서다. **2026-09-20, 제품 2.4.0**의 구현을 확인했다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
+> 아래 원칙과 접근성·반응형·오류 상태 요구는 구현·리뷰 기준이며, 모든 대상 기기의 검증 완료 선언이 아니다. 실제 기기·PWA·복원 근거는 [#5](https://github.com/river11456/mundok/issues/5)에서 확보한다.
+
+## Current implementation and follow-up
+
+| 구분 | 현재 상태 | 목표·검증 경계 |
+| --- | --- | --- |
+| 폴더 라이브러리 | 폴더 진입·breadcrumbs·생성·이름변경·삭제·문헌 이동 구현 | 모델은 임의 깊이, 생성 UI는 2단계 제한. 합의된 중첩 목표는 [#4](https://github.com/river11456/mundok/issues/4) |
+| 문장 학습 편집기 | 큰 학습 모달, 한자별 독음·부분 입력·붙여넣기·빈칸 자동 입력·해석·메모 구현 | 폰에서는 전체 높이 시트. 기기·IME 실제 사용 검증은 #5 |
+| 한자 도움 | 내장 사전의 대표·대체 후보, 빈 값 보강, 기존 값 보존, Daum 확인 링크 구현 | 사전 제안이 정답 보증은 아니며 수동 입력·확인을 유지 |
+| 꾸미기·탐색 확장 | color/icon은 예약 필드, 사용자 편집 UI 없음 | 검색·정렬·목록·드래그 이동과 함께 [#9](https://github.com/river11456/mundok/issues/9) 후보 |
+| 학습 요약 | 홈 연속 학습·결과 화면의 오늘 학습과 오답 요약 | 별도 장기 통계 대시보드는 없음 |
+
+8/1의 열린 선반·폴더 진입형 기각은 9/3 폴더 라이브러리 전환으로 대체됐다. 현재 제한을 장기 디자인 정책으로 고정하지 않는다.
+
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-09-07
+- Last refreshed: 2026-09-20
 - Primary product surfaces:
   - Home library and folder navigation
   - Document detail overlay
@@ -12,18 +27,17 @@
 - Evidence reviewed:
   - `package.json`: Vite + TypeScript + Tailwind CSS v4, no React/Vue/Svelte runtime
   - `design/tokens.md`: GoodNotes library grammar, cool neutral chrome, pastel book covers, WenKai display use
-  - `design/mockups/final.html`: current shelf/home visual baseline
+  - `design/mockups/final.html`: earlier shelf/home visual reference; current folder behavior follows this document and implementation
   - `src/render.ts`: home, study card, sentence-body, reading-cell, and drilldown rendering
   - `src/docs.ts`: `shelvesForHome()` and `homeDocs()` source of display ordering
   - `src/collections.ts`: `parentId` folder tree storage, normalization, and pure collection logic
   - `src/shelf-ui.ts`: shelf create/rename and document move sheets
-  - `src/editcard.ts`: current compact `max-w-sm` edit modal for text, reading, explanation, and note
-  - `src/addcard.ts`: current compact add modal, NAVER search link, duplicate-card add path, and blank reading/meaning defaults
-  - `src/reading-align.ts`: complete reading alignment returns aligned cells or `null`
+  - `src/editcard.ts`: large sentence learning modal with per-Han reading cells, interpretation, and note; other card types keep the compact modal
+  - `src/addcard.ts`: character add/enrichment flow with bundled dictionary candidates, blank-only filling, duplicate preservation, and Daum verification link
+  - `src/reading-align.ts` and `src/sentence-reading-autofill.ts`: complete/partial reading alignment, paste distribution, and suggestions that preserve entered values
   - `src/style.css`: tokens, modal surfaces, card cells, reading labels, folder library, responsive and focus rules
   - `design/char-cell.md`: existing per-character rendering model
-  - `.omx/specs/deep-interview-learning-editor-overhaul.md`: sentence learning editor requirements and acceptance criteria
-  - Goodnotes Support: folders/documents can be created, moved, nested, customized with color/icon, browsed in grid/list, searched, sorted, and moved by drag/drop or move sheet
+  - `.omx/` material is historical supporting context; current requirements are recorded here and in linked Issues.
 
 ## Brand
 - Personality: quiet study tool, polished native-library feel, learned but not ornate
@@ -75,11 +89,11 @@
 - Core routes/screens:
   - `home`, `level`, and `study` remain the main screens.
   - Folder path is home-state, not a new screen type unless implementation evidence proves otherwise.
-  - The sentence learning editor may be a large modal, sheet, or dedicated workspace, but it must not obscure the active sentence while character lookup, reading entry, or interpretation writing is happening.
+  - Sentence editing uses a large modal and a full-height sheet at the phone breakpoint. Keep sentence context available during character lookup, reading entry, and interpretation writing.
 - Content hierarchy:
   - Library root -> folder -> optional subfolder -> documents -> document detail overlay -> study/review modes
   - Sentence learning workspace -> original sentence -> character investigation -> per-character reading -> interpretation/explanation -> existing card fields
-  - Existing deeper imported folder data remains representable and navigable, but the first UI does not create depth 3+.
+  - Existing deeper imported folder data remains representable and navigable. Current creation entry points limit depth to 2; removing that UI limit to match the agreed nesting goal is tracked in [#4](https://github.com/river11456/mundok/issues/4).
 
 ## Design principles
 - Principle 1: Location before grouping. A folder is a place the user is currently inside, not a collapsible section on the same page.
@@ -105,7 +119,7 @@
   - Do not introduce a new font family for this refresh; preserve WenKai's single-weight behavior and avoid fake bold on Han text.
 - Spacing/layout rhythm:
   - Home can keep the current narrow library feel around `max-width: 760px`.
-  - The sentence learning editor needs a substantially larger workspace than current `max-w-sm` add/edit modals.
+  - The sentence learning editor uses a larger workspace than compact add/edit modals for other card types.
   - Character, reading, and interpretation areas should breathe like a study surface, not stack like a settings form.
 - Shape/radius/elevation:
   - Keep cover radius, 18-24px modal surfaces, soft border lines, and the existing shadow scale.
@@ -140,7 +154,7 @@
   - Reading auto-fill control inside the per-Han grid header; it fills blank cells only, preserves typed cells, and marks multi-candidate dictionary suggestions for review
   - Larger interpretation/explanation writing surface
 - Variants and states:
-  - Folder: normal, hover/focus, empty, selected, custom color/icon
+  - Folder: normal, hover/focus, empty, selected. Custom color/icon UI is a #9 candidate
   - Add menu: closed, open, keyboard-focused, folder action disabled at the depth limit
   - Library: root, nested folder, empty folder
   - Move sheet: current location and create-folder-in-destination
@@ -203,7 +217,7 @@
   - Saving the editor updates the existing card fields consumed by review.
 - Disabled:
   - Moving a folder into itself or descendants must be blocked.
-  - At depth 2 only the Add menu's New Folder row is disabled with concise guidance while New Document and Get Document remain available.
+  - Current UI: at depth 2 the Add menu's New Folder row is disabled while New Document and Get Document remain available. This is a known implementation limit to resolve in #4, not the target nesting policy.
   - Candidate apply actions are disabled only when there is nothing eligible to fill; manual input remains enabled.
 - Offline/slow network, if applicable:
   - Folder UI works offline from localStorage.
@@ -254,7 +268,7 @@
   - Reading-cell updates should not re-render the whole study screen on every IME composition step.
 - Compatibility constraints:
   - Migrate `mundok-v3/collections` one-level shelves to a folder tree without losing doc order.
-  - Backup import/export must accept the new shape and likely preserve old shape compatibility.
+  - Backup v3 includes normalized folder trees; old backups without collections are reseeded and older v2/userdata imports use migration. Actual-device recovery verification remains #5.
   - Existing `Card.reading`, `Card.back`, and review rendering remain canonical until a migration is explicitly approved.
   - The first editor pass must not break current grammar or interpretation-order behavior.
 - Test/screenshot expectations:
@@ -264,9 +278,11 @@
   - Regression tests for saved-card rendering in sequence and Anki review modes.
   - `npm test`, `npm run build`, and at least desktop/mobile visual smoke after implementation.
 
-## Open questions
-- [x] First pass reserves folder `color`/`icon` fields only; customization UI is deferred.
-- [x] Search, sort, list view, and drag/drop are deferred.
+## Recorded decisions
+
+These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
+- [x] First pass reserves folder `color`/`icon` fields only; customization UI is a [#9](https://github.com/river11456/mundok/issues/9) candidate.
+- [x] Search, sort, list view, and drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.
 - [x] Deleting a folder preserves content by promoting its documents and child folders to the deleted folder's parent or root.
 - [x] A document created while browsing a folder is automatically placed in that folder.
 - [x] Folder visuals use the whole tabbed folder silhouette as the interactive surface; no folder icon inside a generic rectangular card.

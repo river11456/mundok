@@ -22,6 +22,25 @@ test('documentation, tests, workflow and release tooling do not deploy or need a
   assert.deepEqual(result.errors, []);
 });
 
+test('catalog README changes do not deploy or need a version bump', () => {
+  const result = check({ version: '2.3.2', changedFiles: ['catalog/README.md'] });
+  assert.equal(result.productChanged, false);
+  assert.deepEqual(result.errors, []);
+});
+
+test('catalog README exemption does not hide catalog data changes', () => {
+  const result = check({
+    version: '2.3.2', changedFiles: ['catalog/README.md', 'catalog/문헌.json'],
+    baseExtra: { 'catalog/문헌.json': doc(1) }, headExtra: { 'catalog/문헌.json': doc(1) },
+  });
+  assert.equal(result.productChanged, true);
+  assert.match(result.errors.join(), /increased app version/);
+  assert.match(result.errors.join(), /content version must increase/);
+  for (const path of ['catalog/other.md', 'public/README.md', 'src/README.md']) {
+    assert.equal(isProductPath(path), true, path);
+  }
+});
+
 test('product classifier includes build, generated assets, metadata and unknown executable paths', () => {
   for (const path of ['src/a.ts', 'public/sw.js', 'catalog/_collections.json', 'index.html', 'package.json', 'package-lock.json', 'vite.config.mts', 'tsconfig.json', 'scripts/lint-data.mjs', 'scripts/promote.mjs', 'scripts/build-hanja-dictionary.mjs', 'scripts/font-cmap.mjs', 'scripts/subset-font.mjs', 'scripts/new-build.mjs', 'new-runtime.js', 'src/README.md']) assert.equal(isProductPath(path), true, path);
 });
