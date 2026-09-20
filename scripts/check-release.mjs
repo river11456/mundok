@@ -12,6 +12,8 @@ const TOOLING_SCRIPTS = new Set(['scripts/check-release.mjs', 'scripts/verify-de
 // Unknown files require a release; only known documentation/tooling paths are exempt.
 export function isProductPath(file) {
   const path = file.normalize('NFC');
+  // Catalog build copies JSON only; this existing guide is never shipped.
+  if (path === 'catalog/README.md') return false;
   if (/^(src|public|catalog)\//.test(path) || PRODUCT_SCRIPTS.has(path)) return true;
   if (TOOLING_SCRIPTS.has(path) || /^(test|tests|docs|\.github|\.omx|\.omc)\//.test(path)) return false;
   if (/\.md$/i.test(path) || ['.gitignore', '.gitattributes', '.editorconfig', 'LICENSE'].includes(path)) return false;
