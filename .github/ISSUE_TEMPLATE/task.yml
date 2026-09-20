@@ -1,0 +1,51 @@
+name: 작업
+description: 진행할 기능·수정·콘텐츠·운영 작업을 등록합니다.
+body:
+  - type: markdown
+    attributes:
+      value: "기존 이슈를 먼저 검색해 주세요. 상태는 대기 → 착수 준비 → 진행 → 검토 → 배포 확인 → 완료 순서로 갱신합니다. 배포가 필요한 작업은 운영 확인 후 수동으로 닫습니다."
+  - type: dropdown
+    id: status
+    attributes:
+      label: 상태
+      options:
+        - 대기
+        - 착수 준비
+        - 진행
+        - 검토
+        - 배포 확인
+        - 보류
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제와 기대 결과
+      description: 무엇이 불편하고, 해결되면 무엇이 달라지나요?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 작업 범위
+      description: 바꿀 부분과 이번 작업에서 다루지 않을 부분을 적습니다.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 조건과 검증 방법
+      description: 확인할 동작과 방법을 적고, 착수 전에 확정합니다.
+      placeholder: "- [ ] …할 때 …가 된다. 확인 방법: …"
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 우선순위·데이터 영향·근거
+      description: 우선순위 이유, 저장·백업·콘텐츠 영향, 관련 문서·이슈를 적습니다. 미확정인 내용은 구분합니다.
+  - type: textarea
+    id: verification
+    attributes:
+      label: 진행·검증·출시 기록
+      description: 작업 중 갱신합니다. PR, 검사 결과, 배포 버전·실행 URL·Release, 운영 확인과 미검증 사항을 연결합니다.
