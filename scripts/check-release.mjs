@@ -15,6 +15,8 @@ export function isProductPath(file) {
   // Catalog build copies JSON only; this existing guide is never shipped.
   if (path === 'catalog/README.md') return false;
   if (/^(src|public|catalog)\//.test(path) || PRODUCT_SCRIPTS.has(path)) return true;
+  // Standalone design references are neither Vite entrypoints nor public assets.
+  if (/^design\/mockups\/[^/]+\.html$/.test(path)) return false;
   if (TOOLING_SCRIPTS.has(path) || /^(test|tests|docs|\.github|\.omx|\.omc)\//.test(path)) return false;
   if (/\.md$/i.test(path) || ['.gitignore', '.gitattributes', '.editorconfig', 'LICENSE'].includes(path)) return false;
   return true;
