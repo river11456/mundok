@@ -1,0 +1,61 @@
+{
+  "additions": [
+    {
+      "docId": "sample",
+      "type": "char",
+      "text": "丙",
+      "reading": "병",
+      "meaning": "셋째",
+      "note": "추가"
+    }
+  ],
+  "edits": [
+    {
+      "docId": "sample",
+      "type": "char",
+      "id": "c1",
+      "origText": "甲",
+      "text": "甲甲",
+      "reading": "갑갑",
+      "meaning": "사용자 수정",
+      "note": "유지"
+    }
+  ],
+  "deletions": [
+    {
+      "docId": "sample",
+      "type": "char",
+      "id": "c2",
+      "text": "乙"
+    }
+  ],
+  "grammar": [
+    {
+      "docId": "sample",
+      "cardFront": "甲乙",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "type": "S"
+        }
+      ]
+    }
+  ],
+  "interp": [
+    {
+      "docId": "sample",
+      "cardFront": "甲乙",
+      "chunks": [
+        {
+          "start": 1,
+          "end": 2
+        },
+        {
+          "start": 0,
+          "end": 1
+        }
+      ]
+    }
+  ]
+}

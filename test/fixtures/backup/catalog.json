@@ -1,0 +1,35 @@
+[
+  {
+    "id": "sample",
+    "title": "합성 문헌",
+    "sub": "테스트 전용",
+    "version": 1,
+    "levels": {
+      "char": [
+        {
+          "id": "c1",
+          "text": "甲",
+          "reading": "독음",
+          "meaning": "뜻",
+          "note": "메모"
+        },
+        {
+          "id": "c2",
+          "text": "乙",
+          "reading": "독음",
+          "meaning": "뜻",
+          "note": "메모"
+        }
+      ],
+      "sentence": [
+        {
+          "id": "s1",
+          "text": "甲乙",
+          "reading": "독음",
+          "meaning": "뜻",
+          "note": "메모"
+        }
+      ]
+    }
+  }
+]

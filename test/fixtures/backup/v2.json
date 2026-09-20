@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "keys": {
+    "hanja-v2/userdata": "{\"additions\":[{\"docId\":\"sample\",\"type\":\"char\",\"text\":\"丙\",\"reading\":\"병\",\"meaning\":\"셋째\",\"note\":\"추가\"}],\"edits\":[{\"docId\":\"sample\",\"type\":\"char\",\"id\":\"c1\",\"origText\":\"甲\",\"text\":\"甲甲\",\"reading\":\"갑갑\",\"meaning\":\"사용자 수정\",\"note\":\"유지\"}],\"deletions\":[{\"docId\":\"sample\",\"type\":\"char\",\"id\":\"c2\",\"text\":\"乙\"}],\"grammar\":[{\"docId\":\"sample\",\"cardFront\":\"甲乙\",\"annotations\":[{\"start\":0,\"end\":1,\"type\":\"S\"}]}],\"interp\":[{\"docId\":\"sample\",\"cardFront\":\"甲乙\",\"chunks\":[{\"start\":1,\"end\":2},{\"start\":0,\"end\":1}]}]}",
+    "hanja-v2/user-docs": "[{\"id\":\"u1\",\"title\":\"내 문헌\",\"sub\":\"\",\"levels\":{\"sentence\":[{\"id\":\"s1\",\"text\":\"吾等\",\"reading\":\"독음\",\"meaning\":\"뜻\",\"note\":\"메모\"}]}}]",
+    "hanja-v2/sample/char/fails": "{\"c1\":2,\"sample_char_丙\":3}",
+    "hanja-v2/sample/char_ts": "1788000000000",
+    "hanja-v2/last-session": "{\"docId\":\"sample\",\"lvKey\":\"char\",\"mode\":\"anki\",\"idx\":1,\"total\":3,\"ts\":1788000000000}",
+    "hanja-v2/streak": "{\"lastDate\":\"2026-08-29\",\"count\":4,\"todayCards\":3}",
+    "hanja-v2/shelves-collapsed": "[\"g1\"]",
+    "hanja-v2/onboarding-seen": "1"
+  }
+}

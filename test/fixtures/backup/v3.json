@@ -1,0 +1,136 @@
+{
+  "version": 3,
+  "exportedAt": "2026-08-29T00:00:00.000Z",
+  "content": {
+    "docs": [
+      {
+        "id": "sample",
+        "title": "합성 문헌",
+        "sub": "테스트 전용",
+        "version": 1,
+        "levels": {
+          "char": [
+            {
+              "id": "c1",
+              "text": "甲甲",
+              "reading": "독음",
+              "meaning": "사용자 수정",
+              "note": "메모",
+              "editedAt": 1788000000000
+            }
+          ],
+          "sentence": [
+            {
+              "id": "s1",
+              "text": "甲乙",
+              "reading": "독음",
+              "meaning": "뜻",
+              "note": "메모",
+              "grammar": [
+                {
+                  "start": 0,
+                  "end": 1,
+                  "type": "S"
+                }
+              ],
+              "interp": [
+                {
+                  "start": 1,
+                  "end": 2
+                },
+                {
+                  "start": 0,
+                  "end": 1
+                }
+              ]
+            }
+          ]
+        },
+        "schemaVersion": 3,
+        "source": {
+          "catalogId": "sample",
+          "version": 1,
+          "removed": [
+            "c2"
+          ]
+        }
+      },
+      {
+        "id": "u1",
+        "title": "내 문헌",
+        "sub": "",
+        "levels": {
+          "sentence": [
+            {
+              "id": "s1",
+              "text": "吾等",
+              "reading": "독음",
+              "meaning": "뜻",
+              "note": "메모"
+            }
+          ]
+        }
+      }
+    ],
+    "collections": [
+      {
+        "id": "g1",
+        "name": "부모",
+        "docIds": [],
+        "color": "#123456",
+        "icon": "book"
+      },
+      {
+        "id": "g2",
+        "name": "자식",
+        "parentId": "g1",
+        "docIds": [
+          "sample",
+          "u1"
+        ]
+      }
+    ]
+  },
+  "progress": {
+    "logs": {
+      "sample": [
+        {
+          "t": "anki",
+          "card": "c1",
+          "lv": "char",
+          "ts": 1788000000000,
+          "grade": 1
+        }
+      ],
+      "u1": [
+        {
+          "t": "seq",
+          "card": "s1",
+          "lv": "sentence",
+          "ts": 1788000000010
+        }
+      ]
+    },
+    "session": {
+      "last": {
+        "docId": "sample",
+        "lvKey": "char",
+        "mode": "anki",
+        "idx": 1,
+        "total": 3,
+        "ts": 1788000000000
+      },
+      "streak": {
+        "lastDate": "2026-08-29",
+        "count": 4,
+        "todayCards": 3
+      }
+    }
+  },
+  "preference": {
+    "shelvesCollapsed": [
+      "g1"
+    ],
+    "onboardingSeen": true
+  }
+}
