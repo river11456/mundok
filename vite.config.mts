@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import tailwindcss from '@tailwindcss/vite';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { version } from './package.json';
+import { createHash } from 'node:crypto';
 
 /** catalog/*.json → 목록 항목 (build-catalog와 dev 서빙이 공유) */
 function catalogEntries(): { files: string[]; docs: object[]; srcDir: URL } {
@@ -70,6 +71,13 @@ export default defineConfig({
         const src = readFileSync(sw, 'utf-8');
         if (!src.includes('__APP_VERSION__')) throw new Error('sw.js에 __APP_VERSION__ 플레이스홀더가 없습니다');
         writeFileSync(sw, src.replaceAll('__APP_VERSION__', version));
+        // 배포 확인은 표시 버전뿐 아니라 실제 HTML/SW가 같은 빌드인지 검사한다.
+        const files = Object.fromEntries(['index.html', 'sw.js'].map(name => [
+          name, createHash('sha256').update(readFileSync(new URL(`./dist/${name}`, import.meta.url))).digest('hex'),
+        ]));
+        writeFileSync(new URL('./dist/release.json', import.meta.url), JSON.stringify({
+          version, commit: process.env.GITHUB_SHA ?? 'local', files,
+        }, null, 2) + '\n');
       },
     },
   ],

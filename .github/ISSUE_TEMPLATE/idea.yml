@@ -1,0 +1,29 @@
+name: 검토 후보
+description: 아직 진행 여부를 결정하지 않은 아이디어를 남깁니다.
+body:
+  - type: markdown
+    attributes:
+      value: "상태: 검토 후보. 작업 확정 시 범위·완료 조건·검증 방법·우선순위를 추가하고 상태를 착수 준비로 바꿉니다."
+  - type: textarea
+    id: status
+    attributes:
+      label: 상태
+      value: 검토 후보
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 아이디어와 해결할 문제
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: 기대 효과와 결정할 점
+      description: 누구에게 도움이 되는지, 진행 결정 전에 무엇을 확인해야 하는지 적습니다.
+  - type: textarea
+    id: references
+    attributes:
+      label: 관련 자료
+      description: 관련 이슈·문서·대화 근거가 있으면 연결합니다.

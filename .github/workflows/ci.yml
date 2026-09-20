@@ -2,12 +2,47 @@ name: CI
 
 on:
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  release-policy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check issue reference
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const body = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')).pull_request.body ?? '';
+          if (!/(?:Related|Refs|관련)\s*:?\s+#\d+/i.test(body)) throw new Error('PR 본문에 Related #작업번호를 넣으세요.');
+          if (/(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#\d+/i.test(body)) throw new Error('배포 확인 전에 작업이 닫히지 않도록 Related를 사용하세요.');
+          NODE
+      - name: Check release policy against current base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-release.mjs --base "$BASE_SHA" --head HEAD
+
+  build-and-test:
+    needs: release-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
