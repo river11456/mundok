@@ -54,4 +54,15 @@ v2부터 별도 저작 모드가 없습니다 — 관리자도 앱에서는 일�
 
 ## 작업 관리
 
-할 일과 진행 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 결과는 [GitHub Releases](https://github.com/river11456/mundok/releases)에서 확인합니다. 작업 전에 [PROCESS.md](PROCESS.md)의 등록·검토·버전·배포 완료 기준을 확인하세요. 현재 기능은 [SPEC.md](SPEC.md), UI 기준은 [DESIGN.md](DESIGN.md), 앞으로의 목표는 [ROADMAP.md](ROADMAP.md), 확인한 운영 버전과 짧은 인계는 [PROGRESS.md](PROGRESS.md)를 참고합니다.
+할 일과 진행 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 결과는 [GitHub Releases](https://github.com/river11456/mundok/releases)에서 확인합니다.
+
+| 찾는 내용 | 문서 |
+| --- | --- |
+| 작업·검토·버전·배포 절차 | [PROCESS.md](PROCESS.md) |
+| 현재 기능과 데이터 형식 | [SPEC.md](SPEC.md) |
+| 화면·상호작용 기준 | [DESIGN.md](DESIGN.md) |
+| 목표·서비스화 조건·미결정 사항 | [ROADMAP.md](ROADMAP.md) |
+| 확인한 운영 버전과 짧은 인계 | [PROGRESS.md](PROGRESS.md) |
+| 문헌 저작·승격·폰트 갱신 | [카탈로그 안내](catalog/README.md) |
+
+디자인의 세부 기준은 [토큰](design/tokens.md)과 [글자 셀](design/char-cell.md)에서 확인합니다. 과거 기록은 Git 이력으로 조회하며, 실행 규칙을 담은 AGENTS.md·CLAUDE.md와 출처·라이선스 고지는 유지합니다.

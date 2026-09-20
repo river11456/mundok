@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "./**/*.ts";
+@source "../index.html";
 
 /* ═══ 文讀 디자인 토큰 — design/tokens.md (2026-07-17 확정) ═══
    시각 기준: design/mockups/final.html. 첫 페인트 색(body bg·ink)은 index.html에 리터럴로 중복. */

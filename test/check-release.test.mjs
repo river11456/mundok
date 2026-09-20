@@ -41,6 +41,22 @@ test('catalog README exemption does not hide catalog data changes', () => {
   }
 });
 
+test('standalone design reference HTML changes do not deploy', () => {
+  const result = check({ version: '2.3.2', changedFiles: [
+    'design/mockups/final.html', 'design/mockups/a-mac-native.html', 'design/char-cell.md',
+  ] });
+  assert.equal(result.productChanged, false);
+  assert.deepEqual(result.errors, []);
+});
+
+test('design documentation exemption does not hide product HTML or styles', () => {
+  for (const path of ['index.html', 'public/mockups/demo.html', 'src/style.css', 'design/new-runtime.html']) {
+    const result = check({ version: '2.3.2', changedFiles: ['design/mockups/final.html', path] });
+    assert.equal(result.productChanged, true, path);
+    assert.match(result.errors.join(), /increased app version/, path);
+  }
+});
+
 test('product classifier includes build, generated assets, metadata and unknown executable paths', () => {
   for (const path of ['src/a.ts', 'public/sw.js', 'catalog/_collections.json', 'index.html', 'package.json', 'package-lock.json', 'vite.config.mts', 'tsconfig.json', 'scripts/lint-data.mjs', 'scripts/promote.mjs', 'scripts/build-hanja-dictionary.mjs', 'scripts/font-cmap.mjs', 'scripts/subset-font.mjs', 'scripts/new-build.mjs', 'new-runtime.js', 'src/README.md']) assert.equal(isProductPath(path), true, path);
 });

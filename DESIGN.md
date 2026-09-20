@@ -1,6 +1,6 @@
 # Design
 
-> UI·상호작용 기준 문서다. **2026-09-20, 제품 2.4.0**의 구현을 확인했다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
+> UI·상호작용 기준 문서다. **2026-09-20, 제품 2.4.1**의 구현을 확인했다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
 > 아래 원칙과 접근성·반응형·오류 상태 요구는 구현·리뷰 기준이며, 모든 대상 기기의 검증 완료 선언이 아니다. 실제 기기·PWA·복원 근거는 [#5](https://github.com/river11456/mundok/issues/5)에서 확보한다.
 
 ## Current implementation and follow-up
@@ -27,7 +27,7 @@
 - Evidence reviewed:
   - `package.json`: Vite + TypeScript + Tailwind CSS v4, no React/Vue/Svelte runtime
   - `design/tokens.md`: GoodNotes library grammar, cool neutral chrome, pastel book covers, WenKai display use
-  - `design/mockups/final.html`: earlier shelf/home visual reference; current folder behavior follows this document and implementation
+  - [과거 시각 참고](design/mockups/final.html): retained as the original visual reference cited by CSS comments; not a current screen specification or shipped page
   - `src/render.ts`: home, study card, sentence-body, reading-cell, and drilldown rendering
   - `src/docs.ts`: `shelvesForHome()` and `homeDocs()` source of display ordering
   - `src/collections.ts`: `parentId` folder tree storage, normalization, and pure collection logic
@@ -36,7 +36,7 @@
   - `src/addcard.ts`: character add/enrichment flow with bundled dictionary candidates, blank-only filling, duplicate preservation, and Daum verification link
   - `src/reading-align.ts` and `src/sentence-reading-autofill.ts`: complete/partial reading alignment, paste distribution, and suggestions that preserve entered values
   - `src/style.css`: tokens, modal surfaces, card cells, reading labels, folder library, responsive and focus rules
-  - `design/char-cell.md`: existing per-character rendering model
+  - [글자 셀 표시 기준](design/char-cell.md): current R1–R9 rendering and selection contracts
   - `.omx/` material is historical supporting context; current requirements are recorded here and in linked Issues.
 
 ## Brand

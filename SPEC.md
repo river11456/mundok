@@ -1,8 +1,8 @@
 # SPEC.md — 文讀 현행 기능·데이터 계약
 
-> **확인 기준: 2026-09-20, 앱 2.4.0**. 제품 커밋 `67ab8551a3f17f34e9a44d0f47966579e8dd5b74`의 구현을 기준으로 한다. [출시 기록](https://github.com/river11456/mundok/releases/tag/v2.4.0)과 [현재 인계](PROGRESS.md)를 함께 확인한다.
-> 기존 문서의 “DocJSON v2”는 v2 아키텍처 명칭이다. 실제 저장 모델은 `schemaVersion: 3`, 전체 백업은 `version: 3`, 앱 버전은 `2.4.0`으로 서로 역할이 다르다.
-> UI 기준은 [DESIGN.md](DESIGN.md), 목표와 미결정 사항은 [ROADMAP.md](ROADMAP.md), 작업·검증·버전 규칙은 [PROCESS.md](PROCESS.md)다. 과거 세션은 [PROGRESS-archive.md](PROGRESS-archive.md), 공식 작업 상태는 [Issues](https://github.com/river11456/mundok/issues)에서 관리한다.
+> **확인 기준: 2026-09-20, 앱 2.4.1**. 기능·저장 계약은 2.4.0과 같으며 2.4.1은 문서 정리와 스타일 생성 입력 경계를 보완한다. 실제 제품 커밋·검증 근거는 [출시 기록](https://github.com/river11456/mundok/releases/latest)과 [현재 인계](PROGRESS.md)에서 확인한다.
+> 기존 문서의 “DocJSON v2”는 v2 아키텍처 명칭이다. 실제 저장 모델은 `schemaVersion: 3`, 전체 백업은 `version: 3`, 앱 버전은 `2.4.1`으로 서로 역할이 다르다.
+> UI 기준은 [DESIGN.md](DESIGN.md), 목표와 미결정 사항은 [ROADMAP.md](ROADMAP.md), 작업·검증·버전 규칙은 [PROCESS.md](PROCESS.md)다. 과거 세션은 [Git의 과거 세션 기록](https://github.com/river11456/mundok/blob/b1c50083f414d0ad791137cf32642101a34f2b1a/PROGRESS-archive.md), 공식 작업 상태는 [Issues](https://github.com/river11456/mundok/issues)에서 관리한다.
 > 이 문서는 코드에서 확인한 현재 계약을 설명한다. 실제 기기·사용자 데이터 검증 완료를 뜻하지 않으며, 관련 근거는 [#5](https://github.com/river11456/mundok/issues/5)에서 확보한다.
 
 ---
@@ -262,22 +262,9 @@
 
 ---
 
-## 10. v1 구조 문제 해소 매핑 (구 SPEC 7절 승계)
+## 10. 이전 설계 이력
 
-| 구 # | 문제 | v2에서 |
-|---|---|---|
-| P1 | 콘텐츠 정본 3곳 | **소멸** — 카탈로그/유저 공간 2곳 + 승격 규칙 명문화 (공리 1·4, 5절) |
-| P2 | 편집 경로 2종·주석 고아화 | **소멸** — id 단일 경로 (3.2) |
-| P3 | Progress가 Store 밖 | 로그·세션·설정 API는 Store 경유. 별도 저장 접근은 4.2 참고 |
-| P4 | 전역 id 없음 | 2.2 id 체계 |
-| P5 | schemaVersion 없음 | `schemaVersion: 3` (2.3) |
-| P6 | Progress 스칼라 | ReviewLog (2.4) |
-| P7 | 카탈로그 통째 교체 | id 단위 머지 (C6) |
-| P8 | 조직화 관리자 전유 | 사용자 소유 + 컬렉션 (3.4) |
-| P9 | 출처 메타 유실 | `origin` 필드와 승격 시 입력 origin 보존. 원전·이용 근거는 관리자가 확인 |
-| P10 | 완성도 표현 없음 | 현행 index는 카드 수만 제공. 검수·측정 범위는 #6 |
-| P11 | 드릴다운 substring 추측 | 텍스트 매칭이 현행. 선택적 drill 저장 필드는 런타임에서 미사용(6절) |
-| P12 | 문서 stale | #3에서 현행·목표·과거 기록 구분. 유지 절차는 PROCESS |
+v1 구조 문제(P1~P12)의 당시 판단은 [이전 명세](https://github.com/river11456/mundok/blob/b1c50083f414d0ad791137cf32642101a34f2b1a/SPEC.md)에 보존한다. 현재 계약은 이 문서의 1~9절, 남은 목표는 [ROADMAP.md](ROADMAP.md)와 이슈를 따른다. 과거 해소 표·보안·성능 확인을 현재 검증 완료 근거로 사용하지 않는다.
 
 ---
 
@@ -311,15 +298,3 @@
 - 마이그레이션 가드 2중: 콘텐츠(`mundok-v3/docs` 부재 시) / Progress·Prefs(`mundok-v3/session` 부재 시) — 각각 1회.
 - 구 `hanja-v2/*` 키는 **2.1.1에서 제거 집행** (9절 6단계 — `purgeV1IfMigrated`, 마이그레이션 완료 다음 로드에서 삭제). 백업 v2 가져오기는 여전히 이 키를 복원해 재마이그레이션하는 경로로 동작 — 복원분도 다음 로드에서 같은 경로로 청소된다. `migrate-v1.ts` 코드는 이 가져오기 호환 때문에 유지.
 - 사용자 폴더 편집 UI는 구현돼 있다. 카드별 상류판 비교 UI는 [#10](https://github.com/river11456/mundok/issues/10) 후보이며 폴더 생성 제한 해소는 [#4](https://github.com/river11456/mundok/issues/4)다.
-
----
-
-## 부록 — 과거 확인 기록
-
-아래 항목은 구 명세의 당시 확인 기록이다. 현재 보안·성능·실기기 검증을 대신하거나 재검사를 금지하는 근거가 아니다.
-
-- XSS: 사용자 입력은 `esc()`/`ecEsc()`로 이스케이프됨 — 정상
-- 전체 innerHTML 리렌더 방식 — 현 규모에서 성능 문제 없음, 이벤트 위임 사용 중
-- 카드 edit 시 내장 grammar 보존 — 동작 확인
-- `문독.bat` Windows 검증 항목 폐기·파일 삭제 (2026-07-31) — v2에서는 `문독.command`도 폐지 (7절)
-- (구) `server.py` 127.0.0.1 바인딩 — 외부 노출 없음 · v2에서 편집 API 자체가 폐지되므로 항목 종결
