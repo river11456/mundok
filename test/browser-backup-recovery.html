@@ -1,0 +1,97 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>문독 백업 복구 브라우저 검사</title>
+<h1>백업 복구 검사 — 합성 데이터 전용</h1>
+<p>새 localhost 포트에서만 실행합니다. 운영 주소나 사용자 프로필에는 사용하지 않습니다.</p>
+<button id="suite" disabled>정상 복원·잘못된 입력·실제 용량 초과 검사</button>
+<button id="interrupt" disabled>중단된 복구와 용량 부족 준비</button>
+<button id="free" disabled>테스트 용량 비우기</button>
+<a href="/">앱 열기</a>
+<pre id="result" role="status">준비 중</pre>
+<script type="module">
+import { importUserData } from '/src/storage/index.ts';
+import { acquireEditingSession } from '/src/storage/editing-session.ts';
+import { RECOVERY_KEY, snapshotUserData, replaceUserData, recoveryBackup } from '/src/storage/recovery.ts';
+import sample from './fixtures/backup/v3.json';
+import legacy from './fixtures/backup/legacy-userdata.json';
+import v2 from './fixtures/backup/v2.json';
+import { initDocs } from '/src/docs.ts';
+const output = document.querySelector('#result');
+const marker = 'mundok-test/backup-harness';
+const quotaPrefix = 'mundok-test/quota/';
+const assert = (ok, message) => { if (!ok) throw new Error(message); };
+const snapshot = () => JSON.stringify(Object.entries(snapshotUserData()).sort(([a], [b]) => a.localeCompare(b)));
+const importJSON = value => importUserData(new File([JSON.stringify(value)], 'synthetic.json', { type: 'application/json' }));
+const free = () => {
+  for (const key of Object.keys(localStorage)) if (key.startsWith(quotaPrefix)) localStorage.removeItem(key);
+};
+function fill() {
+  let count = 0;
+  for (const size of [262144, 4096, 128]) {
+    for (let n = 0; n < 1024; n++) {
+      assert(count < 3000, '용량 채우기 안전 한도');
+      try { localStorage.setItem(quotaPrefix + count, 'x'.repeat(size)); count++; }
+      catch (error) { assert(error.name === 'QuotaExceededError', error.message); break; }
+    }
+  }
+  assert(count > 0, '테스트 용량 없음');
+  return count;
+}
+async function runSuite() {
+  free();
+  assert(localStorage.getItem(RECOVERY_KEY) === null, '먼저 중단된 복구를 완료하세요');
+  await importJSON(sample);
+  const before = snapshot();
+  const malformed = structuredClone(sample);
+  malformed.content.docs[0].levels.sentence[0].grammar[0].end = 1e12;
+  let rejected = false;
+  try { await importJSON(malformed); } catch { rejected = true; }
+  assert(rejected && snapshot() === before, '잘못된 범위가 원본을 변경함');
+  const count = fill();
+  try {
+    rejected = false;
+    try { await importJSON(sample); } catch (error) { rejected = error.name === 'QuotaExceededError'; }
+    assert(rejected && snapshot() === before, '용량 초과 시 원본이 변경됨');
+    assert(localStorage.getItem(RECOVERY_KEY) === null, '실패한 사본 생성은 journal을 남기지 않음');
+  } finally { free(); }
+  await importJSON({ version: 2, keys: snapshotUserData() });
+  assert(snapshot() === before, '복구용 v2 키 덤프 왕복 불일치');
+  for (const backup of [legacy, v2]) {
+    localStorage.setItem('hanja-v2/user-docs', JSON.stringify([{ ...sample.content.docs[1], id: 'stale-user' }]));
+    localStorage.setItem('hanja-v2/streak', JSON.stringify({ count: 999, todayCards: 999, lastDate: '2026-08-29' }));
+    await importJSON(backup);
+    await initDocs();
+    assert(!JSON.parse(localStorage.getItem('mundok-v3/docs')).some(doc => doc.id === 'stale-user'), '구 문헌 혼입');
+    assert(JSON.parse(localStorage.getItem('mundok-v3/session')).streak.count !== 999, '구 학습 기록 혼입');
+  }
+  await importJSON(sample);
+  output.textContent = `PASS: v3 복원, 손상된 범위 거부·원본 보존, 실제 QuotaExceededError·원본 보존 (${count}개 용량 표본), v2 복구 사본 왕복, 구 v2/userdata 복원 후 잔여 문헌·기록 혼입 없음`;
+}
+async function prepareInterrupt() {
+  free();
+  assert(localStorage.getItem(RECOVERY_KEY) === null, '먼저 중단된 복구를 완료하세요');
+  await importJSON(sample);
+  const before = snapshotUserData();
+  localStorage.setItem(RECOVERY_KEY, JSON.stringify({ version: 1, before }));
+  replaceUserData({});
+  const count = fill();
+  assert(JSON.stringify(recoveryBackup()) === JSON.stringify({ version: 2, keys: before }), '복구 사본 불일치');
+  output.textContent = `준비 완료: ${count}개 용량 표본. 앱 열기 → 복구 오류 화면 확인 → 이 검사 페이지로 돌아와 테스트 용량 비우기 → 앱 열기 → 원본 폴더·문헌 확인`;
+}
+try {
+  assert(location.hostname === 'localhost', 'localhost에서만 허용');
+  await acquireEditingSession();
+  assert(localStorage.getItem(marker) === 'synthetic-only' || (Object.keys(snapshotUserData()).length === 0 && !localStorage.getItem(RECOVERY_KEY)), '사용자 데이터가 있는 주소에서 실행할 수 없습니다');
+  localStorage.setItem(marker, 'synthetic-only');
+  for (const [id, action] of [['suite', runSuite], ['interrupt', prepareInterrupt], ['free', () => { free(); output.textContent = '테스트 용량 제거 완료. 앱 열기로 복구를 재시도하세요.'; }]]) {
+    const button = document.getElementById(id);
+    button.disabled = false;
+    button.onclick = async () => {
+      for (const item of document.querySelectorAll('button')) item.disabled = true;
+      try { await action(); } catch (error) { output.textContent = 'FAIL: ' + error.message; }
+      finally { for (const item of document.querySelectorAll('button')) item.disabled = false; }
+    };
+  }
+  output.textContent = '준비 완료 — 합성 표본만 사용';
+} catch (error) { output.textContent = '중단: ' + error.message; }
+</script>

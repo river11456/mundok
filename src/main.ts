@@ -10,6 +10,8 @@ import { initEditCard } from './editcard';
 import { initDocs } from './docs';
 import { initGrammarEdit } from './grammar-edit';
 import { initBackup } from './backup';
+import { showStorageError } from './storage/recovery-ui';
+import { acquireEditingSession } from './storage/editing-session';
 
 async function registerServiceWorker() {
   // 개발 모드(vite dev)에서는 등록하지 않음 — 라이브 리로드와 충돌 방지
@@ -30,6 +32,7 @@ async function requestPersistentStorage() {
 }
 
 async function init() {
+  await acquireEditingSession();
   await initDocs();        // store 초기화 + 콘텐츠 병합
   initAddCard();
   initCellSelect();
@@ -46,4 +49,7 @@ async function init() {
   requestPersistentStorage();
 }
 
-init().catch(err => console.error('[문독] 초기화 실패:', err));
+init().catch(err => {
+  console.error('[문독] 초기화 실패:', err);
+  showStorageError(err);
+});
