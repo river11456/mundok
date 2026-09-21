@@ -18,11 +18,11 @@
 - 작업 절차는 [PROCESS.md](PROCESS.md). [#2](https://github.com/river11456/mundok/issues/2)에서 PR 필수 검사·버전 검사·출시 기록 연결을 적용했다.
 - 주요 문서 정비 범위와 완료 근거는 [#3](https://github.com/river11456/mundok/issues/3). 현재 기능은 [SPEC.md](SPEC.md), UI 기준은 [DESIGN.md](DESIGN.md), 서비스화 단계는 [ROADMAP.md](ROADMAP.md)에서 확인한다.
 - 폴더 데이터는 임의 깊이를 표현하지만 **생성 UI에는 2단계 제한이 남아 있다**. 합의된 중첩 목표를 구현하는 작업은 [#4](https://github.com/river11456/mundok/issues/4)다.
-- 카탈로그는 82문헌이다. 문헌 보강·검수는 [#6](https://github.com/river11456/mundok/issues/6), 새 기능 후보는 로드맵의 이슈 링크로 확인한다.
+- 카탈로그는 82문헌이다. 사용자 결정으로 콘텐츠 보강 #6은 할 일에서 제외했다. 앱의 목적은 직접 해석 작성과 복습이며, 후속 작업은 작성·수정 편의, 복습 흐름, 사용자 데이터 보존을 기준으로 판단한다. 새 기능 후보는 로드맵의 이슈 링크로 확인한다.
 - 구 문헌 8개 정적 import는 마이그레이션·구 백업 가져오기·오프라인 스타터가 사용하는 카탈로그 정본이다. 제거할 미완료 작업으로 간주하지 않는다.
 
 ## 개발·기록
 
-`npm run dev`로 실행한다. 기본 검증은 `npm run lint`, `npm test`, `npm run build`다. 기존 문헌의 드릴다운 매칭·폰트 폴백 경고는 콘텐츠 검수에서 별도로 다룬다.
+`npm run dev`로 실행한다. 기본 검증은 `npm run lint`, `npm test`, `npm run build`다. 기존 드릴다운 매칭·폰트 폴백 경고는 남아 있다. 해설 보강 과제와 구분해 실제 표시·탐색에 미치는 영향으로 판단한다.
 
 과거 세션은 [Git 이력](https://github.com/river11456/mundok/blob/b1c50083f414d0ad791137cf32642101a34f2b1a/PROGRESS-archive.md)에서 조회한다. 작업 폴더에는 과거 로그 사본을 계속 쌓지 않는다. 과거 로그의 테스트 수·미배포·로컬 서버·일정 표시는 당시 기록이며 현재 상태의 근거로 사용하지 않는다.
