@@ -1,16 +1,6 @@
-/**
- * 독음 정렬 — 한자에만 1:1로 음을 붙인다 (design/char-cell.md R4·R5).
- *
- * text의 비한자 글자(현토·공백·문장부호)는 음 없이 통과하고, reading에 같은
- * 글자가 그대로 있으면(현토·공백 미러링) 함께 소비한다. reading에만 있는
- * 여분 공백·부호는 무시한다. 한자 수와 대응 음절 수가 실제로 다르면 null
- * (데이터 오류 — 렌더러는 카드 아래 한 줄로 폴백, lint가 경고).
- *
- * 렌더러(render.ts)와 lint(scripts/lint-data.mjs)가 같은 구현을 공유한다.
- */
-
-const HAN    = /\p{Script=Han}/u;
-const HANGUL = /[가-힣]/;
+/** Shared reading decoder for the editor, review rendering, and catalog lint. */
+const HAN = /\p{Script=Han}/u;
+const HANGUL = /^[가-힣]$/;
 
 export const isHan = (ch: string): boolean => HAN.test(ch);
 
@@ -25,71 +15,146 @@ export interface ReadingDraft {
   overflow: string;
 }
 
-/**
- * text 각 코드포인트의 독음 음절 배열(비한자는 null)을 반환.
- * 정렬 불가능하면 null.
- */
-export function alignReading(text: string, reading: string): (string | null)[] | null {
-  if (!reading) return null;
-  const T = [...text];
-  const R = [...reading];
-  const out: (string | null)[] = [];
-  let j = 0;
+export interface ReadingCandidate {
+  label: string;
+  values: string[];
+  overflow: string;
+}
 
-  for (const t of T) {
-    if (HAN.test(t)) {
-      while (j < R.length && R[j] === ' ') j++;          // 독음 쪽 여분 공백 허용
-      if (j < R.length && HANGUL.test(R[j])) { out.push(R[j]); j++; }
-      else return null;                                  // 한자에 대응할 음절 없음
-    } else {
-      if (j < R.length && R[j] === t) j++;               // 현토·공백·부호 미러링 소비
-      out.push(null);
-    }
-  }
-  while (j < R.length && !HANGUL.test(R[j])) j++;        // 꼬리 공백·부호 허용
-  return j === R.length ? out : null;                    // 남은 음절 = 독음 초과(오류)
+export interface ReadingResolution extends ReadingDraft {
+  status: 'ready' | 'ambiguous' | 'unresolved';
+  candidates: ReadingCandidate[];
+}
+
+/** NFC syllables and explicit blank slots; whitespace and other punctuation separate them. */
+export function readingTokens(raw: string): string[] {
+  return [...raw.normalize('NFC')].filter(ch => HANGUL.test(ch) || ch === '·');
+}
+
+interface MirroredReading {
+  values: string[];
+  overflow: string;
+  complete: boolean;
+  valid: boolean;
+  matchedLiteral: boolean;
 }
 
 /**
- * 편집 중 독음을 한자별 칸으로 느슨하게 분배한다.
- * 완성되지 않은 독음도 정상적인 draft로 다루며, text의 현토가 reading에 그대로
- * 들어 있으면 소비한다. 모든 한자 칸 뒤에 남은 한글 음절은 overflow로 돌려준다.
+ * Parse only the full mirrored convention. A Hangul 토 run is atomic: a partial
+ * match never consumes a syllable. EOF can represent omitted trailing slots.
+ * There is no per-run choice/backtracking, even for very long sentences.
  */
-export function readingDraftFromText(text: string, reading: string): ReadingDraft {
-  const T = [...text];
-  const R = [...reading];
-  const cells: ReadingDraftCell[] = [];
+function mirroredReading(source: string[], tokens: string[], allowOmittedLiterals = false): MirroredReading {
+  const values: string[] = [];
   let j = 0;
-
-  for (let i = 0; i < T.length; i++) {
-    const t = T[i];
-    if (!HAN.test(t)) {
-      while (j < R.length && R[j] === ' ' && t !== ' ') j++;
-      if (j < R.length && R[j] === t) j++;
-      continue;
+  let complete = true;
+  let matchedLiteral = false;
+  for (let i = 0; i < source.length; i++) {
+    const ch = source[i];
+    if (isHan(ch)) {
+      if (j < tokens.length) {
+        values.push(tokens[j] === '·' ? '' : tokens[j]);
+        j++;
+      } else {
+        values.push('');
+        complete = false;
+      }
+    } else if (HANGUL.test(ch) || ch === '·') {
+      const literal = [ch];
+      if (HANGUL.test(ch)) {
+        while (i + 1 < source.length && HANGUL.test(source[i + 1])) literal.push(source[++i]);
+      }
+      if (j === tokens.length) {
+        complete = false;
+        continue;
+      }
+      if (!literal.every((part, offset) => tokens[j + offset] === part)) {
+        if (allowOmittedLiterals) continue;
+        return { values, overflow: '', complete: false, valid: false, matchedLiteral };
+      }
+      j += literal.length;
+      matchedLiteral = true;
     }
-
-    if (j < R.length && R[j] === '·') {
-      j++;
-      cells.push({ ch: t, textIndex: i, value: '' });
-      continue;
-    }
-    while (j < R.length && !HANGUL.test(R[j])) j++;
-    const value = j < R.length ? R[j++] : '';
-    cells.push({ ch: t, textIndex: i, value });
   }
+  return { values, overflow: tokens.slice(j).join(''), complete, valid: true, matchedLiteral };
+}
 
-  const overflow = R.slice(j).filter(ch => HANGUL.test(ch)).join('');
+/**
+ * Legacy strings can contain only Han readings or include the source's 토 and
+ * punctuation. Keep both interpretations when they disagree. An exact complete
+ * mirrored form takes precedence over an overflowing pure-slot interpretation;
+ * this makes all new source-aware saves round-trip without an added schema field.
+ */
+export function resolveReading(text: string, reading: string): ReadingResolution {
+  const source = [...text];
+  const cells: ReadingDraftCell[] = [];
+  source.forEach((ch, textIndex) => {
+    if (isHan(ch)) cells.push({ ch, textIndex, value: '' });
+  });
+  const tokens = readingTokens(reading);
+  const pure: ReadingCandidate = {
+    label: '한자 독음만 입력한 배치',
+    values: cells.map((_, i) => tokens[i] === '·' ? '' : tokens[i] ?? ''),
+    overflow: tokens.slice(cells.length).join(''),
+  };
+  const normalizedSource = [...text.normalize('NFC')];
+  const mirror = mirroredReading(normalizedSource, tokens);
+  const mirrored: ReadingCandidate = {
+    label: '원문의 토·부호를 포함한 배치',
+    values: mirror.values,
+    overflow: mirror.overflow,
+  };
+  const ready = (candidate: ReadingCandidate): ReadingResolution => ({
+    status: 'ready',
+    cells: cells.map((cell, i) => ({ ...cell, value: candidate.values[i] ?? '' })),
+    overflow: candidate.overflow,
+    candidates: [],
+  });
+  if (!tokens.length) return ready(pure);
+  if (mirror.valid && mirror.complete && !mirror.overflow) return ready(mirrored);
+  if (mirror.valid && !mirror.overflow && mirror.matchedLiteral) {
+    if (pure.values.every((value, i) => value === mirrored.values[i]) && pure.overflow === mirrored.overflow) {
+      return ready(pure);
+    }
+    if (!pure.overflow) return { status: 'ambiguous', cells, overflow: reading, candidates: [pure, mirrored] };
+  }
+  // A bounded diagnostic pass also detects a later literal after an omitted
+  // earlier 토. Its greedy placement is never offered as a valid candidate.
+  if (!mirror.valid || mirror.overflow) {
+    const mixed = mirroredReading(normalizedSource, tokens, true);
+    const samePlacement = pure.overflow === mixed.overflow
+      && pure.values.every((value, i) => value === mixed.values[i]);
+    if (mixed.matchedLiteral && !samePlacement) {
+      return { status: 'unresolved', cells, overflow: reading, candidates: [] };
+    }
+  }
+  return ready(pure);
+}
+
+/** Ambiguous drafts retain their raw value in overflow rather than losing it. */
+export function readingDraftFromText(text: string, reading: string): ReadingDraft {
+  const { cells, overflow } = resolveReading(text, reading);
   return { cells, overflow };
 }
 
-/** 한자별 draft를 기존 Card.reading 문자열로 직렬화한다. */
-export function readingFromDraftCells(values: string[]): string {
-  const normalized = values.map(value => [...value.trim()].find(ch => HANGUL.test(ch)) ?? '');
-  let lastFilled = -1;
-  for (let i = normalized.length - 1; i >= 0; i--) {
-    if (normalized[i]) { lastFilled = i; break; }
+/** Partial or uncertain readings use the renderer's existing one-line fallback. */
+export function alignReading(text: string, reading: string): (string | null)[] | null {
+  if (!reading) return null;
+  const result = resolveReading(text, reading);
+  if (result.status !== 'ready' || result.overflow || result.cells.some(cell => !cell.value)) return null;
+  let slot = 0;
+  return [...text].map(ch => isHan(ch) ? result.cells[slot++].value : null);
+}
+
+/** Preserve source literals and every slot when the source is supplied. */
+export function readingFromDraftCells(values: string[], text?: string): string {
+  const normalized = values.map(value => readingTokens(value).find(ch => HANGUL.test(ch)) ?? '');
+  if (normalized.every(value => !value)) return '';
+  if (text !== undefined) {
+    let slot = 0;
+    return [...text].map(ch => isHan(ch) ? normalized[slot++] || '·' : ch).join('');
   }
-  if (lastFilled < 0) return '';
-  return normalized.slice(0, lastFilled + 1).map(value => value || '·').join('');
+  let end = normalized.length;
+  while (end > 0 && !normalized[end - 1]) end--;
+  return normalized.slice(0, end).map(value => value || '·').join('');
 }

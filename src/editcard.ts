@@ -2,7 +2,11 @@ import { S, curDoc } from './state';
 import { render } from './render';
 import { store } from './storage';
 import type { Card, Level, LevelKey } from './types';
-import { readingDraftFromText, readingFromDraftCells } from './reading-align';
+import { isHan, readingTokens, resolveReading } from './reading-align';
+import {
+  createReadingEditor, chooseReading, editReadingCell, distributeReadingTokens,
+  changeReadingText, readingForSave, readingForTextChange, type ReadingEditor,
+} from './reading-editor';
 import { loadHanjaDictionaryResult, type HanjaCandidate } from './hanja-dictionary';
 import { planSentenceReadingAutofill } from './sentence-reading-autofill';
 
@@ -13,11 +17,15 @@ function $<T extends HTMLElement>(id: string): T {
 function hideModal(): void {
   $('ec-overlay').classList.add('hidden');
   editModalSession++;
+  readingEditor = null;
+  pendingReadingPaste = null;
 }
 
 let editModalSession = 0;
 let readingAutofillRequest = 0;
 let readingGridVersion = 0;
+let readingEditor: ReadingEditor | null = null;
+let pendingReadingPaste: ReturnType<typeof resolveReading> | null = null;
 
 function resetReadingAutofillButton(): void {
   const btn = document.getElementById('ec-reading-autofill') as HTMLButtonElement | null;
@@ -34,20 +42,27 @@ function readingInputs(): HTMLInputElement[] {
   return [...document.querySelectorAll<HTMLInputElement>('#ec-reading-grid input[data-reading-cell]')];
 }
 
-function refreshReadingProgress(overflow = ''): void {
+function refreshReadingProgress(): void {
   const inputs = readingInputs();
   const filled = inputs.filter(input => input.value.trim()).length;
   $('ec-reading-progress').textContent = filled === inputs.length
     ? `${filled}자 입력 완료`
     : `${filled} / ${inputs.length}자 입력 중`;
   const overflowEl = $('ec-reading-overflow');
-  overflowEl.textContent = overflow ? `남은 독음 ${[...overflow].length}자: ${overflow}` : '';
-  overflowEl.classList.toggle('hidden', !overflow);
+  const overflow = readingEditor?.overflow ?? '';
+  $('ec-overflow-label').textContent = `남은 독음 ${[...overflow].length}칸`;
+  $<HTMLInputElement>('ec-overflow-input').value = overflow;
+  overflowEl.classList.toggle('hidden', !overflow || readingEditor?.status !== 'ready');
+  $('ec-reading-text-review').classList.toggle('hidden', !readingEditor?.needsReview);
   inputs.forEach(input => input.closest('.ec-reading-cell')?.classList.toggle('is-filled', !!input.value.trim()));
 }
 
 function syncReadingFromCells(): void {
-  $<HTMLInputElement>('ec-reading').value = readingFromDraftCells(readingInputs().map(input => input.value));
+  if (readingEditor?.status === 'ready') {
+    readingInputs().forEach((input, index) => {
+      if (input.value !== readingEditor!.values[index]) editReadingCell(readingEditor!, index, input.value);
+    });
+  }
   refreshReadingProgress();
 }
 
@@ -85,56 +100,98 @@ function refreshReadingAutofillSummary(): void {
   setReadingAutofillStatus(parts.join(' · '));
 }
 
-function renderReadingDraft(text: string, reading: string): void {
+function renderReadingReview(): void {
+  const editor = readingEditor;
+  const source = pendingReadingPaste ?? editor;
+  const wrap = $('ec-reading-review');
+  const review = !!source && source.status !== 'ready';
+  wrap.classList.toggle('hidden', !review);
+  if (!review || !editor || !source) { wrap.innerHTML = ''; return; }
+  const raw = pendingReadingPaste ? pendingReadingPasteRaw : editor.originalReading;
+  wrap.innerHTML = `<div class="text-xs t-sub">${pendingReadingPaste ? '붙여넣을' : '기존'} 독음의 배치를 확인해 주세요. 원래 값: <span class="whitespace-pre-wrap">${ecEsc(raw)}</span></div>`;
+  source.candidates.forEach((candidate, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn-ghost text-left text-xs';
+    button.dataset.readingChoice = String(index);
+    button.textContent = `${candidate.label}: ${candidate.values.map(v => v || '빈칸').join(' / ')}`;
+    wrap.appendChild(button);
+  });
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn-ghost text-xs';
+  button.dataset.readingChoice = 'manual';
+  button.textContent = pendingReadingPaste ? '붙여넣기 취소' : '독음 직접 다시 입력';
+  wrap.appendChild(button);
+}
+
+let pendingReadingPasteRaw = '';
+
+function renderReadingDraft(): void {
+  const editor = readingEditor;
+  if (!editor) return;
   readingGridVersion++;
   const grid = $('ec-reading-grid');
   grid.innerHTML = '';
-  const draft = readingDraftFromText(text, reading);
-
-  draft.cells.forEach((cell, index) => {
+  [...editor.text].filter(isHan).forEach((ch, index) => {
     const label = document.createElement('label');
     label.className = 'ec-reading-cell';
     const han = document.createElement('span');
     han.className = 'ec-reading-han hanja';
-    han.textContent = cell.ch;
+    han.textContent = ch;
     const input = document.createElement('input');
     input.className = 'ec-reading-input';
     input.dataset.readingCell = String(index);
-    input.value = cell.value;
+    input.value = editor.values[index] ?? '';
+    input.disabled = editor.status !== 'ready' || !!pendingReadingPaste;
     input.placeholder = '·';
     input.autocomplete = 'off';
     input.inputMode = 'text';
-    input.setAttribute('aria-label', `${cell.ch} 독음`);
-    input.dataset.readingChar = cell.ch;
+    input.setAttribute('aria-label', `${ch} 독음`);
+    input.dataset.readingChar = ch;
     label.append(han, input);
     grid.appendChild(label);
   });
-  refreshReadingProgress(draft.overflow);
+  refreshReadingProgress();
   resetReadingAutofillUi();
+  renderReadingReview();
 }
 
-function distributeReading(start: number, raw: string): void {
+function distributeReading(start: number, raw: string, parseWhole = false): void {
+  const editor = readingEditor;
+  if (!editor || editor.status !== 'ready' || pendingReadingPaste) return;
   const inputs = readingInputs();
-  const syllables = [...raw].filter(ch => /[가-힣]/.test(ch));
-  let cursor = start;
-  while (cursor < inputs.length && syllables.length) {
-    clearReadingCellSuggestion(inputs[cursor]);
-    inputs[cursor++].value = syllables.shift()!;
+  let tokens = readingTokens(raw);
+  if (parseWhole && start === 0) {
+    const parsed = resolveReading(editor.text, raw);
+    if (parsed.status !== 'ready') {
+      pendingReadingPaste = parsed;
+      pendingReadingPasteRaw = raw;
+      renderReadingDraft();
+      return;
+    }
+    // Only whole, non-overflow readings replace the full draft; fragments stay positional.
+    if (!parsed.overflow && tokens.length >= editor.values.length) {
+      tokens = parsed.cells.map(cell => cell.value || '·');
+    }
   }
+  const cursor = distributeReadingTokens(editor, start, tokens);
+  inputs.forEach((input, index) => {
+    input.value = editor.values[index];
+    if (index >= start && index < cursor) clearReadingCellSuggestion(input);
+  });
   syncReadingFromCells();
-  refreshReadingProgress(syllables.join(''));
   (inputs[Math.min(cursor, inputs.length - 1)] ?? inputs[start])?.focus();
 }
 
 function handleReadingCellInput(input: HTMLInputElement, moveNext: boolean): void {
   const index = Number(input.dataset.readingCell);
-  const syllables = [...input.value].filter(ch => /[가-힣]/.test(ch));
+  const syllables = readingTokens(input.value);
   if (syllables.length > 1) {
-    input.value = '';
     distributeReading(index, syllables.join(''));
     return;
   }
-  input.value = syllables[0] ?? '';
+  input.value = syllables[0] === '·' ? '' : syllables[0] ?? '';
   syncReadingFromCells();
   if (moveNext && input.value) readingInputs()[index + 1]?.focus();
 }
@@ -178,6 +235,7 @@ function existingCharCards(): Card[] {
 
 async function autofillSentenceReading(): Promise<void> {
   if (!sentenceEditorActive()) return;
+  if (readingEditor?.status !== 'ready' || pendingReadingPaste) return;
   const session = editModalSession;
   const request = ++readingAutofillRequest;
   const gridVersion = readingGridVersion;
@@ -271,7 +329,9 @@ export function showEditModal(card: Card, type: string): void {
   $('ec-reading-label').textContent = '음';
   $('ec-back-label').textContent = sentence ? '해석 · 설명' : '설명';
   $('ec-back').classList.toggle('ec-back-large', sentence);
-  if (sentence) renderReadingDraft(card.front, card.reading);
+  pendingReadingPaste = null;
+  readingEditor = sentence ? createReadingEditor(card.front, card.reading) : null;
+  if (sentence) renderReadingDraft();
   else resetReadingAutofillUi();
   $('ec-error').classList.add('hidden');
   const btn = $('ec-submit');
@@ -291,13 +351,15 @@ async function submitEdit(): Promise<void> {
   const type      = overlay.dataset.cardType!;
   const docId     = S.docId!;
 
-  if (type === 'sentence' && !$('ec-reading-overflow').classList.contains('hidden')) {
-    showError('한자 수보다 독음이 많습니다. 남은 독음을 확인해 주세요.');
-    return;
-  }
-  if (type === 'sentence') syncReadingFromCells();
   const text    = $<HTMLInputElement>('ec-text').value.trim();
-  const reading = $<HTMLInputElement>('ec-reading').value.trim();
+  let reading = $<HTMLInputElement>('ec-reading').value.trim();
+  if (type === 'sentence' && readingEditor) {
+    if (pendingReadingPaste) { showError('붙여넣을 독음의 배치를 선택하거나 취소해 주세요.'); return; }
+    syncReadingFromCells();
+    changeReadingText(readingEditor, text);
+    try { reading = readingForSave(readingEditor); }
+    catch (error) { showError((error as Error).message); return; }
+  }
   const back    = $<HTMLTextAreaElement>('ec-back').value.trim();
   const note    = $<HTMLTextAreaElement>('ec-note').value.trim();
 
@@ -393,19 +455,21 @@ function showCoEditModal(origText: string, newText: string, targets: CoTarget[])
   $('ce-list').innerHTML = targets.map((t, i) => {
     const after = t.card.front.split(origText).join(newText);
     const n     = ceOccur(t.card.front, origText);
+    const safe = readingForTextChange(t.card.front, after, t.card.reading) !== null;
     return `
       <label class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[rgba(0,0,0,.03)] cursor-pointer">
-        <input type="checkbox" id="ce-chk-${i}" checked class="mt-1 accent-[var(--accent)]" />
+        <input type="checkbox" id="ce-chk-${i}" ${safe ? 'checked' : 'disabled'} class="mt-1 accent-[var(--accent)]" />
         <div class="flex flex-col gap-1 min-w-0 flex-1">
           <div class="text-[11px] t-faint">${CE_LEVEL_LABEL[t.level.key] ?? t.level.key} · ${ecEsc(t.card.id)} · ${n}곳</div>
           <div class="hanja text-sm t-ink leading-relaxed break-words">${ceHighlight(after, newText, 'bg-[var(--o-bg)] text-[var(--o-fg)] rounded px-0.5')}</div>
+          ${safe ? '' : '<div class="text-xs t-sub">독음 배치 확인이 필요해 함께 수정하지 않습니다. 이 카드는 직접 편집해 주세요.</div>'}
         </div>
       </label>`;
   }).join('');
 
   const btn = $('ce-apply');
-  btn.textContent = `적용 ${targets.length}개`;
-  btn.removeAttribute('disabled');
+  btn.textContent = `적용 ${ceCheckedCount()}개`;
+  if (ceCheckedCount()) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', 'true');
   $('ce-error').classList.add('hidden');
   $('ce-overlay').classList.remove('hidden');
 }
@@ -427,13 +491,16 @@ async function applyCoEdit(): Promise<void> {
       const origFront = t.card.front;
       const newFront  = origFront.split(origText).join(newText);
       if (newFront === origFront) continue;
+      const reading = readingForTextChange(origFront, newFront, t.card.reading);
+      if (reading === null) throw new Error('독음 배치가 달라지는 카드는 직접 편집해 주세요.');
       await store().editCard({
         docId, type: t.level.key, id: t.card.id, origText: origFront, text: newFront,
-        reading: t.card.reading, meaning: t.card.back, note: t.card.note,
+        reading, meaning: t.card.back, note: t.card.note,
       });
       t.card.front = newFront;                                                  // DOCS(및 동일레벨 S.lv.cards) 갱신
-      const inAll = S.allCards.find(c => c.id === t.card.id); if (inAll) inAll.front = newFront;
-      const inQ   = S.queue.find(c => c.id === t.card.id);    if (inQ)   inQ.front   = newFront;
+      t.card.reading = reading;
+      const inAll = S.allCards.find(c => c.id === t.card.id); if (inAll) { inAll.front = newFront; inAll.reading = reading; }
+      const inQ   = S.queue.find(c => c.id === t.card.id);    if (inQ) { inQ.front = newFront; inQ.reading = reading; }
     }
     hideCoEditModal();
     render();
@@ -481,9 +548,19 @@ export function initEditCard(): void {
             <div id="ec-reading-progress" class="text-[11px] t-sub whitespace-nowrap"></div>
           </div>
         </div>
+        <div id="ec-reading-review" class="hidden flex flex-col gap-2" role="group" aria-label="독음 배치 선택"></div>
         <div id="ec-reading-grid" class="ec-reading-grid" role="group" aria-label="문장 독음"></div>
         <div id="ec-reading-autofill-status" class="text-[11px] t-sub min-h-[1em]" role="status" aria-live="polite" aria-atomic="true"></div>
-        <div id="ec-reading-overflow" class="hidden text-xs text-[var(--warn)]"></div>
+        <div id="ec-reading-overflow" class="hidden flex flex-col gap-2 text-xs text-[var(--warn)]">
+          <label id="ec-overflow-label" for="ec-overflow-input">남은 독음</label>
+          <input id="ec-overflow-input" aria-label="남은 독음" class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink" />
+          <div>다른 칸을 고쳐도 남은 독음은 유지됩니다. 필요한 칸에 옮기거나 지운 뒤 저장하세요.</div>
+          <button id="ec-overflow-clear" type="button" class="btn-ghost self-start">남은 독음 지우기</button>
+        </div>
+        <div id="ec-reading-text-review" class="hidden text-xs text-[var(--warn)]">
+          원문의 한자가 바뀌었습니다. 각 칸의 독음을 확인해 주세요.
+          <button id="ec-reading-confirm" type="button" class="btn-ghost">독음 배치 확인 완료</button>
+        </div>
       </section>
       <div class="flex flex-col gap-1">
         <label id="ec-back-label" class="text-xs t-sub">설명</label>
@@ -510,18 +587,65 @@ export function initEditCard(): void {
   document.getElementById('ec-cancel')!.addEventListener('click', hideModal);
   document.getElementById('ec-submit')!.addEventListener('click', submitEdit);
   document.getElementById('ec-reading-autofill')!.addEventListener('click', () => void autofillSentenceReading());
+  $('ec-reading-review').addEventListener('click', e => {
+    const button = (e.target as Element).closest<HTMLButtonElement>('button[data-reading-choice]');
+    if (!button || !readingEditor) return;
+    const choice = button.dataset.readingChoice;
+    if (pendingReadingPaste) {
+      if (choice !== 'manual') {
+        const candidate = pendingReadingPaste.candidates[Number(choice)];
+        if (!candidate) return;
+        distributeReadingTokens(readingEditor, 0, candidate.values.map(v => v || '·'));
+        readingEditor.overflow += candidate.overflow;
+      }
+      pendingReadingPaste = null;
+    } else {
+      const candidate = readingEditor.candidates[Number(choice)];
+      if (choice === 'manual') chooseReading(readingEditor, []);
+      else if (candidate) chooseReading(readingEditor, candidate.values, candidate.overflow);
+    }
+    renderReadingDraft();
+  });
+  $('ec-overflow-input').addEventListener('input', e => {
+    if (!readingEditor || (e as InputEvent).isComposing) return;
+    readingEditor.overflow = readingTokens($<HTMLInputElement>('ec-overflow-input').value).join('');
+    readingEditor.dirty = readingEditor.readingDirty = true;
+    refreshReadingProgress();
+  });
+  $('ec-overflow-input').addEventListener('compositionend', () => {
+    if (!readingEditor) return;
+    readingEditor.overflow = readingTokens($<HTMLInputElement>('ec-overflow-input').value).join('');
+    readingEditor.dirty = readingEditor.readingDirty = true;
+    refreshReadingProgress();
+  });
+  $('ec-overflow-clear').addEventListener('click', () => {
+    if (!readingEditor) return;
+    readingEditor.overflow = '';
+    readingEditor.dirty = readingEditor.readingDirty = true;
+    refreshReadingProgress();
+  });
+  $('ec-reading-confirm').addEventListener('click', () => {
+    if (!readingEditor) return;
+    readingEditor.needsReview = false;
+    refreshReadingProgress();
+  });
   document.getElementById('ec-text')!.addEventListener('input', () => {
-    if (sentenceEditorActive()) renderReadingDraft(
-      $<HTMLInputElement>('ec-text').value,
-      $<HTMLInputElement>('ec-reading').value,
-    );
+    if (!sentenceEditorActive() || !readingEditor) return;
+    syncReadingFromCells();
+    // Keep pending paste untouched until it is applied or cancelled.
+    if (pendingReadingPaste) { showError('붙여넣기 배치를 선택하거나 취소한 뒤 원문을 수정해 주세요.');
+      $<HTMLInputElement>('ec-text').value = readingEditor.text; return; }
+    changeReadingText(readingEditor, $<HTMLInputElement>('ec-text').value);
+    renderReadingDraft();
   });
   document.getElementById('ec-reading')!.addEventListener('input', e => {
     if (!sentenceEditorActive() || (e as InputEvent).isComposing) return;
-    renderReadingDraft(
+    readingEditor = createReadingEditor(
       $<HTMLInputElement>('ec-text').value,
       $<HTMLInputElement>('ec-reading').value,
     );
+    readingEditor.dirty = readingEditor.readingDirty = true;
+    renderReadingDraft();
   });
   document.getElementById('ec-reading-grid')!.addEventListener('compositionstart', e => {
     const input = (e.target as Element).closest<HTMLInputElement>('input[data-reading-cell]');
@@ -544,7 +668,7 @@ export function initEditCard(): void {
     const input = (e.target as Element).closest<HTMLInputElement>('input[data-reading-cell]');
     if (!input) return;
     e.preventDefault();
-    distributeReading(Number(input.dataset.readingCell), (e as ClipboardEvent).clipboardData?.getData('text') ?? '');
+    distributeReading(Number(input.dataset.readingCell), (e as ClipboardEvent).clipboardData?.getData('text') ?? '', true);
     refreshReadingAutofillSummary();
   });
   document.getElementById('ec-reading-grid')!.addEventListener('keydown', e => {
