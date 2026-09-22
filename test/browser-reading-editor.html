@@ -1,0 +1,245 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>문독 독음 보존 브라우저 검사</title>
+<style>.hidden { display:none !important } input { width:5em } #ec-text { width:24em } #app { display:none } #result { white-space:pre-wrap }</style>
+<h1>독음 보존 검사 — 합성 데이터 전용</h1>
+<p>사용자 데이터가 없는 새 localhost 또는 127.0.0.1 포트에서 실행합니다.</p>
+<button id="suite" disabled>독음 회귀 검사 실행</button>
+<pre id="result" role="status">준비 중</pre>
+<div id="app"></div>
+<script type="module">
+import { initEditCard, showEditModal } from '/src/editcard.ts';
+import { initStore, store, exportUserData, importUserData } from '/src/storage/index.ts';
+import { acquireEditingSession } from '/src/storage/editing-session.ts';
+import { snapshotUserData, RECOVERY_KEY } from '/src/storage/recovery.ts';
+import { createUserDoc, userAddCard } from '/src/user-docs.ts';
+import { syncUserDocs, DOCS } from '/src/docs.ts';
+import { S } from '/src/state.ts';
+import { setupClick } from '/src/events.ts';
+import { render } from '/src/render.ts';
+const $ = id => document.getElementById(id);
+const output = $('result');
+const assert = (ok, message) => { if (!ok) throw new Error(message); };
+const pass = message => { output.textContent += `PASS: ${message}\n`; };
+const cells = () => [...document.querySelectorAll('[data-reading-cell]')];
+const values = () => cells().map(input => input.value);
+const expectValues = expected => assert(JSON.stringify(values()) === JSON.stringify(expected), `독음 불일치: ${JSON.stringify(values())} / 기대 ${JSON.stringify(expected)}`);
+const input = (element, value) => { element.value = value; element.dispatchEvent(new InputEvent('input', { bubbles:true, inputType:'insertText', data:value })); };
+const fill = expected => expected.forEach((value, index) => input(cells()[index], value));
+const paste = (index, value) => {
+  const data = new DataTransfer();
+  data.setData('text/plain', value);
+  const event = new ClipboardEvent('paste', { bubbles:true, cancelable:true, clipboardData:data });
+  cells()[index].dispatchEvent(event);
+  assert(event.defaultPrevented, '실제 붙여넣기 핸들러가 이벤트를 처리하지 않음');
+};
+const until = async predicate => {
+  const end = performance.now() + 10000;
+  while (!predicate()) {
+    assert(performance.now() < end, '비동기 UI 완료 대기 초과');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+};
+let docId;
+function reloadCard(id, type = 'sentence') {
+  syncUserDocs();
+  const doc = DOCS.find(item => item.id === docId);
+  assert(doc, '저장 문헌 없음');
+  S.docId = docId;
+  S.lv = doc.levels.find(level => level.key === type);
+  S.allCards = S.lv.cards;
+  S.scr = 'home';
+  return S.lv.cards.find(card => card.id === id);
+}
+function open(id) { const card = reloadCard(id); assert(card, '저장 카드 없음'); showEditModal(card, 'sentence'); return card; }
+function fixture(text, reading = '') {
+  const id = userAddCard(docId, 'sentence', { text, reading, meaning:'합성 해석', note:'' });
+  open(id);
+  return id;
+}
+async function save() {
+  $('ec-submit').click();
+  await until(() => $('ec-overlay').classList.contains('hidden') || !$('ec-error').classList.contains('hidden'));
+  assert($('ec-overlay').classList.contains('hidden'), `저장 실패: ${$('ec-error').textContent}`);
+}
+async function blocked(fragment) {
+  $('ec-submit').click();
+  await until(() => !$('ec-error').classList.contains('hidden'));
+  assert(!$('ec-overlay').classList.contains('hidden') && $('ec-error').textContent.includes(fragment), `저장 차단 오류: ${$('ec-error').textContent}`);
+}
+async function runSuite() {
+  assert(Object.keys(snapshotUserData()).length === 0 && !localStorage.getItem(RECOVERY_KEY), '사용자 데이터가 있어 실행할 수 없습니다. 새 포트를 사용하세요.');
+  output.textContent = '';
+  docId = createUserDoc({ title:'독음 회귀 합성 표본', sub:'테스트 전용' }, 'sentence', []).id;
+  const repeated = fixture('人이고 而以學');
+  fill(['인', '이', '이', '학']);
+  await save();
+  for (let round = 0; round < 2; round++) { open(repeated); expectValues(['인', '이', '이', '학']); await save(); }
+  pass('이고 토와 연속 이: 실제 저장 후 두 번 재열기·재저장');
+  const partial = fixture('春·夏秋');
+  fill(['춘', '', '추']);
+  await save(); open(partial); expectValues(['춘', '', '추']); await save();
+  pass('원문 가운데점과 빈 독음칸 저장·복원');
+  const pasted = fixture('人而學');
+  paste(0, '인·학'); expectValues(['인', '', '학']);
+  await save(); open(pasted); expectValues(['인', '', '학']);
+  pass('ClipboardEvent로 부분 독음 붙여넣기와 실제 저장');
+  fill(['인', '이', '학']);
+  paste(0, '천'); expectValues(['천', '이', '학']);
+  paste(0, '   '); expectValues(['천', '이', '학']);
+  paste(0, 'abc'); expectValues(['천', '이', '학']);
+  await save(); open(pasted); expectValues(['천', '이', '학']);
+  pass('첫칸 한 음절 붙여넣기는 뒤 독음 유지, 공백·영문 붙여넣기는 변경 없음');
+  paste(0, '인이학천');
+  assert($('ec-overflow-input').value === '천', '초과 독음 누락');
+  input(cells()[0], '인');
+  assert($('ec-overflow-input').value === '천', '칸 수정 후 초과 독음 유실');
+  await blocked('남은 독음');
+  input(cells()[1], '');
+  $('ec-reading-autofill').click();
+  await until(() => !$('ec-reading-autofill').disabled);
+  assert(cells()[1].value !== '', '자동 입력이 빈칸을 채우지 않음');
+  assert($('ec-overflow-input').value === '천', '자동 입력 후 초과 독음 유실');
+  await blocked('남은 독음');
+  $('ec-overflow-clear').click(); await save();
+  pass('초과 독음은 칸 수정·자동 입력 후 유지, 저장 차단, 명시적 제거 후 저장');
+  const reverted = fixture('人이 而學', '인이');
+  const originalChoices = [...document.querySelectorAll('[data-reading-choice]')]
+    .filter(button => button.dataset.readingChoice !== 'manual').map(button => button.textContent);
+  assert(originalChoices.length >= 2, '원문 복원 표본의 초기 배치 후보 없음');
+  input($('ec-text'), '人이고 而學');
+  input($('ec-text'), '人이 而學');
+  const restoredChoices = [...document.querySelectorAll('[data-reading-choice]')]
+    .filter(button => button.dataset.readingChoice !== 'manual').map(button => button.textContent);
+  assert(JSON.stringify(restoredChoices) === JSON.stringify(originalChoices), '원문 되돌리기 후 배치 후보 불일치');
+  input($('ec-note'), '원문 되돌린 뒤 메모만 수정');
+  await save();
+  assert(reloadCard(reverted).reading === '인이', '원문 되돌린 뒤 메모 저장이 원래 독음을 변경함');
+  pass('모호한 기존 독음의 원문 변경·복원 시 후보 복원, 메모 저장 시 원본 보존');
+  const ambiguous = fixture('人이고 而高學', '인이고학');
+  assert(!$('ec-reading-review').classList.contains('hidden'), '기존 모호한 독음 선택 UI 없음');
+  input($('ec-note'), '메모만 수정'); await save();
+  assert(reloadCard(ambiguous).reading === '인이고학', '메모 수정이 기존 원본 독음을 변경함');
+  open(ambiguous);
+  const choices = [...document.querySelectorAll('[data-reading-choice]')].filter(button => button.dataset.readingChoice !== 'manual');
+  assert(choices.length >= 2, '후보 선택 부족');
+  choices[0].click(); expectValues(['인', '이', '고', '학']);
+  await save(); open(ambiguous); expectValues(['인', '이', '고', '학']);
+  pass('모호한 기존 값은 메모만 저장 시 원본 보존, 후보 선택 후 명시적 저장');
+  input($('ec-text'), '人이라 而高學!'); expectValues(['인', '이', '고', '학']);
+  await save(); open(ambiguous); expectValues(['인', '이', '고', '학']);
+  pass('토·부호 변경 시 한자별 독음 유지');
+  input($('ec-text'), '人이라 而高天!');
+  await blocked('원문이 바뀌었습니다');
+  assert(!$('ec-reading-text-review').classList.contains('hidden'), '한자 변경 검토 안내 누락');
+  input(cells()[3], '천'); $('ec-reading-confirm').click(); await save();
+  open(ambiguous); expectValues(['인', '이', '고', '천']);
+  pass('한자 변경 시 검토 전 저장 차단, 확인 후 저장');
+  const previous = reloadCard(ambiguous).reading;
+  input(cells()[0], '일');
+  const actualStore = store();
+  const editCard = actualStore.editCard;
+  try {
+    actualStore.editCard = async () => { throw new Error('합성 저장 실패'); };
+    await blocked('합성 저장 실패');
+    expectValues(['일', '이', '고', '천']);
+    assert(reloadCard(ambiguous).reading === previous, '실패 시 저장 원본 변경');
+    assert(!$('ec-submit').disabled, '실패 후 저장 재시도 불가');
+  } finally { actualStore.editCard = editCard; }
+  await save();
+  pass('실제 저장 호출 실패 시 입력·저장 원본 보존, 재시도 성공');
+  const word = userAddCard(docId, 'word', { text:'天文', reading:'천문', meaning:'합성 단어', note:'' });
+  showEditModal(reloadCard(word, 'word'), 'word');
+  input($('ec-reading'), '천 무');
+  await save();
+  assert(reloadCard(word, 'word').reading === '천 무', '비문장 직접 독음 저장 불일치');
+  showEditModal(reloadCard(word, 'word'), 'word');
+  assert($('ec-reading').value === '천 무', '비문장 직접 독음 재열기 불일치');
+  $('ec-cancel').click();
+  pass('비문장 카드의 원래 독음 입력칸 직접 수정·저장·재열기');
+  const linkedSource = fixture('學이文');
+  fill(['학', '문']); await save();
+  const linkedTarget = userAddCard(docId, 'paragraph', { text:'天學이文', reading:'천학이문', meaning:'합성 연결 단락', note:'' });
+  open(linkedSource);
+  input($('ec-text'), '學이고文'); await save();
+  assert(!$('ce-overlay').classList.contains('hidden'), '연결 일괄 수정 창 없음');
+  const safeCheck = $('ce-list').querySelector('input[type=checkbox]');
+  assert(safeCheck && !safeCheck.disabled && safeCheck.checked, '토 변경 연결 카드 선택 불가');
+  $('ce-apply').click();
+  await until(() => $('ce-overlay').classList.contains('hidden') || !$('ce-error').classList.contains('hidden'));
+  assert($('ce-overlay').classList.contains('hidden'), `연결 일괄 저장 실패: ${$('ce-error').textContent}`);
+  const linked = reloadCard(linkedTarget, 'paragraph');
+  assert(linked.front === '天學이고文' && linked.reading === '천학이고문', `연결 토 변경 독음 재직렬화 불일치: ${linked.front} / ${linked.reading}`);
+  open(linkedSource);
+  input($('ec-text'), '學이고字'); input(cells()[1], '자');
+  $('ec-reading-confirm').click(); await save();
+  assert(!$('ce-overlay').classList.contains('hidden'), '한자 변경 연결 수정 창 없음');
+  const unsafeCheck = $('ce-list').querySelector('input[type=checkbox]');
+  assert(unsafeCheck?.disabled && !unsafeCheck.checked && $('ce-apply').disabled, '한자 변경 연결 카드가 안전하지 않게 선택됨');
+  $('ce-skip').click();
+  assert(reloadCard(linkedTarget, 'paragraph').front === '天學이고文', '비활성 연결 카드가 수정됨');
+  pass('실제 연결 일괄 수정: 토 변경 독음 재직렬화, 한자 변경 대상 비활성·원본 보존');
+  let exported;
+  const createURL = URL.createObjectURL;
+  const revokeURL = URL.revokeObjectURL;
+  const anchorClick = HTMLAnchorElement.prototype.click;
+  try {
+    URL.createObjectURL = blob => { exported = blob; return 'blob:synthetic-reading-backup'; };
+    URL.revokeObjectURL = () => {};
+    HTMLAnchorElement.prototype.click = function () {};
+    exportUserData();
+  } finally {
+    URL.createObjectURL = createURL;
+    URL.revokeObjectURL = revokeURL;
+    HTMLAnchorElement.prototype.click = anchorClick;
+  }
+  assert(exported instanceof Blob, '실제 내보내기 Blob 없음');
+  const before = snapshotUserData();
+  await importUserData(new File([exported], 'reading-roundtrip.json', { type:'application/json' }));
+  assert(localStorage.getItem('mundok-v3/docs') === before['mundok-v3/docs'], '백업 복원 후 문헌 데이터 불일치');
+  open(repeated); expectValues(['인', '이', '이', '학']);
+  open(partial); expectValues(['춘', '', '추']);
+  open(ambiguous); expectValues(['일', '이', '고', '천']);
+  $('ec-cancel').click();
+  pass('실제 백업 내보내기 Blob → File 가져오기 → 같은 문헌 재열기');
+  S.docOverlay = docId;
+  render();
+  const docExport = document.querySelector('[data-action="doc-export"]');
+  assert(docExport, '문헌 JSON 내보내기 UI 없음');
+  exported = undefined;
+  try {
+    URL.createObjectURL = blob => { exported = blob; return 'blob:synthetic-doc-export'; };
+    URL.revokeObjectURL = () => {};
+    HTMLAnchorElement.prototype.click = function () {};
+    docExport.click();
+  } finally {
+    URL.createObjectURL = createURL;
+    URL.revokeObjectURL = revokeURL;
+    HTMLAnchorElement.prototype.click = anchorClick;
+  }
+  assert(exported instanceof Blob, '문헌 내보내기 UI에서 Blob을 생성하지 않음');
+  const exportedDoc = JSON.parse(await exported.text());
+  const storedDoc = JSON.parse(localStorage.getItem('mundok-v3/docs')).find(doc => doc.id === docId);
+  assert(JSON.stringify(exportedDoc) === JSON.stringify(storedDoc), '문헌 JSON 내보내기가 저장 원본을 변경함');
+  assert(exportedDoc.levels.sentence.find(card => card.id === repeated).reading === reloadCard(repeated).reading, '문헌 JSON의 연속 독음 불일치');
+  pass('실제 문헌 내보내기 버튼 → JSON: 전체 저장 문헌·독음 보존');
+  output.textContent += 'LIMIT: 단일 문헌 JSON 직접 가져오기 UI는 제공되지 않아 해당 왕복은 미실행. 전체 백업 가져오기 왕복은 위에서 검증.\n';
+  S.docOverlay = null;
+  pass('전체 독음 회귀 검사 완료');
+}
+try {
+  assert(['localhost', '127.0.0.1'].includes(location.hostname), '로컬 호스트에서만 허용');
+  await acquireEditingSession();
+  assert(Object.keys(snapshotUserData()).length === 0 && !localStorage.getItem(RECOVERY_KEY), '사용자 데이터가 있는 주소에서는 실행할 수 없습니다');
+  await initStore();
+  initEditCard();
+  setupClick();
+  $('suite').disabled = false;
+  $('suite').onclick = async () => {
+    $('suite').disabled = true;
+    try { await runSuite(); }
+    catch (error) { output.textContent += `FAIL: ${error.message}\n`; }
+  };
+  output.textContent = '준비 완료 — 합성 표본만 사용';
+} catch (error) { output.textContent = '중단: ' + error.message; }
+</script>
