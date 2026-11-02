@@ -7,6 +7,7 @@ import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match
 import { alignReading } from './reading-align';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
 import { renderResult } from './result-screen';
+import { draftListHtml } from './draft-list';
 import type { Card, Doc, GrammarAnnotation } from './types';
 import { version } from '../package.json';
 
@@ -465,6 +466,7 @@ function renderHome(): void {
         ${streak.count > 0 ? `<div class="streak-pill">연속 학습 <b class="num">${streak.count}</b>일</div>` : ''}
       </div>
       ${heroHtml()}
+      ${draftListHtml()}
       <div class="library-bar">
         <nav class="breadcrumbs" aria-label="현재 폴더">${crumbs}</nav>
         <div class="library-actions">${addMenu}</div>

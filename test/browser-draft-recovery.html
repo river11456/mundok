@@ -1,0 +1,329 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>문독 초안 복원 브라우저 검사</title>
+<style>.hidden{display:none!important} #app{display:none} #result{white-space:pre-wrap}</style>
+<h1>초안 복원 검사 — 합성 데이터 전용</h1>
+<p>사용자 데이터가 없는 새 localhost 또는 127.0.0.1 포트에서 실행합니다. 기존 데이터를 삭제하지 않습니다.</p>
+<button id="suite" disabled>초안 회귀 검사 실행</button>
+<button id="reload-test" disabled>새로고침 검사 시작</button>
+<pre id="result" role="status">준비 중</pre><div id="app"></div>
+<script type="module">
+import { initEditCard, showEditModal, resumeCardDraft } from '/src/editcard.ts';
+import { initStore, store, importUserData } from '/src/storage/index.ts';
+import { keyForDraft, readDraft, listDrafts } from '/src/storage/drafts.ts';
+import { acquireEditingSession } from '/src/storage/editing-session.ts';
+import { snapshotUserData, RECOVERY_KEY } from '/src/storage/recovery.ts';
+import { createUserDoc, userAddCard, userEditCard, userDeleteCard } from '/src/user-docs.ts';
+import { syncUserDocs, DOCS } from '/src/docs.ts';
+import { S } from '/src/state.ts';
+const $ = id => document.getElementById(id);
+const assert = (ok, message) => { if (!ok) throw new Error(message); };
+const pass = message => { $('result').textContent += `PASS: ${message}\n`; };
+const markerKey = 'mundok-test/draft-reload';
+const note = '  앞 공백\n둘째 줄\n끝 공백  ';
+let docId;
+const cells = () => [...document.querySelectorAll('[data-reading-cell]')];
+const values = () => cells().map(el => el.value);
+const input = (el, value, composing = false) => {
+  el.value = value;
+  el.dispatchEvent(new InputEvent('input', { bubbles:true, inputType:'insertText', data:value, isComposing:composing }));
+};
+const until = async predicate => {
+  const end = performance.now() + 10000;
+  while (!predicate()) {
+    assert(performance.now() < end, '비동기 완료 대기 초과');
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+};
+function card(id) {
+  syncUserDocs();
+  const doc = DOCS.find(item => item.id === docId);
+  assert(doc, '합성 문헌 없음');
+  S.docId = docId; S.lv = doc.levels.find(level => level.key === 'sentence');
+  S.allCards = S.lv.cards; S.scr = 'home';
+  return S.lv.cards.find(item => item.id === id);
+}
+const open = id => showEditModal(card(id), 'sentence');
+const key = id => keyForDraft(docId, 'sentence', id);
+const draft = id => readDraft(key(id));
+function fixture(text = '天人學', reading = '천인학') {
+  const id = userAddCard(docId, 'sentence', { text, reading, meaning:'합성 해석', note:'' });
+  open(id); return id;
+}
+function paste(value) {
+  const data = new DataTransfer(); data.setData('text/plain', value);
+  cells()[0].dispatchEvent(new ClipboardEvent('paste', { bubbles:true, cancelable:true, clipboardData:data }));
+}
+async function closeAndOpen(id, method = 'button') {
+  if (method === 'escape') document.dispatchEvent(new KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+  else if (method === 'backdrop') $('ec-overlay').click();
+  else $('ec-cancel').click();
+  assert($('ec-overlay').classList.contains('hidden'), `${method} 닫기 실패`);
+  open(id);
+}
+async function save() {
+  $('ec-submit').click();
+  await until(() => $('ec-overlay').classList.contains('hidden') || !$('ec-error').classList.contains('hidden'));
+  assert($('ec-overlay').classList.contains('hidden'), `최종 저장 실패: ${$('ec-error').textContent}`);
+}
+async function runSuite() {
+  $('result').textContent = '';
+  docId = createUserDoc({ title:'초안 복원 합성 표본', sub:'테스트 전용' }, 'sentence', []).id;
+  const first = fixture();
+  input($('ec-note'), note);
+  await until(() => draft(first)?.fields.note === note);
+  for (const method of ['escape', 'backdrop', 'button']) {
+    await closeAndOpen(first, method);
+    assert($('ec-note').value === note, `${method} 이후 공백·줄바꿈 소실`);
+  }
+  pass('입력 즉시 보관, Esc·바깥 클릭·닫기 후 공백·여러 줄 그대로 복원');
+  input(cells()[1], '');
+  await closeAndOpen(first);
+  assert(JSON.stringify(values()) === JSON.stringify(['천', '', '학']), '빈 독음칸 위치 소실');
+  paste('천인학문');
+  await closeAndOpen(first);
+  assert($('ec-overflow-input').value === '문', '초과 독음 소실');
+  pass('빈 독음칸·초과 독음 닫기 후 보존');
+  $('ec-overflow-input').dispatchEvent(new CompositionEvent('compositionstart', { bubbles:true }));
+  input($('ec-overflow-input'), '문ㅈ', true);
+  await until(() => draft(first)?.readingOverflow === '문ㅈ');
+  await closeAndOpen(first);
+  assert($('ec-overflow-input').value === '문ㅈ', '초과 독음 조합 중 자모 소실');
+  pass('초과 독음의 조합 중 자모 보존');
+  $('ec-overflow-clear').click();
+  const composingCell = cells()[0];
+  composingCell.dispatchEvent(new CompositionEvent('compositionstart', { bubbles:true }));
+  input(composingCell, 'ㅊ', true);
+  await until(() => draft(first)?.readingCells[0] === 'ㅊ');
+  await closeAndOpen(first);
+  assert(cells()[0].value === 'ㅊ', '조합 중 원문이 정규화되거나 소실됨');
+  input($('ec-back'), '조합 복원 후 다른 필드 수정');
+  await until(() => draft(first)?.fields.meaning === '조합 복원 후 다른 필드 수정');
+  assert(draft(first).readingCells[0] === 'ㅊ', '다른 필드 수정이 복원된 조합 원문을 소실시킴');
+  await closeAndOpen(first);
+  assert(cells()[0].value === 'ㅊ', '다른 필드 수정 후 재열기에서 조합 원문 소실');
+  pass('조합 중 자모를 보관·복원한 뒤 다른 필드를 수정해도 유지');
+  cells().forEach((el, index) => input(el, ['천', '인', '학'][index]));
+  const actualStore = store(), originalEdit = actualStore.editCard;
+  try {
+    actualStore.editCard = async () => { throw new Error('합성 최종 저장 실패'); };
+    $('ec-submit').click();
+    await until(() => $('ec-error').textContent.includes('합성 최종 저장 실패'));
+    assert(draft(first)?.fields.note === note && $('ec-note').value === note, '최종 저장 실패로 초안 소실');
+  } finally { actualStore.editCard = originalEdit; }
+  await save();
+  assert(!draft(first), '최종 저장 성공 후 초안이 남음');
+  assert(card(first).note === note.trim(), '최종 저장 결과 불일치');
+  pass('최종 저장 실패는 초안 유지, 재시도 성공 시에만 정리');
+  const inFlight = fixture('雨雪', '우설');
+  input($('ec-note'), '먼저 저장할 내용');
+  let releaseSave;
+  try {
+    actualStore.editCard = async function(...args) {
+      await new Promise(resolve => { releaseSave = resolve; });
+      return originalEdit.apply(this, args);
+    };
+    $('ec-submit').click();
+    await until(() => !!releaseSave);
+    input($('ec-note'), '저장 대기 중 새 입력');
+    releaseSave();
+    await until(() => !$('ec-submit').disabled);
+    assert(card(inFlight).note === '먼저 저장할 내용', '진행 중 저장의 원래 제출 값 불일치');
+    assert(draft(inFlight)?.fields.note === '저장 대기 중 새 입력', '저장 중 새 입력 초안 소실');
+    assert(!$('ec-overlay').classList.contains('hidden'), '새 입력이 남은 편집창이 닫힘');
+  } finally { if (releaseSave) releaseSave(); actualStore.editCard = originalEdit; }
+  await closeAndOpen(inFlight);
+  assert($('ec-note').value === '저장 대기 중 새 입력', '저장 중 새 입력 재열기 실패');
+  await save();
+  pass('최종 저장 진행 중 새 입력은 새 초안으로 유지하고 재저장');
+  const acknowledged = fixture('星辰', '성신');
+  input($('ec-note'), '이미 최종 저장된 내용');
+  const originalRemove = Storage.prototype.removeItem;
+  try {
+    Storage.prototype.removeItem = function(k) {
+      if (this === localStorage && k === key(acknowledged)) throw new Error('합성 초안 정리 실패');
+      return originalRemove.call(this, k);
+    };
+    $('ec-submit').click();
+    await until(() => $('ec-error').textContent.includes('합성 초안 정리 실패'));
+    assert(card(acknowledged).note === '이미 최종 저장된 내용', '최종 저장 자체가 실패함');
+    assert(draft(acknowledged)?.saveIntent?.note === '이미 최종 저장된 내용', '정리 실패 시 저장 의도 기록 소실');
+  } finally { Storage.prototype.removeItem = originalRemove; }
+  open(acknowledged);
+  assert(!draft(acknowledged), '이미 반영된 saveIntent 초안이 다시 열 때 정리되지 않음');
+  assert($('ec-note').value === '이미 최종 저장된 내용', 'saveIntent 복구가 최종 저장 값을 변경함');
+  pass('최종 저장 뒤 초안 정리 실패는 saveIntent로 확인하고 다음 열기에서 정리');
+  const quota = fixture('天地', '천지');
+  input($('ec-note'), '기존 보관');
+  await until(() => !!draft(quota));
+  const draftStorageKey = Object.keys(localStorage).find(k => {
+    try { const value = JSON.parse(localStorage.getItem(k)); return value?.docId === docId && value?.cardId === quota; }
+    catch { return false; }
+  });
+  assert(draftStorageKey, '초안 저장 namespace를 찾지 못함');
+  const originalSet = Storage.prototype.setItem;
+  try {
+    Storage.prototype.setItem = function(k, value) {
+      if (this === localStorage && k === draftStorageKey) throw new DOMException('합성 용량 초과', 'QuotaExceededError');
+      return originalSet.call(this, k, value);
+    };
+    input($('ec-note'), '용량 실패 입력');
+    await until(() => !$('ec-draft-retry').classList.contains('hidden'));
+    assert($('ec-note').value === '용량 실패 입력', '용량 실패 후 입력 소실');
+    assert(draft(quota).fields.note === '기존 보관', '실패한 저장이 기존 초안을 훼손함');
+  } finally { Storage.prototype.setItem = originalSet; }
+  $('ec-draft-retry').click();
+  await until(() => draft(quota)?.fields.note === '용량 실패 입력');
+  pass('초안 쓰기 용량 실패와 재시도, Storage.prototype 원상복구');
+  const denied = fixture('竹林', '죽림');
+  input($('ec-note'), '권한 차단 전 보관된 초안');
+  await until(() => draft(denied)?.fields.note === '권한 차단 전 보관된 초안');
+  const originalGet = Storage.prototype.getItem;
+  try {
+    Storage.prototype.getItem = function(k) {
+      if (this === localStorage) throw new DOMException('합성 저장소 읽기 거부', 'SecurityError');
+      return originalGet.call(this, k);
+    };
+    Storage.prototype.setItem = function(k, value) {
+      if (this === localStorage) throw new DOMException('합성 저장소 쓰기 거부', 'SecurityError');
+      return originalSet.call(this, k, value);
+    };
+    input($('ec-note'), '읽기·쓰기 차단 중 최신 입력');
+    await until(() => !$('ec-draft-retry').classList.contains('hidden'));
+    $('ec-submit').click();
+    await until(() => !$('ec-error').classList.contains('hidden'));
+    $('ec-cancel').click();
+    assert(!$('ec-overlay').classList.contains('hidden'), '저장소 접근 거부 중 닫기가 최신 입력을 버림');
+    assert($('ec-note').value === '읽기·쓰기 차단 중 최신 입력', '저장소 접근 거부·저장·닫기 후 최신 입력 소실');
+  } finally { Storage.prototype.getItem = originalGet; Storage.prototype.setItem = originalSet; }
+  assert(draft(denied)?.fields.note === '권한 차단 전 보관된 초안', '접근 거부가 기존 영속 초안을 변경함');
+  $('ec-draft-retry').click();
+  await until(() => draft(denied)?.fields.note === '읽기·쓰기 차단 중 최신 입력');
+  await save();
+  assert(card(denied).note === '읽기·쓰기 차단 중 최신 입력' && !draft(denied), '권한 복원 후 재시도·최종 저장 실패');
+  pass('저장소 읽기·쓰기 거부 시 저장·닫기 후 최신 입력 유지, 권한 복원 후 재시도·저장');
+  const wordId = userAddCard(docId, 'word', { text:'文章', reading:'문장', meaning:'합성 단어', note:'' });
+  const openWord = () => {
+    syncUserDocs();
+    S.docId = docId; S.lv = DOCS.find(item => item.id === docId).levels.find(level => level.key === 'word');
+    S.allCards = S.lv.cards;
+    showEditModal(S.lv.cards.find(item => item.id === wordId), 'word');
+  };
+  openWord(); input($('ec-reading'), '문 장  '); input($('ec-note'), '  비문장 초안\n여러 줄  ');
+  $('ec-cancel').click(); openWord();
+  assert($('ec-reading').value === '문 장  ' && $('ec-note').value === '  비문장 초안\n여러 줄  ', '비문장 카드 원문 초안 복원 실패');
+  assert(readDraft(keyForDraft(docId, 'word', wordId))?.fields.reading === '문 장  ', '비문장 독음 초안 영속 보관 실패');
+  $('ec-cancel').click();
+  pass('비문장 카드 직접 독음·메모의 공백과 줄바꿈 닫기 후 복원');
+  const longId = fixture('長文', '장문');
+  const longNote = '긴 메모 문장\n'.repeat(12500);
+  const started = performance.now();
+  $('ec-note').value = longNote;
+  $('ec-note').dispatchEvent(new InputEvent('input', { bubbles:true, inputType:'insertFromPaste', data:longNote }));
+  const dispatchMs = performance.now() - started;
+  await until(() => draft(longId)?.fields.note === longNote);
+  await closeAndOpen(longId);
+  assert($('ec-note').value === longNote, '100,000자 긴 메모 붙여넣기 복원 실패');
+  pass(`긴 메모 ${longNote.length.toLocaleString()}자 보관·복원 (input 이벤트 처리 ${dispatchMs.toFixed(1)}ms, 참고값)`);
+  const second = fixture('山川', '산천');
+  input($('ec-note'), '다른 카드');
+  await closeAndOpen(quota);
+  assert($('ec-note').value === '용량 실패 입력', '카드 사이 초안 혼합');
+  open(second); assert($('ec-note').value === '다른 카드', '두 번째 카드 초안 소실');
+  pass('서로 다른 카드의 독립 초안');
+  const ambiguous = fixture('人이고 而高學', '인이고학');
+  document.querySelector('[data-reading-choice="manual"]').click();
+  paste('인이고학');
+  await until(() => !!draft(ambiguous)?.pendingReadingPasteRaw);
+  await closeAndOpen(ambiguous);
+  assert(draft(ambiguous).pendingReadingPasteRaw === '인이고학', '미확정 붙여넣기 원문 소실');
+  assert(!$('ec-reading-review').classList.contains('hidden'), '미확정 붙여넣기 선택 UI 소실');
+  pass('모호한 독음 붙여넣기 원문과 선택 상태 복원');
+  const conflict = fixture('日月', '일월');
+  input($('ec-note'), '초안 메모'); $('ec-cancel').click();
+  userEditCard(docId, 'sentence', conflict, { text:'日月', reading:'일월', meaning:'외부에서 변경한 해석', note:'원본 새 메모' });
+  open(conflict);
+  assert(!$('ec-draft-conflict').classList.contains('hidden'), '원본 변경 충돌 안내 없음');
+  $('ec-submit').click();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert(card(conflict).note === '원본 새 메모', '충돌 초안이 원본을 조용히 덮어씀');
+  assert(draft(conflict), '충돌 초안 소실');
+  pass('원본 변경 시 충돌 안내 및 무확인 최종 쓰기 차단');
+  $('ec-draft-use').click();
+  assert(!$('ec-submit').disabled, '명시적 충돌 수락 후 최종 저장 불가');
+  await save();
+  assert(card(conflict).note === '초안 메모' && !draft(conflict), '명시적 초안 수락·최종 저장 실패');
+  pass('원본 변경을 확인하고 초안으로 이어쓰기 선택 후 최종 저장');
+  open(conflict); input($('ec-note'), '삭제 전 초안 메모');
+  $('ec-cancel').click();
+  // Keep a higher card ID so later fixtures do not reuse this deliberately orphaned identity.
+  userAddCard(docId, 'sentence', { text:'保留', reading:'보류', meaning:'ID 재사용 방지 표본', note:'' });
+  userDeleteCard(docId, 'sentence', conflict);
+  await resumeCardDraft(key(conflict));
+  assert(draft(conflict), '삭제된 카드의 초안 소실');
+  assert(!$('ec-draft-export').classList.contains('hidden'), '삭제된 대상의 초안 내보내기 없음');
+  let exported;
+  const originalURL = URL.createObjectURL, originalRevoke = URL.revokeObjectURL, originalClick = HTMLAnchorElement.prototype.click;
+  try {
+    URL.createObjectURL = blob => { exported = blob; return 'blob:synthetic-draft'; };
+    URL.revokeObjectURL = () => {};
+    HTMLAnchorElement.prototype.click = function() {};
+    $('ec-draft-export').click();
+    await until(() => exported instanceof Blob);
+  } finally {
+    URL.createObjectURL = originalURL; URL.revokeObjectURL = originalRevoke; HTMLAnchorElement.prototype.click = originalClick;
+  }
+  assert((await exported.text()).includes('초안 메모'), '내보내기에 초안 내용 누락');
+  pass('삭제 대상 초안 유지와 실제 Blob 내보내기');
+  $('ec-cancel').click();
+  const restored = fixture('風雲', '풍운');
+  $('ec-cancel').click();
+  const beforeRestore = snapshotUserData();
+  userEditCard(docId, 'sentence', restored, { text:'風雲', reading:'풍운', meaning:'백업 이후 해석', note:'백업 이후 메모' });
+  open(restored); input($('ec-note'), '복원과 독립된 초안'); $('ec-cancel').click();
+  const draftBeforeRestore = localStorage.getItem(key(restored));
+  await importUserData(new File([JSON.stringify({ version:2, keys:beforeRestore })], 'synthetic-draft-restore.json', { type:'application/json' }));
+  assert(localStorage.getItem(key(restored)) === draftBeforeRestore, '백업 복원이 초안 namespace를 변경함');
+  open(restored);
+  assert(!$('ec-draft-conflict').classList.contains('hidden'), '백업 복원 후 원본 변경 충돌 안내 없음');
+  assert(card(restored).note === '' && $('ec-note').value === '복원과 독립된 초안', '백업 원본·초안이 섞임');
+  $('ec-cancel').click();
+  pass('실제 백업 가져오기 후 초안 namespace 보존과 원본 충돌 감지');
+  $('reload-test').disabled = false;
+  pass('자동 회귀 완료. 실제 페이지 새로고침은 별도 버튼으로 검사');
+}
+async function startReload() {
+  const id = fixture('春秋', '춘추'); input($('ec-note'), note);
+  await until(() => draft(id)?.fields.note === note);
+  sessionStorage.setItem(markerKey, JSON.stringify({ docId, id, snapshot:snapshotUserData(), keys:Object.keys(localStorage).sort() }));
+  location.reload();
+}
+try {
+  assert(['localhost', '127.0.0.1'].includes(location.hostname), '로컬 호스트에서만 허용');
+  const marker = JSON.parse(sessionStorage.getItem(markerKey) || 'null');
+  if (marker) {
+    assert(JSON.stringify(snapshotUserData()) === JSON.stringify(marker.snapshot), '새로고침 사이 데이터 변경: 검사 중단');
+    assert(JSON.stringify(Object.keys(localStorage).sort()) === JSON.stringify(marker.keys), '알 수 없는 저장 데이터: 검사 중단');
+  } else {
+    assert(Object.keys(snapshotUserData()).length === 0 && !localStorage.getItem(RECOVERY_KEY) && listDrafts().length === 0, '기존 사용자 데이터가 있습니다. 새 포트를 사용하세요.');
+  }
+  await acquireEditingSession(); await initStore(); initEditCard();
+  if (marker) {
+    docId = marker.docId; open(marker.id);
+    assert($('ec-note').value === note, '실제 새로고침 후 입력 소실');
+    assert(draft(marker.id)?.fields.note === note, '실제 새로고침 후 초안 소실');
+    sessionStorage.removeItem(markerKey);
+    $('result').textContent = ''; pass('실제 location.reload 후 문헌·카드·초안 복원');
+  } else {
+    $('result').textContent = '준비 완료 — 합성 표본만 사용\n'; $('suite').disabled = false;
+  }
+  $('suite').onclick = async () => {
+    $('suite').disabled = true;
+    try { await runSuite(); } catch (error) { $('result').textContent += `FAIL: ${error.message}\n`; }
+  };
+  $('reload-test').onclick = async () => {
+    $('reload-test').disabled = true;
+    try { await startReload(); } catch (error) { $('result').textContent += `FAIL: ${error.message}\n`; }
+  };
+} catch (error) { $('result').textContent = `중단: ${error.message}`; }
+</script>

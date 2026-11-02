@@ -13,7 +13,8 @@ import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { consumeSuppressedClick, dismissCellSelect } from './cell-select';
 import { toggleInterpPlay } from './interp-play';
-import { showEditModal } from './editcard';
+import { resumeCardDraft, showEditModal } from './editcard';
+import { discardHomeDraft, exportHomeDraft } from './draft-list';
 import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
@@ -207,6 +208,12 @@ export function setupClick(): void {
       }
       case 'doc-move-shelf': if (S.docOverlay) showShelfPicker(S.docOverlay); break;
       case 'resume':      resumeStudy();                break;
+      case 'draft-resume': if (arg) resumeCardDraft(arg); break;
+      case 'draft-export': if (arg) exportHomeDraft(arg); break;
+      case 'draft-discard':
+        if (arg && discardHomeDraft(arg, btn.dataset.revision)) render();
+        break;
+      case 'draft-refresh': render(); break;
       case 'new-doc': {
         const folderId = S.folderId;
         closeLibraryAddMenuView();

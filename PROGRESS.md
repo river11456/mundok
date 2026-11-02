@@ -1,27 +1,29 @@
 # 文讀 — 현재 인계
 
-> 확인 날짜: **2026-10-17**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
+> 확인 날짜: **2026-11-02**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
 
 ## 운영 기준
 
 - 서비스: [문독](https://river11456.github.io/mundok/)
 - 운영 버전·제품 커밋·배포 실행·산출물은 [최신 Release](https://github.com/river11456/mundok/releases/latest)에서 확인한다. [운영 배포 식별 정보](https://river11456.github.io/mundok/release.json)의 버전·커밋과 일치해야 한다.
-- 문서 전용 작업은 새 제품을 배포하지 않는다. 문서가 앱 빌드에 섞이는 문제를 해결한 #14는 스타일 입력 경계의 제품 변경이므로 **2.4.1 패치 출시**로 검증한다. 결과와 미검증 사항은 이슈에 기록한다.
+- 문서 전용 작업은 새 제품을 배포하지 않는다. 제품 변경의 실제 출시·운영 확인 결과는 해당 이슈와 Release에 기록한다.
 - 실제 기기에서의 업데이트·오프라인 재접속·사용자 백업 복원 검증은 별도 [#5](https://github.com/river11456/mundok/issues/5)에서 근거를 확보한다.
 
 ## 현재 우선순위와 남은 범위
 
-- 현재 작업은 [#24 맹자 양혜왕장구상 제3장 추가](https://github.com/river11456/mundok/issues/24)의 **3.1.0 출시 준비**다. 사용자 제공 7주차 PDF 2–8쪽의 본문·현토·독음을 27개 문장 카드로 옮겼다. 번역·강의 해설·퀴즈는 제외했다. 기존 제1·2장은 유지하며, 병합·배포·운영 확인과 Release 연결은 아직 남아 있다. 검증 근거와 최신 상태는 이슈를 따른다.
+- 현재 작업은 [#26 작성 중 입력 보존](https://github.com/river11456/mundok/issues/26)의 **3.2.0 출시 준비**다. 기존 카드 수정에 원시 입력·독음 편집 상태의 자동 초안 보관, 홈 이어쓰기·파일 보관·버리기, 원본 충돌 확인과 저장 실패 재시도를 추가한다. 검증·별도 리뷰·병합·배포·운영 확인·Release 연결의 최신 결과는 이슈를 따른다. 이 문서는 배포 완료를 뜻하지 않는다.
+- 초안은 `mundok-drafts/v1/*`에 별도로 저장하며 v3 전체 백업에는 포함하지 않는다. 백업 가져오기 뒤에도 유지하고 원본 변경을 확인한다. 카드 추가·문헌 생성·본문 추가·문헌 정보 수정창은 후속 범위다.
+- 초안 단위 검사는 `test/drafts.test.ts`, 실제 편집·실패 주입·새로고침 검사는 `test/browser-draft-recovery.html`이다. 사용자 데이터가 없는 새 로컬 origin에서만 실행하며 실행 결과는 #26에 기록한다.
 - [#22 문장 독음 보존](https://github.com/river11456/mundok/issues/22)은 완료됐다. 원문 토·부호와 빈 독음칸 보존, 모호한 배치 선택·초과 입력 유지·한자 변경 확인을 유지한다.
 - 독음 단위 검사는 `test/reading-align.test.ts`·`test/reading-editor.test.ts`, 실제 편집·저장·백업 왕복 브라우저 검사는 `test/browser-reading-editor.html`이다. 브라우저 검사는 사용자 데이터가 없는 새 로컬 포트에서만 실행한다.
 - [#16](https://github.com/river11456/mundok/issues/16)·[#17](https://github.com/river11456/mundok/issues/17)·[#18](https://github.com/river11456/mundok/issues/18)의 저장 실패 복구·입력 검증·구 데이터 혼입 방지는 3.0.0에 포함됐다. 원본 저널, 내부 형식·좌표 검사, v1/v3 동시 교체, 한 창 편집 잠금을 유지한다.
 - 합성 표본·자동 검사는 `test/backup-recovery.test.mjs`·`test/backup-validation.test.mjs`·`test/editing-session.test.mjs`, 로컬 브라우저 검사는 `test/browser-backup-recovery.html`이다. 반복 실행·호환 제한·복구 절차는 [docs/recovery.md](docs/recovery.md)에 있다.
-- [#5 백업·복원·기존 사용자 업데이트 검증](https://github.com/river11456/mundok/issues/5)은 실제 iPad/폰 설치형 PWA, 기기 전체 오프라인, 실제 파일 다운로드 후 업로드 왕복이 미검증으로 남는다. 자동 검사나 데스크톱 서버 중지 검사로 대체하지 않는다.
+- [#5 백업·복원·기존 사용자 업데이트 검증](https://github.com/river11456/mundok/issues/5)은 실제 iPad/폰 설치형 PWA, 기기 전체 오프라인, 실제 파일 다운로드 후 업로드 왕복이 미검증으로 남는다. 초안의 실제 모바일 IME 입력·앱 전환·종료 후 재실행·BFCache 복귀 확인도 포함한다. 자동 검사나 데스크톱 서버 중지 검사로 대체하지 않는다.
 - [#14 문서 최신화·불필요 자료 제거](https://github.com/river11456/mundok/issues/14)는 완료됐다.
 - 작업 절차는 [PROCESS.md](PROCESS.md). [#2](https://github.com/river11456/mundok/issues/2)에서 PR 필수 검사·버전 검사·출시 기록 연결을 적용했다.
 - 주요 문서 정비 범위와 완료 근거는 [#3](https://github.com/river11456/mundok/issues/3). 현재 기능은 [SPEC.md](SPEC.md), UI 기준은 [DESIGN.md](DESIGN.md), 서비스화 단계는 [ROADMAP.md](ROADMAP.md)에서 확인한다.
 - 폴더 데이터는 임의 깊이를 표현하지만 **생성 UI에는 2단계 제한이 남아 있다**. 합의된 중첩 목표를 구현하는 작업은 [#4](https://github.com/river11456/mundok/issues/4)다.
-- 이번 추가 후 카탈로그는 83문헌이다. 사용자 결정으로 콘텐츠 보강 #6은 할 일에서 제외했다. 앱의 목적은 직접 해석 작성과 복습이며, 후속 작업은 작성·수정 편의, 복습 흐름, 사용자 데이터 보존을 기준으로 판단한다. 새 기능 후보는 로드맵의 이슈 링크로 확인한다.
+- #24의 3.1.0 콘텐츠 추가 기준 카탈로그는 83문헌이다. 사용자 결정으로 콘텐츠 보강 #6은 할 일에서 제외했다. 앱의 목적은 직접 해석 작성과 복습이며, 후속 작업은 작성·수정 편의, 복습 흐름, 사용자 데이터 보존을 기준으로 판단한다. 새 기능 후보는 로드맵의 이슈 링크로 확인한다.
 - 구 문헌 8개 정적 import는 마이그레이션·구 백업 가져오기·오프라인 스타터가 사용하는 카탈로그 정본이다. 제거할 미완료 작업으로 간주하지 않는다.
 
 ## 개발·기록

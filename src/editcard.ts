@@ -1,7 +1,7 @@
 import { S, curDoc } from './state';
 import { render } from './render';
 import { store } from './storage';
-import type { Card, Level, LevelKey } from './types';
+import type { Card, DocJSON, Level, LevelKey } from './types';
 import { isHan, readingTokens, resolveReading } from './reading-align';
 import {
   createReadingEditor, chooseReading, editReadingCell, distributeReadingTokens,
@@ -9,6 +9,12 @@ import {
 } from './reading-editor';
 import { loadHanjaDictionaryResult, type HanjaCandidate } from './hanja-dictionary';
 import { planSentenceReadingAutofill } from './sentence-reading-autofill';
+import { USER_DOCS_KEY } from './user-docs';
+import { DOCS, syncUserDocs } from './docs';
+import {
+  keyForDraft, readDraft, writeDraft, removeDraft, exportDraft, draftFieldsEqual,
+  type CardDraft, type DraftFields,
+} from './storage/drafts';
 
 function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -19,6 +25,176 @@ function hideModal(): void {
   editModalSession++;
   readingEditor = null;
   pendingReadingPaste = null;
+  activeDraft = null;
+  draftProblem = null;
+}
+
+let activeDraft: CardDraft | null = null;
+let initialDraftContent = '';
+let persistedDraftContent = '';
+let draftFailure = false;
+let draftProblem: 'conflict' | 'unreadable' | 'missing' | null = null;
+let savingEdit = false;
+
+function cardFields(card: Card): DraftFields {
+  return { text: card.front, reading: card.reading, meaning: card.back, note: card.note };
+}
+
+function storedFields(draft: Pick<CardDraft, 'docId' | 'type' | 'cardId'>): DraftFields | null {
+  // Reading errors must not masquerade as deleted cards while unsaved input exists.
+  const raw = localStorage.getItem(USER_DOCS_KEY);
+  const docs: DocJSON[] = raw === null ? [] : JSON.parse(raw);
+  if (!Array.isArray(docs)) throw new Error('저장된 문헌을 읽지 못했습니다.');
+  const card = docs.find(doc => doc.id === draft.docId)?.levels[draft.type]?.find(c => c.id === draft.cardId);
+  if (card && ![card.text, card.reading, card.meaning, card.note].every(value => typeof value === 'string')) {
+    throw new Error('저장된 카드를 읽지 못했습니다.');
+  }
+  return card ? { text: card.text, reading: card.reading, meaning: card.meaning, note: card.note } : null;
+}
+
+function draftContent() {
+  return {
+    fields: {
+      text: $<HTMLInputElement>('ec-text').value,
+      reading: $<HTMLInputElement>('ec-reading').value,
+      meaning: $<HTMLTextAreaElement>('ec-back').value,
+      note: $<HTMLTextAreaElement>('ec-note').value,
+    },
+    readingEditor: readingEditor ? JSON.parse(JSON.stringify(readingEditor)) as ReadingEditor : null,
+    readingCells: readingEditor ? readingInputs().map(input => input.value) : [],
+    readingOverflow: readingEditor ? $<HTMLInputElement>('ec-overflow-input').value : '',
+    pendingReadingPasteRaw: pendingReadingPaste ? pendingReadingPasteRaw : null,
+  };
+}
+
+function draftStatus(message: string, failed = false): void {
+  $('ec-draft-status').textContent = message;
+  $('ec-draft-status').classList.toggle('text-[var(--fail)]', failed);
+  $('ec-draft-retry').classList.toggle('hidden', !failed || !!draftProblem);
+}
+
+/** Capture raw DOM values without normalizing or interrupting an IME composition. */
+export function preserveEditDraft(): boolean {
+  return persistEditDraft();
+}
+
+function persistEditDraft(saveIntent?: DraftFields): boolean {
+  if (!activeDraft || $('ec-overlay').classList.contains('hidden')) return true;
+  if (draftProblem) return !draftFailure; // Never dismiss newer memory-only input.
+  const content = draftContent();
+  // Keep the acknowledgement until content changes or cleanup can reconcile it.
+  if (!saveIntent && activeDraft.saveIntent && !draftFailure
+    && JSON.stringify({ ...content, saveIntent: activeDraft.saveIntent }) === persistedDraftContent) return true;
+  const signature = JSON.stringify({ ...content, saveIntent });
+  if (signature === persistedDraftContent && !draftFailure) return true;
+  if (signature === initialDraftContent && !persistedDraftContent && !saveIntent) return true;
+  const draft: CardDraft = {
+    ...activeDraft, ...content, saveIntent,
+    updatedAt: Date.now(), revision: crypto.randomUUID(),
+  };
+  activeDraft = draft; // Export can still recover the latest input when storage rejects it.
+  $('ec-draft-tools').classList.remove('hidden');
+  try {
+    writeDraft(draft);
+    persistedDraftContent = signature;
+    draftFailure = false;
+    draftStatus(`이 기기에 임시 저장됨 · ${new Date(draft.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`);
+    return true;
+  } catch {
+    draftFailure = true;
+    draftStatus('임시 저장에 실패했습니다. 입력을 파일로 보관하거나 저장 공간·권한을 확인한 뒤 다시 시도해 주세요.', true);
+    return false;
+  }
+}
+
+function closeEdit(): void {
+  if (savingEdit) return;
+  if (!persistEditDraft()) {
+    showError('아직 임시 저장하지 못한 내용이 있습니다. 다시 시도하거나 파일로 보관해 주세요. 버리려면 초안 버리기를 선택하세요.');
+    return;
+  }
+  hideModal();
+  render();
+}
+
+function exportEditDraft(): void {
+  if (!activeDraft) return;
+  try {
+    if (draftProblem === 'unreadable') {
+      exportDraft(keyForDraft(activeDraft.docId, activeDraft.type, activeDraft.cardId));
+      return;
+    }
+    const payload = draftProblem ? activeDraft : { ...activeDraft, ...draftContent() };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = '문독-작성중인내용.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch { showError('파일로 보관하지 못했습니다. 화면의 입력 내용을 복사해 별도로 보관해 주세요.'); }
+}
+
+function showDraftProblem(problem: 'conflict' | 'unreadable' | 'missing'): void {
+  draftProblem = problem;
+  $('ec-draft-tools').classList.remove('hidden');
+  $('ec-draft-conflict').classList.remove('hidden');
+  $('ec-draft-use').classList.toggle('hidden', problem !== 'conflict');
+  let current: DraftFields | null = null;
+  try { current = activeDraft && storedFields(activeDraft); } catch { /* Keep the draft available for export. */ }
+  $('ec-draft-conflict-text').textContent = problem === 'conflict'
+    ? '저장된 카드가 초안을 작성할 때와 달라졌습니다. 아래 초안과 현재 저장된 내용을 확인한 뒤 이어쓰기를 선택하세요.'
+    : problem === 'missing' ? '대상 문헌이나 카드가 없습니다. 초안은 유지했습니다. 내용을 파일로 보관할 수 있습니다.'
+      : '기존 초안을 읽지 못했습니다. 덮어쓰지 않고 보존했습니다. 파일로 보관하거나 초안을 버린 뒤 다시 편집해 주세요.';
+  $('ec-draft-current').textContent = current
+    ? `현재 저장된 내용\n${current.text}\n독음: ${current.reading}\n해석: ${current.meaning}\n메모: ${current.note}` : '';
+  for (const el of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('#ec-modal input, #ec-modal textarea')) el.disabled = true;
+  for (const button of document.querySelectorAll<HTMLButtonElement>('#ec-reading-grid-wrap button, #ec-reading-grid-wrap select')) button.disabled = true;
+  $<HTMLButtonElement>('ec-submit').disabled = true;
+  draftStatus('초안을 보관하고 있습니다. 확인 전에는 카드에 반영하지 않습니다.');
+}
+
+function applyDraft(draft: CardDraft): void {
+  $<HTMLInputElement>('ec-text').value = draft.fields.text;
+  $<HTMLInputElement>('ec-reading').value = draft.fields.reading;
+  $<HTMLTextAreaElement>('ec-back').value = draft.fields.meaning;
+  $<HTMLTextAreaElement>('ec-note').value = draft.fields.note;
+  readingEditor = draft.readingEditor;
+  pendingReadingPasteRaw = draft.pendingReadingPasteRaw ?? '';
+  pendingReadingPaste = draft.pendingReadingPasteRaw === null ? null : resolveReading(readingEditor?.text ?? draft.fields.text, draft.pendingReadingPasteRaw);
+  if (readingEditor) {
+    renderReadingDraft();
+    readingInputs().forEach((input, i) => {
+      input.value = draft.readingCells[i] ?? '';
+      if (readingEditor!.status === 'ready' && /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/u.test(input.value)) {
+        readingEditor!.values[i] = input.value;
+        readingEditor!.dirty = readingEditor!.readingDirty = true;
+      }
+    });
+    if (readingEditor.overflow !== draft.readingOverflow) {
+      readingEditor.overflow = draft.readingOverflow;
+      readingEditor.dirty = readingEditor.readingDirty = true;
+    }
+    $<HTMLInputElement>('ec-overflow-input').value = draft.readingOverflow;
+  }
+}
+
+/** Reopen by durable identity, including export-only access to orphaned drafts. */
+export function resumeCardDraft(key: string): void {
+  try {
+    const draft = readDraft(key);
+    if (!draft) { render(); return; }
+    syncUserDocs();
+    const doc = DOCS.find(d => d.id === draft.docId);
+    const level = doc?.levels.find(l => l.key === draft.type);
+    const card = level?.cards.find(c => c.id === draft.cardId);
+    S.docId = draft.docId;
+    if (card && level) {
+      S.lv = level;
+      S.allCards = level.cards;
+      showEditModal(card, draft.type);
+    } else {
+      const baseline = draft.baseline;
+      showEditModal({ id: draft.cardId, front: baseline.text, reading: baseline.reading, back: baseline.meaning, note: baseline.note, fail_count: 0 }, draft.type);
+    }
+  } catch { alert('초안을 열지 못했습니다. 홈의 파일로 보관 기능을 이용해 주세요.'); }
 }
 
 let editModalSession = 0;
@@ -60,6 +236,13 @@ function refreshReadingProgress(): void {
 function syncReadingFromCells(): void {
   if (readingEditor?.status === 'ready') {
     readingInputs().forEach((input, index) => {
+      if (input.dataset.composing === 'true' || /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/u.test(input.value)) {
+        if (input.value !== readingEditor!.values[index]) {
+          readingEditor!.values[index] = input.value;
+          readingEditor!.dirty = readingEditor!.readingDirty = true;
+        }
+        return;
+      }
       if (input.value !== readingEditor!.values[index]) editReadingCell(readingEditor!, index, input.value);
     });
   }
@@ -291,6 +474,7 @@ async function autofillSentenceReading(): Promise<void> {
     }
   });
   syncReadingFromCells();
+  persistEditDraft();
 
   if (!plan.filled) {
     if (!result.ok) {
@@ -309,6 +493,19 @@ async function autofillSentenceReading(): Promise<void> {
 }
 
 export function showEditModal(card: Card, type: string): void {
+  if (savingEdit || (activeDraft && !persistEditDraft())) return;
+  let current: DraftFields | null;
+  try { current = storedFields({ docId: S.docId!, type: type as LevelKey, cardId: card.id }); }
+  catch { alert('저장된 카드를 읽지 못했습니다. 저장 권한을 확인한 뒤 다시 시도해 주세요.'); return; }
+  activeDraft = null;
+  draftProblem = null;
+  draftFailure = false;
+  initialDraftContent = '';
+  persistedDraftContent = '';
+  for (const el of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>('#ec-modal input, #ec-modal textarea, #ec-modal button, #ec-modal select')) el.disabled = false;
+  $('ec-draft-conflict').classList.add('hidden');
+  $('ec-draft-tools').classList.add('hidden');
+  if (current) card = { ...card, front: current.text, reading: current.reading, back: current.meaning, note: current.note };
   editModalSession++;
   readingAutofillRequest++;
   resetReadingAutofillButton();
@@ -338,6 +535,29 @@ export function showEditModal(card: Card, type: string): void {
   btn.textContent = '저장';
   btn.removeAttribute('disabled');
   $('ec-overlay').classList.remove('hidden');
+  activeDraft = {
+    version: 1, docId: S.docId!, cardId: card.id, type: type as LevelKey,
+    title: DOCS.find(doc => doc.id === S.docId)?.title ?? '삭제된 문헌',
+    baseline: cardFields(card), ...draftContent(), updatedAt: Date.now(), revision: crypto.randomUUID(),
+  };
+  if (current) activeDraft.baseline = current;
+  initialDraftContent = JSON.stringify({ ...draftContent(), saveIntent: undefined });
+  draftStatus('입력 내용은 이 기기에 임시 저장됩니다. 카드 반영은 저장을 눌러 주세요.');
+  try {
+    const key = keyForDraft(activeDraft.docId, activeDraft.type, activeDraft.cardId);
+    const saved = readDraft(key);
+    if (saved?.saveIntent && current && draftFieldsEqual(saved.saveIntent, current)) {
+      removeDraft(key, saved.revision);
+    } else if (saved) {
+      activeDraft = saved;
+      applyDraft(saved);
+      persistedDraftContent = JSON.stringify({ ...draftContent(), saveIntent: saved.saveIntent });
+      $('ec-draft-tools').classList.remove('hidden');
+      draftStatus('작성 중이던 내용을 복원했습니다.');
+      if (!current) showDraftProblem('missing');
+      else if (!draftFieldsEqual(saved.baseline, current)) showDraftProblem('conflict');
+    } else if (!current) showDraftProblem('missing');
+  } catch { showDraftProblem('unreadable'); }
   setTimeout(() => {
     if (sentence) readingInputs()[0]?.focus();
     else $<HTMLInputElement>('ec-reading').focus();
@@ -345,16 +565,31 @@ export function showEditModal(card: Card, type: string): void {
 }
 
 async function submitEdit(): Promise<void> {
+  if (savingEdit || draftProblem || !activeDraft) return;
   const overlay   = $('ec-overlay');
   const origFront = overlay.dataset.origFront!;
   const origId    = overlay.dataset.origId!;
   const type      = overlay.dataset.cardType!;
-  const docId     = S.docId!;
+  const docId     = activeDraft.docId;
+  let current: DraftFields | null;
+  try { current = storedFields(activeDraft); }
+  catch {
+    persistEditDraft();
+    showError('저장된 카드를 읽지 못했습니다. 입력은 유지했습니다. 파일로 보관하거나 저장 권한을 확인한 뒤 다시 시도해 주세요.');
+    return;
+  }
+  if (!current) { showDraftProblem('missing'); return; }
+  if (!draftFieldsEqual(current, activeDraft.baseline)) { showDraftProblem('conflict'); return; }
 
   const text    = $<HTMLInputElement>('ec-text').value.trim();
   let reading = $<HTMLInputElement>('ec-reading').value.trim();
   if (type === 'sentence' && readingEditor) {
     if (pendingReadingPaste) { showError('붙여넣을 독음의 배치를 선택하거나 취소해 주세요.'); return; }
+    // A restored unfinished IME syllable must not be filtered away by final-save normalization.
+    if (readingInputs().some(input => /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/u.test(input.value))
+      || /[ㄱ-ㅎㅏ-ㅣᄀ-ᇿ]/u.test($<HTMLInputElement>('ec-overflow-input').value)) {
+      showError('입력 중인 한글을 완성한 뒤 저장해 주세요. 초안은 그대로 보관됩니다.'); return;
+    }
     syncReadingFromCells();
     changeReadingText(readingEditor, text);
     try { reading = readingForSave(readingEditor); }
@@ -365,10 +600,18 @@ async function submitEdit(): Promise<void> {
 
   if (!text) { showError('한자를 입력해 주세요.'); return; }
 
+  const intended: DraftFields = { text, reading, meaning: back, note };
+  persistEditDraft(intended); // Best effort: final save may still succeed if only draft storage is full.
+  const submitted = activeDraft;
+  const submittedContent = JSON.stringify(draftContent());
+  const session = editModalSession;
+
   const btn = $('ec-submit');
   btn.textContent = '저장 중…';
   btn.setAttribute('disabled', 'true');
   $('ec-error').classList.add('hidden');
+  savingEdit = true;
+  readingAutofillRequest++; // An outstanding dictionary request must not change a submitted draft.
 
   try {
     // 텍스트가 실제로 바뀌면, 옛 텍스트를 품은 다른 카드(연결 카드) 후보를 미리 수집
@@ -381,8 +624,25 @@ async function submitEdit(): Promise<void> {
         c.front = text; c.reading = reading; c.back = back; c.note = note;
       }
     };
-    S.lv!.cards.forEach(patch);
-    S.allCards.forEach(patch);
+    DOCS.find(d => d.id === docId)?.levels.find(l => l.key === type)?.cards.forEach(patch);
+    if (S.docId === docId) {
+      S.lv?.cards.forEach(patch);
+      S.allCards.forEach(patch);
+      S.queue.forEach(patch);
+    }
+    if (session !== editModalSession) return;
+    activeDraft = { ...activeDraft!, baseline: intended };
+    if (submittedContent !== JSON.stringify(draftContent())) {
+      activeDraft = { ...activeDraft!, baseline: intended, saveIntent: undefined };
+      overlay.dataset.origFront = intended.text;
+      persistedDraftContent = ''; // The baseline changed even when the visible draft did not.
+      persistEditDraft();
+      showError('먼저 입력한 내용은 저장했습니다. 이후 수정한 내용은 초안으로 유지했습니다.');
+      return;
+    }
+    // Refresh before cleanup: a rendering failure must not consume the recoverable draft.
+    render();
+    removeDraft(keyForDraft(submitted.docId, submitted.type, submitted.cardId), submitted.revision);
     hideModal();
     render();
 
@@ -392,6 +652,10 @@ async function submitEdit(): Promise<void> {
     showError(e instanceof Error ? e.message : '저장에 실패했습니다.');
     btn.textContent = '저장';
     btn.removeAttribute('disabled');
+  } finally {
+    savingEdit = false;
+    btn.textContent = '저장';
+    if (!draftProblem) btn.removeAttribute('disabled');
   }
 }
 
@@ -573,9 +837,22 @@ export function initEditCard(): void {
           class="border border-[var(--line)] rounded-lg px-3 py-2 text-sm t-ink focus:outline-none focus:border-[var(--accent)] resize-y"></textarea>
       </div>
       <div id="ec-error" class="text-xs text-[var(--fail)] hidden"></div>
+      <section class="flex flex-col gap-2 text-xs" aria-label="작성 중인 내용 보관">
+        <div id="ec-draft-status" class="t-sub" role="status" aria-live="polite"></div>
+        <div id="ec-draft-conflict" class="hidden flex flex-col gap-2">
+          <p id="ec-draft-conflict-text" class="text-[var(--warn)]"></p>
+          <details><summary>현재 저장된 내용 확인</summary><pre id="ec-draft-current" class="whitespace-pre-wrap break-words"></pre></details>
+          <button id="ec-draft-use" type="button" class="btn-ghost self-start">확인한 초안으로 이어쓰기</button>
+        </div>
+        <div id="ec-draft-tools" class="hidden flex flex-wrap gap-2">
+          <button id="ec-draft-retry" type="button" class="btn-ghost hidden">임시 저장 다시 시도</button>
+          <button id="ec-draft-export" type="button" class="btn-ghost">입력 내용 파일로 보관</button>
+          <button id="ec-draft-discard" type="button" class="btn-ghost">초안 버리기</button>
+        </div>
+      </section>
       <div id="ec-actions" class="ec-learning-actions flex gap-3 justify-end pt-1">
         <button id="ec-cancel"
-          class="btn-ghost">취소</button>
+          class="btn-ghost">닫기</button>
         <button id="ec-submit"
           class="btn-primary">저장</button>
       </div>
@@ -583,8 +860,8 @@ export function initEditCard(): void {
   document.body.appendChild(overlay);
 
   document.getElementById('ec-modal')!.addEventListener('click', e => e.stopPropagation());
-  overlay.addEventListener('click', hideModal);
-  document.getElementById('ec-cancel')!.addEventListener('click', hideModal);
+  overlay.addEventListener('click', closeEdit);
+  document.getElementById('ec-cancel')!.addEventListener('click', closeEdit);
   document.getElementById('ec-submit')!.addEventListener('click', submitEdit);
   document.getElementById('ec-reading-autofill')!.addEventListener('click', () => void autofillSentenceReading());
   $('ec-reading-review').addEventListener('click', e => {
@@ -607,7 +884,12 @@ export function initEditCard(): void {
     renderReadingDraft();
   });
   $('ec-overflow-input').addEventListener('input', e => {
-    if (!readingEditor || (e as InputEvent).isComposing) return;
+    if (!readingEditor) return;
+    if ((e as InputEvent).isComposing) {
+      readingEditor.overflow = $<HTMLInputElement>('ec-overflow-input').value;
+      readingEditor.dirty = readingEditor.readingDirty = true;
+      return;
+    }
     readingEditor.overflow = readingTokens($<HTMLInputElement>('ec-overflow-input').value).join('');
     readingEditor.dirty = readingEditor.readingDirty = true;
     refreshReadingProgress();
@@ -692,6 +974,48 @@ export function initEditCard(): void {
     input.focus();
   });
 
+  // Bubble after each existing input handler, so capture both normalized state and raw IME cells.
+  for (const event of ['input', 'change', 'compositionend', 'paste']) {
+    $('ec-modal').addEventListener(event, () => { persistEditDraft(); });
+  }
+  $('ec-modal').addEventListener('click', e => {
+    if ((e.target as Element).closest('#ec-reading-grid-wrap')) persistEditDraft();
+  });
+  $('ec-draft-retry').addEventListener('click', () => { persistEditDraft(); });
+  $('ec-draft-export').addEventListener('click', exportEditDraft);
+  $('ec-draft-discard').addEventListener('click', () => {
+    if (!activeDraft || savingEdit || !confirm('작성 중인 초안을 버리시겠습니까? 기존에 저장한 카드는 유지됩니다.')) return;
+    try {
+      const key = keyForDraft(activeDraft.docId, activeDraft.type, activeDraft.cardId);
+      // Failed writes can leave a prior revision; explicit discard covers the displayed editing session.
+      removeDraft(key);
+      hideModal(); render();
+    } catch { showError('초안을 버리지 못했습니다. 저장 권한을 확인해 주세요.'); }
+  });
+  $('ec-draft-use').addEventListener('click', () => {
+    if (!activeDraft || draftProblem !== 'conflict') return;
+    let current: DraftFields | null;
+    try { current = storedFields(activeDraft); }
+    catch { showError('저장된 카드를 읽지 못했습니다. 초안은 유지했습니다. 저장 권한을 확인한 뒤 다시 시도해 주세요.'); return; }
+    if (!current) { showDraftProblem('missing'); return; }
+    activeDraft.baseline = current;
+    activeDraft.saveIntent = undefined;
+    draftProblem = null;
+    $('ec-overlay').dataset.origFront = current.text;
+    $('ec-draft-conflict').classList.add('hidden');
+    for (const el of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>('#ec-modal input, #ec-modal textarea, #ec-modal button, #ec-modal select')) el.disabled = false;
+    if (readingEditor) applyDraft(activeDraft);
+    persistedDraftContent = '';
+    persistEditDraft();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') persistEditDraft();
+  });
+  window.addEventListener('pagehide', () => { persistEditDraft(); });
+  window.addEventListener('beforeunload', e => {
+    if (!persistEditDraft()) { e.preventDefault(); e.returnValue = ''; }
+  });
+
   // ── 연결 카드 일괄 수정 모달 ──────────────────────────────
   const ce = document.createElement('div');
   ce.id = 'ce-overlay';
@@ -728,6 +1052,6 @@ export function initEditCard(): void {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (!$('ce-overlay').classList.contains('hidden')) { e.stopPropagation(); hideCoEditModal(); return; }
-    if (!$('ec-overlay').classList.contains('hidden')) { e.stopPropagation(); hideModal(); }
+    if (!$('ec-overlay').classList.contains('hidden')) { e.stopPropagation(); closeEdit(); }
   }, true);
 }
