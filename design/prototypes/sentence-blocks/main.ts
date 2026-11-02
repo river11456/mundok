@@ -1,7 +1,7 @@
 import '../../../src/style.css';
 import './prototype.css';
 import { render } from '../../../src/render';
-import { DOCS, initDocs, syncUserDocs, homeDocs, docColor } from '../../../src/docs';
+import { DOCS, initDocs, syncUserDocs, homeDocs } from '../../../src/docs';
 import { S, resetGrammarView } from '../../../src/state';
 import { setupClick, setupKeyboard } from '../../../src/events';
 import { initEditCard } from '../../../src/editcard';
@@ -159,21 +159,25 @@ function renderDocument(): void {
   if (!doc) { library(); return; }
   const blocks = doc.levels.sentence ?? [];
   document.body.classList.add('pb-document');
-  const runtime = DOCS.find(item => item.id === doc.id)!;
-  const origin = doc.origin?.work ?? '수업 문헌';
-  app.innerHTML = `<div class="pb-workspace">
-    <header class="pb-header">
-      <button class="pb-wordmark kai" data-pb="library" aria-label="문독 라이브러리">文讀</button>
-      <nav class="pb-breadcrumb" aria-label="현재 문헌"><button data-pb="library">라이브러리</button><span>/</span><span>${esc(doc.sub)}</span></nav>
-      <span class="pb-save-state"><span class="pb-save-dot"></span>이 기기에 저장됨</span>
-    </header>
-    <section class="pb-title-row">
-      <div class="pb-document-title"><div class="pb-mini-cover" style="--cbg:${docColor(runtime)}"><span class="kai">${esc(doc.title)}</span></div><div><div class="pb-origin">${esc(origin)}</div><h1 class="hanja">${esc(doc.title)}</h1><p>${esc(doc.sub)} <span>·</span> 문장 ${blocks.length}개</p></div></div>
-      <button class="btn-primary pb-review" data-pb="review" ${blocks.length ? '' : 'disabled'}>문장 복습 <span aria-hidden="true">→</span></button>
-    </section>
-    <div class="pb-toolbar"><div class="pb-toolbar-left"><strong>본문</strong><span id="pb-selection-label">드래그하여 문장 범위 지정</span></div><div class="pb-tools"><button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><span class="pb-divider"></span><button class="pb-tool" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소">↶ <span>실행 취소</span></button></div></div>
-    <main class="pb-sheet" aria-label="문헌 본문"><div class="pb-sheet-title"><span class="kai">${esc(doc.title)}</span><span>원문</span></div><div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><span class="pb-block-number">${String(i + 1).padStart(2, '0')}</span><div class="pb-source hanja">${esc(card.text)}</div><div class="pb-block-foot"><span>${card.meaning ? '해석 있음' : '정리 전'}</span><button data-pb="study" data-id="${esc(card.id)}">문장 열기 <span aria-hidden="true">↗</span></button></div></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end">${blocks.length ? '<span></span>文讀<span></span>' : '＋를 눌러 첫 문장을 추가하세요'}</div></main>
-    <footer class="pb-document-footer"><span>글자 드래그로 나누기 · 체크하여 합치기 · ⠿ 드래그로 이동</span><span>⌘ Z 실행 취소</span></footer>
+  app.innerHTML = `<div class="pb-layout">
+    <aside class="pb-sidebar" aria-label="문헌 탐색">
+      <button class="pb-brand" data-pb="library" aria-label="문독 라이브러리"><span class="kai">文讀</span><span>한문 학습 노트</span></button>
+      <button class="pb-library-link" data-pb="library"><span aria-hidden="true">←</span> 라이브러리</button>
+      <div class="pb-sidebar-label">나의 문헌</div>
+      <nav class="pb-doc-list">${DOCS.map(item => `<button data-pb="document" data-id="${esc(item.id)}" ${item.id === doc.id ? 'aria-current="page"' : ''}><span class="pb-doc-icon" aria-hidden="true">▤</span><span>${esc(item.sub || item.title)}</span></button>`).join('')}</nav>
+      <div class="pb-sidebar-bottom"><span class="pb-save-dot"></span>이 기기에 저장됨</div>
+    </aside>
+    <div class="pb-main">
+      <header class="pb-header">
+        <nav class="pb-breadcrumb" aria-label="현재 문헌"><button data-pb="library">나의 문헌</button><span>/</span><span>${esc(doc.sub)}</span></nav>
+        <button class="pb-review" data-pb="review" ${blocks.length ? '' : 'disabled'}>문장 복습 <span aria-hidden="true">↗</span></button>
+      </header>
+      <div class="pb-workspace">
+        <section class="pb-title-row"><div class="pb-document-title"><p class="pb-eyebrow">${esc(doc.sub)}</p><h1>${esc(doc.title)}</h1><p class="pb-subtitle">문장 ${blocks.length}개</p></div></section>
+        <div class="pb-toolbar"><span id="pb-selection-label">본문을 드래그해 문장으로 지정하세요</span><div class="pb-tools"><button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><button class="pb-tool pb-undo" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소" title="실행 취소 (⌘/Ctrl+Z)">↶</button><button class="pb-tool" data-pb="add" data-index="${blocks.length}">＋ 본문 추가</button></div></div>
+        <main class="pb-sheet" aria-label="문헌 본문"><div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><div class="pb-source">${esc(card.text)}</div><button class="pb-open" data-pb="study" data-id="${esc(card.id)}" aria-label="문장 열기" title="문장 열기">↗</button></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end">${blocks.length ? '文讀' : '＋ 본문 추가로 첫 문장을 써 보세요'}</div></main>
+      </div>
+    </div>
   </div>`;
   updateSelectionToolbar();
 }
@@ -182,7 +186,7 @@ function updateSelectionToolbar(): void {
   if (!$('pb-selection-label')) return;
   const positions = cards().map((card, i) => selected.has(card.id) ? i : -1).filter(i => i >= 0);
   const adjacent = positions.length > 1 && positions[positions.length - 1] - positions[0] + 1 === positions.length;
-  $('pb-selection-label').textContent = positions.length ? `${positions.length}개 블록 선택${positions.length > 1 && !adjacent ? ' · 연속된 블록을 선택하세요' : ''}` : '드래그하여 문장 범위 지정';
+  $('pb-selection-label').textContent = positions.length ? `${positions.length}개 블록 선택${positions.length > 1 && !adjacent ? ' · 연속된 블록을 선택하세요' : ''}` : '본문을 드래그해 문장으로 지정하세요';
   $('pb-clear').hidden = !positions.length;
   $('pb-merge').hidden = positions.length < 2;
   $<HTMLButtonElement>('pb-merge').disabled = !adjacent;
@@ -250,6 +254,7 @@ function setupPrototype(): void {
       event.stopImmediatePropagation();
       switch (own.dataset.pb) {
         case 'library': library(); break;
+        case 'document': openDocument(own.dataset.id!); break;
         case 'review': if (cards()[0]) openSentence(cards()[0].id, true); break;
         case 'study': openSentence(own.dataset.id!); break;
         case 'add': openAdd(Number(own.dataset.index)); break;
