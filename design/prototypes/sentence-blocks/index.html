@@ -59,6 +59,14 @@
   <div class="pb-preview-bar"><span><b>문독 리뉴얼 목업</b> 샘플 문헌 · 로컬 미리보기</span><span id="pb-status" role="status" aria-live="polite">기존 문독 데이터와 분리되어 있습니다</span></div>
   <div id="pb-selection" class="pb-selection" hidden><button class="btn-primary" id="pb-designate">문장으로 지정</button><button id="pb-cancel-selection" aria-label="선택 취소">×</button></div>
   <dialog id="pb-add" class="pb-add-dialog" aria-labelledby="pb-add-title"><form id="pb-add-form"><div class="pb-add-head"><h2 id="pb-add-title">본문 추가</h2><button type="button" id="pb-add-close" aria-label="닫기">×</button></div><label for="pb-new-text">새 문장</label><textarea class="hanja" id="pb-new-text" rows="4" required placeholder="수업에서 추가로 설명한 원문을 입력하세요"></textarea><div class="pb-add-foot"><button class="btn-primary" type="submit">이 위치에 추가</button></div></form></dialog>
+  <dialog id="pb-hyeonto" class="pb-add-dialog pb-hyeonto-dialog" aria-labelledby="pb-hyeonto-title"><form id="pb-hyeonto-form">
+    <div class="pb-add-head"><h2 id="pb-hyeonto-title">현토 편집</h2><button type="button" id="pb-hyeonto-close" aria-label="현토 편집 닫기">×</button></div>
+    <p id="pb-hyeonto-guide" class="pb-hyeonto-guide"></p>
+    <div id="pb-hyeonto-line" class="hanja pb-hyeonto-line"></div>
+    <button type="button" id="pb-hyeonto-keep" class="pb-tool" hidden>원문에 남기기</button>
+    <p id="pb-hyeonto-error" class="pb-hyeonto-error" role="alert"></p>
+    <div class="pb-add-foot"><button type="button" id="pb-hyeonto-cancel" class="pb-tool">취소</button><button class="btn-primary" type="submit">저장</button></div>
+  </form></dialog>
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

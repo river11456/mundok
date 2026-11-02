@@ -16,8 +16,9 @@ import { USER_DOCS_KEY, loadUserDocs } from '../../../src/user-docs';
 import { V3_COLLECTIONS_KEY } from '../../../src/collections';
 import { V3_PREFS_KEY, V3_SESSION_KEY } from '../../../src/migrate-v1';
 import { esc, backBtn, homeBtn } from '../../../src/render-shared';
+import { isHan } from '../../../src/reading-align';
 import type { CardJSON } from '../../../src/types';
-import { designateRange, insertBlock, mergeBlocks, moveBlock, migrateLegacyNotes } from './model';
+import { designateRange, insertBlock, mergeBlocks, moveBlock, migrateLegacyNotes, getHyeonto, suggestHyeonto, setHyeonto, hyeontoSegments, type HyeontoData, type PrototypeCard } from './model';
 import daeyi from '../../../catalog/대의정성.json';
 import sanggo from '../../../catalog/상고천진론.json';
 import sagi from '../../../catalog/사기조신대론.json';
@@ -30,6 +31,8 @@ let selected = new Set<string>();
 let selectedRange: { start: { id: string; offset: number }; end: { id: string; offset: number } } | null = null;
 let suppressedClickUntil = 0;
 let insertAt = 0;
+let showHyeonto = true;
+let hyeontoEdit: { id: string; baseline: HyeontoData; draft: HyeontoData; snapshot: string; active: number | null; legacy: boolean } | null = null;
 let drag: { id: string; start: number; slot: number; moved: boolean; pointerId: number; handle: HTMLElement } | null = null;
 const histories = new Map<string, { before: CardJSON[]; after: string }[]>();
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
@@ -162,10 +165,118 @@ function renderDocument(): void {
   app.innerHTML = `<div class="pb-workspace">
     <header class="pb-header">${backBtn('서재')} ${homeBtn()}</header>
     <section class="pb-title-row"><div class="pb-document-title"><h1 class="hanja">${esc(doc.title)}</h1><p>${esc(doc.sub)}<span>·</span>문장 ${blocks.length}개</p></div><button class="btn-primary pb-review" data-pb="review" ${blocks.length ? '' : 'disabled'}>문장 복습 <span aria-hidden="true">→</span></button></section>
-    <main class="pb-sheet" aria-label="문헌 본문"><div class="pb-toolbar"><span id="pb-selection-label">본문을 드래그해 문장으로 지정하세요</span><div class="pb-tools"><button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><button class="pb-tool pb-undo" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소" title="실행 취소 (⌘/Ctrl+Z)">↶</button><button class="pb-tool" data-pb="add" data-index="${blocks.length}">＋ 본문 추가</button></div></div>
-      <div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><div class="pb-source hanja">${esc(card.text)}</div><button class="pb-open" data-pb="study" data-id="${esc(card.id)}" aria-label="문장 열기" title="문장 열기">↗</button></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end kai">${blocks.length ? '文讀' : '＋ 본문 추가로 첫 문장을 써 보세요'}</div></main>
+    <main class="pb-sheet" aria-label="문헌 본문"><div class="pb-toolbar"><span id="pb-selection-label">본문을 드래그해 문장으로 지정하세요</span><div class="pb-tools">${hyeontoToggle()}<button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><button class="pb-tool pb-undo" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소" title="실행 취소 (⌘/Ctrl+Z)">↶</button><button class="pb-tool" data-pb="add" data-index="${blocks.length}">＋ 본문 추가</button></div></div>
+      <div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><div class="pb-source hanja">${renderSource(card)}</div><button class="pb-hyeonto-open pb-tool" data-pb="hyeonto" data-id="${esc(card.id)}" aria-label="${i + 1}번 문장 현토 편집">현토</button><button class="pb-open" data-pb="study" data-id="${esc(card.id)}" aria-label="문장 열기" title="문장 열기">↗</button></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end kai">${blocks.length ? '文讀' : '＋ 본문 추가로 첫 문장을 써 보세요'}</div></main>
   </div>`;
   updateSelectionToolbar();
+}
+
+function renderSource(card: PrototypeCard): string {
+  return hyeontoSegments(card).map(segment => segment.kind === 'hyeonto'
+    ? `<span class="pb-t">${esc(segment.text)}</span>` : esc(segment.text)).join('');
+}
+
+function hyeontoToggle(): string {
+  const editingRanges = S.scr === 'study' && (S.grammarEditMode || S.interpEditMode);
+  if (editingRanges) return '<button class="pb-tool" disabled title="범위 편집 중에는 현토를 함께 표시합니다">현토 켜짐</button>';
+  return `<button class="pb-tool" data-pb="toggle-hyeonto" aria-pressed="${showHyeonto}" title="현토 표시 전환">현토 ${showHyeonto ? '켜짐' : '꺼짐'}</button>`;
+}
+
+function decorateStudy(): void {
+  if (S.scr !== 'study' || S.lv?.key !== 'sentence' || S.mode !== 'seq') return;
+  const live = S.lv.cards[S.seqIdx];
+  const card = cards().find(item => item.id === live?.id);
+  if (!card) return;
+  let index = 0;
+  for (const segment of hyeontoSegments(card)) {
+    for (const _char of segment.text) {
+      if (segment.kind === 'hyeonto') {
+        app.querySelector(`#card-front .cc[data-i="${index}"]`)?.classList.add('pb-t');
+        app.querySelector(`#card-front .ci[data-char-idx="${index}"] > .hanja`)?.classList.add('pb-t');
+      }
+      index++;
+    }
+  }
+  const actions = app.querySelector('[data-action="edit-card"]')?.parentElement;
+  if (actions && !actions.querySelector('[data-pb="hyeonto"]')) {
+    actions.insertAdjacentHTML('afterbegin', `${hyeontoToggle()}<button class="pb-tool" data-pb="hyeonto" data-id="${esc(card.id)}">현토 편집</button>`);
+  }
+}
+
+function openHyeonto(id: string): void {
+  const card = cards().find(item => item.id === id);
+  if (!card) return;
+  dismissSelection();
+  const existing = getHyeonto(card);
+  const baseline = existing ?? suggestHyeonto(card);
+  hyeontoEdit = { id, baseline: clone(baseline), draft: clone(baseline), snapshot: JSON.stringify(card), active: null, legacy: !existing && !!baseline.marks.length };
+  $('pb-hyeonto-error').textContent = '';
+  renderHyeontoEditor();
+  $<HTMLDialogElement>('pb-hyeonto').showModal();
+}
+
+function renderHyeontoEditor(): void {
+  if (!hyeontoEdit) return;
+  const { draft, active, legacy } = hyeontoEdit;
+  $('pb-hyeonto-guide').textContent = legacy
+    ? '기존 한글을 현토 후보로 표시했습니다. 원문에 속하는 글은 ‘원문에 남기기’를 누르세요. 저장할 때 분리됩니다.'
+    : '현토를 붙일 한자를 누르세요. 빈칸으로 저장하면 해당 현토를 지웁니다.';
+  $('pb-hyeonto-line').innerHTML = [...draft.original].map((char, i) => {
+    const offset = i + 1;
+    const mark = draft.marks.find(item => item.offset === offset);
+    const editable = isHan(char);
+    const text = editable
+      ? `<button type="button" class="pb-han-anchor${active === offset ? ' on' : ''}" data-hyeonto-offset="${offset}" aria-label="${char} 뒤 현토" aria-pressed="${active === offset}">${esc(char)}</button>` : esc(char);
+    const token = active === offset
+      ? `<input id="pb-hyeonto-input" class="pb-t pb-t-input" aria-label="${esc(char)} 뒤 현토 입력" value="${esc(mark?.text ?? '')}" maxlength="40" autocomplete="off" style="width:${Math.max(2, [...(mark?.text ?? '')].length + 1)}em">`
+      : mark ? `<button type="button" class="pb-t pb-t-edit" data-hyeonto-offset="${offset}" aria-label="${esc(mark.text)} 현토 수정">${esc(mark.text)}</button>` : '';
+    return `<span class="pb-hyeonto-unit">${text}${token}</span>`;
+  }).join('');
+  const keep = $<HTMLButtonElement>('pb-hyeonto-keep');
+  keep.hidden = !legacy || active === null || !hyeontoEdit.baseline.marks.some(mark => mark.offset === active);
+  keep.textContent = active === null ? '원문에 남기기' : `‘${hyeontoEdit.baseline.marks.find(mark => mark.offset === active)?.text ?? ''}’ 원문에 남기기`;
+}
+
+function closeHyeonto(): void {
+  $<HTMLDialogElement>('pb-hyeonto').close();
+  hyeontoEdit = null;
+}
+
+function keepHyeontoOriginal(): void {
+  if (!hyeontoEdit || hyeontoEdit.active === null) return;
+  const offset = hyeontoEdit.active;
+  const mark = hyeontoEdit.baseline.marks.find(item => item.offset === offset);
+  if (!mark) return;
+  const fold = (data: HyeontoData): HyeontoData => {
+    const chars = [...data.original];
+    chars.splice(offset, 0, mark.text);
+    return { original: chars.join(''), marks: data.marks.filter(item => item.offset !== offset).map(item => ({ ...item, offset: item.offset > offset ? item.offset + [...mark.text].length : item.offset })) };
+  };
+  hyeontoEdit.baseline = fold(hyeontoEdit.baseline);
+  hyeontoEdit.draft = fold(hyeontoEdit.draft);
+  hyeontoEdit.active = null;
+  renderHyeontoEditor();
+}
+
+function saveHyeonto(): void {
+  if (!hyeontoEdit) return;
+  const { id, draft, baseline, snapshot } = hyeontoEdit;
+  const before = cards().find(card => card.id === id);
+  if (!before || JSON.stringify(before) !== snapshot) {
+    $('pb-hyeonto-error').textContent = '문장이 변경되었습니다. 입력 내용을 복사해 두고 다시 열어 주세요.';
+    return;
+  }
+  try {
+    const updated = setHyeonto(before, draft, baseline);
+    if (!persistCards(cards().map(card => card.id === id ? updated : card))) {
+      $('pb-hyeonto-error').textContent = '저장하지 못했습니다. 입력 내용은 유지했습니다.';
+      return;
+    }
+    const inDocument = document.body.classList.contains('pb-document');
+    closeHyeonto();
+    if (inDocument) renderDocument(); else openSentence(id);
+    announce('현토를 저장했습니다.');
+  } catch (error) { $('pb-hyeonto-error').textContent = error instanceof Error ? error.message : String(error); }
 }
 
 function updateSelectionToolbar(): void {
@@ -230,6 +341,7 @@ function setupPrototype(): void {
   new MutationObserver(() => {
     if (S.docOverlay) openDocument(S.docOverlay);
     else if (S.scr === 'level' && S.docId) openDocument(S.docId);
+    else decorateStudy();
   }).observe(app, { childList: true });
   // Capture only navigation owned by this prototype; existing study actions use real handlers.
   app.addEventListener('click', event => {
@@ -240,6 +352,14 @@ function setupPrototype(): void {
       event.stopImmediatePropagation();
       switch (own.dataset.pb) {
         case 'library': library(); break;
+        case 'hyeonto': openHyeonto(own.dataset.id!); break;
+        case 'toggle-hyeonto':
+          showHyeonto = !showHyeonto;
+          document.body.classList.toggle('pb-hide-hyeonto', !showHyeonto);
+          own.textContent = `현토 ${showHyeonto ? '켜짐' : '꺼짐'}`;
+          own.setAttribute('aria-pressed', String(showHyeonto));
+          dismissSelection();
+          break;
         case 'review': if (cards()[0]) openSentence(cards()[0].id, true); break;
         case 'study': openSentence(own.dataset.id!); break;
         case 'add': openAdd(Number(own.dataset.index)); break;
@@ -280,6 +400,27 @@ function setupPrototype(): void {
   };
   $('pb-cancel-selection').onclick = dismissSelection;
   $('pb-add-close').onclick = closeAdd;
+  $('pb-hyeonto-close').onclick = closeHyeonto;
+  $('pb-hyeonto-cancel').onclick = closeHyeonto;
+  $('pb-hyeonto-keep').onclick = keepHyeontoOriginal;
+  $('pb-hyeonto').addEventListener('cancel', () => { hyeontoEdit = null; });
+  $('pb-hyeonto-line').addEventListener('click', event => {
+    const anchor = (event.target as Element).closest<HTMLElement>('[data-hyeonto-offset]');
+    if (!anchor || !hyeontoEdit) return;
+    hyeontoEdit.active = Number(anchor.dataset.hyeontoOffset);
+    renderHyeontoEditor();
+    $<HTMLInputElement>('pb-hyeonto-input').focus();
+  });
+  $('pb-hyeonto-line').addEventListener('input', event => {
+    const input = event.target as HTMLInputElement;
+    if (input.id !== 'pb-hyeonto-input' || !hyeontoEdit || hyeontoEdit.active === null) return;
+    const offset = hyeontoEdit.active;
+    hyeontoEdit.draft.marks = hyeontoEdit.draft.marks.filter(mark => mark.offset !== offset);
+    if (input.value) hyeontoEdit.draft.marks.push({ offset, text: input.value });
+    hyeontoEdit.draft.marks.sort((a, b) => a.offset - b.offset);
+    input.style.width = `${Math.max(2, [...input.value].length + 1)}em`;
+  });
+  $('pb-hyeonto-form').onsubmit = event => { event.preventDefault(); saveHyeonto(); };
   $('pb-add-form').onsubmit = event => {
     event.preventDefault();
     const text = $<HTMLTextAreaElement>('pb-new-text').value;
@@ -317,6 +458,11 @@ function setupPrototype(): void {
   window.addEventListener('blur', () => endDrag(false));
   window.addEventListener('scroll', () => { if (selectedRange) dismissSelection(); }, { passive: true });
   document.addEventListener('keydown', event => {
+    if ($<HTMLDialogElement>('pb-hyeonto').open) {
+      event.stopImmediatePropagation();
+      if (event.key === 'Enter' && event.isComposing) event.preventDefault();
+      return;
+    }
     if ($<HTMLDialogElement>('pb-add').open) { event.stopImmediatePropagation(); return; }
     if (modalOpen()) return;
     const target = event.target as HTMLElement;

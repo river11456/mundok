@@ -1,5 +1,5 @@
 import type { CardJSON, GrammarAnnotation, InterpChunk } from '../../../src/types.ts';
-import { alignReading, isHan, resolveReading } from '../../../src/reading-align.ts';
+import { alignReading, isHan, resolveReading, readingFromDraftCells } from '../../../src/reading-align.ts';
 
 export interface BlockPosition { id: string; offset: number }
 export interface BlockReference {
@@ -14,12 +14,185 @@ export interface BlockReference {
   needsReview: boolean;
   spans: { start: number; end: number }[];
 }
+export interface HyeontoMark { offset: number; text: string }
+export interface HyeontoData { original: string; marks: HyeontoMark[] }
 export interface PrototypeCard extends CardJSON {
+  pbHyeonto?: HyeontoData;
   pbReferences?: BlockReference[];
   pbLegacyNotesMigrated?: boolean;
   // Generated fields are not new user notes; text also anchors local reference spans.
   pbDerived?: { text: string; meaning: string; note: string; grammar?: GrammarAnnotation[]; interp?: InterpChunk[] };
 }
+const hangul = /^[\p{Script=Hangul}]+$/u;
+
+/** Offsets count original Unicode codepoints; a mark belongs to the preceding Han. */
+function checkedHyeonto(data: HyeontoData): HyeontoData {
+  if (!data || typeof data.original !== 'string' || !Array.isArray(data.marks)) throw new Error('현토와 원문을 확인하세요.');
+  const original = [...data.original];
+  const offsets = new Set<number>();
+  const marks = data.marks.map(mark => {
+    if (!mark || !Number.isInteger(mark.offset) || mark.offset < 1 || mark.offset > original.length
+      || !isHan(original[mark.offset - 1]) || typeof mark.text !== 'string' || !hangul.test(mark.text)
+      || offsets.has(mark.offset)) throw new Error('현토는 한자 뒤에 한글로 입력하세요.');
+    offsets.add(mark.offset);
+    return { offset: mark.offset, text: mark.text };
+  }).sort((a, b) => a.offset - b.offset);
+  return { original: data.original, marks };
+}
+
+function hyeontoLayout(data: HyeontoData) {
+  const normalized = checkedHyeonto(data);
+  const marks = new Map(normalized.marks.map(mark => [mark.offset, mark.text]));
+  const originals: number[] = [];
+  const spans: { offset: number; text: string; start: number; end: number }[] = [];
+  let text = '';
+  let index = 0;
+  [...normalized.original].forEach((ch, i) => {
+    originals.push(index++);
+    text += ch;
+    const mark = marks.get(i + 1);
+    if (mark) {
+      const start = index;
+      index += [...mark].length;
+      spans.push({ offset: i + 1, text: mark, start, end: index });
+      text += mark;
+    }
+  });
+  return { text, originals, spans };
+}
+
+export function composeHyeonto(data: HyeontoData): string { return hyeontoLayout(data).text; }
+
+/** Metadata is active only while it reconstructs the editor's current text exactly. */
+export function getHyeonto(card: PrototypeCard): HyeontoData | null {
+  if (!card.pbHyeonto) return null;
+  try {
+    const data = checkedHyeonto(card.pbHyeonto);
+    return composeHyeonto(data) === card.text ? data : null;
+  } catch { return null; }
+}
+
+/** A suggestion only: callers must obtain explicit confirmation before persisting it. */
+export function suggestHyeonto(card: PrototypeCard): HyeontoData {
+  const confirmed = getHyeonto(card);
+  if (confirmed) return confirmed;
+  const chars = [...card.text];
+  const original: string[] = [];
+  const marks: HyeontoMark[] = [];
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    original.push(ch);
+    if (!isHan(ch) || !hangul.test(chars[i + 1] ?? '')) continue;
+    let text = '';
+    while (i + 1 < chars.length && hangul.test(chars[i + 1])) text += chars[++i];
+    marks.push({ offset: original.length, text });
+  }
+  return { original: original.join(''), marks };
+}
+
+export function hyeontoSegments(card: PrototypeCard): { text: string; kind: 'original' | 'hyeonto' }[] {
+  const data = getHyeonto(card);
+  if (!data) return [{ text: card.text, kind: 'original' }];
+  const layout = hyeontoLayout(data);
+  const chars = [...card.text];
+  const segments: { text: string; kind: 'original' | 'hyeonto' }[] = [];
+  let start = 0;
+  for (const span of layout.spans) {
+    if (span.start > start) segments.push({ text: chars.slice(start, span.start).join(''), kind: 'original' });
+    segments.push({ text: span.text, kind: 'hyeonto' });
+    start = span.end;
+  }
+  if (start < chars.length) segments.push({ text: chars.slice(start).join(''), kind: 'original' });
+  return segments;
+}
+
+/** The optional baseline is the user-reviewed separation before editing its marks. */
+export function setHyeonto(card: PrototypeCard, input: HyeontoData, baseline?: HyeontoData): PrototypeCard {
+  const data = checkedHyeonto(input);
+  const next = hyeontoLayout(data);
+  if (next.text === card.text) return { ...card, pbHyeonto: data, editedAt: Date.now() };
+  const oldData = baseline ?? getHyeonto(card)
+    ?? (card.text === data.original ? { original: card.text, marks: [] } : suggestHyeonto(card));
+  if (oldData.original !== data.original || composeHyeonto(oldData) !== card.text) {
+    throw new Error('원문이 달라졌습니다. 현토 편집을 다시 열어 확인하세요.');
+  }
+  const old = hyeontoLayout(oldData);
+  const reading = resolveReading(card.text, card.reading);
+  if (reading.status !== 'ready' || reading.overflow) {
+    throw new Error('기존 독음의 배치를 먼저 확인한 뒤 현토를 편집하세요.');
+  }
+  const mapSpan = <T extends { start: number; end: number }>(span: T): T | null => {
+    const indices = old.originals.flatMap((index, i) => index >= span.start && index < span.end ? [next.originals[i]] : []);
+    for (const mark of old.spans) {
+      if (mark.end <= span.start || mark.start >= span.end) continue;
+      const replacement = next.spans.find(value => value.offset === mark.offset);
+      if (replacement) indices.push(replacement.start, replacement.end - 1);
+    }
+    return indices.length ? { ...span, start: Math.min(...indices), end: Math.max(...indices) + 1 } : null;
+  };
+  const anchorChanged = !!card.pbDerived && card.pbDerived.text !== card.text;
+  const references = (card.pbReferences ?? []).map(reference => ({ ...reference,
+    needsReview: reference.needsReview || anchorChanged || reference.spans.some(span => !mapSpan(span)),
+    spans: anchorChanged ? [{ start: 0, end: [...next.text].length }]
+      : reference.spans.flatMap(span => { const mapped = mapSpan(span); return mapped ? [mapped] : [{ start: 0, end: [...next.text].length }]; }),
+  }));
+  const transfer = <T extends { start: number; end: number }>(entries: T[], baselineEntries: T[] | undefined, kind: 'grammar' | 'interp'): T[] => {
+    const key = (entry: T) => JSON.stringify([entry.start, entry.end, 'type' in entry ? entry.type : null]);
+    const previous = new Set((baselineEntries ?? []).map(key));
+    const result: T[] = [];
+    const uncertain = new Map<string, T[]>();
+    for (const entry of entries) {
+      const stale = anchorChanged && (baselineEntries === undefined || previous.has(key(entry)));
+      const mapped = stale ? null : mapSpan(entry);
+      if (mapped) result.push(mapped);
+      else {
+        const text = stale && baselineEntries !== undefined ? card.pbDerived!.text : card.text;
+        uncertain.set(text, [...(uncertain.get(text) ?? []), entry]);
+      }
+    }
+    for (const [text, archived] of uncertain) {
+      const snapshot = { sourceId: card.id, text,
+        reading: text === card.text ? card.reading : '', meaning: '', note: '',
+        grammar: kind === 'grammar' ? archived as unknown as GrammarAnnotation[] : [],
+        interp: kind === 'interp' ? archived : [],
+      };
+      references.push({ ...snapshot, id: JSON.stringify(snapshot), needsReview: true,
+        spans: [{ start: 0, end: [...next.text].length }] });
+    }
+    return result;
+  };
+  const grammar = transfer(card.grammar ?? [], card.pbDerived?.grammar, 'grammar');
+  const interp = transfer(card.interp ?? [], card.pbDerived?.interp, 'interp');
+  return { ...card, text: next.text, pbHyeonto: data,
+    reading: card.reading ? readingFromDraftCells(reading.cells.map(cell => cell.value), next.text) : '',
+    grammar: grammar.length ? grammar : undefined, interp: interp.length ? interp : undefined,
+    pbReferences: references,
+    pbDerived: { text: next.text, meaning: card.meaning, note: card.note, grammar, interp },
+    editedAt: Date.now(),
+  };
+}
+
+function snapHyeonto(card: PrototypeCard, offset: number): number {
+  const data = getHyeonto(card);
+  return data ? hyeontoLayout(data).spans.find(span => offset >= span.start && offset < span.end)?.end ?? offset : offset;
+}
+
+function pieceHyeonto({ card, start, end }: Piece): HyeontoData {
+  const data = getHyeonto(card);
+  if (!data) return { original: [...card.text].slice(start, end).join(''), marks: [] };
+  const layout = hyeontoLayout(data);
+  const source = [...data.original];
+  const original: string[] = [];
+  const marks: HyeontoMark[] = [];
+  layout.originals.forEach((index, i) => {
+    if (index < start || index >= end) return;
+    original.push(source[i]);
+    const mark = layout.spans.find(span => span.offset === i + 1);
+    if (mark && mark.start >= start && mark.end <= end) marks.push({ offset: original.length, text: mark.text });
+  });
+  return { original: original.join(''), marks };
+}
+
 /** One-time conversion of the previous prototype's shared note references. */
 export function migrateLegacyNotes(cards: PrototypeCard[]): PrototypeCard[] {
   const result = cards.slice();
@@ -68,6 +241,8 @@ function rebuild(pieces: Piece[]): PrototypeCard {
   const notes: string[] = [];
   const grammar: GrammarAnnotation[] = [];
   const interp: InterpChunk[] = [];
+  const hyeonto: HyeontoData = { original: '', marks: [] };
+  const hasHyeonto = pieces.some(piece => getHyeonto(piece.card));
   let offset = 0;
   const retain = (reference: BlockReference) => {
     const existing = references.get(reference.id);
@@ -80,6 +255,10 @@ function rebuild(pieces: Piece[]): PrototypeCard {
     const source = [...card.text];
     const slice = source.slice(start, end);
     texts.push(slice.join(''));
+    const separated = pieceHyeonto({ card, start, end });
+    const originalOffset = [...hyeonto.original].length;
+    hyeonto.original += separated.original;
+    hyeonto.marks.push(...separated.marks.map(mark => ({ ...mark, offset: mark.offset + originalOffset })));
     if (start === 0) {
       if (card.meaning) meanings.push(card.meaning);
       if (card.note) notes.push(card.note);
@@ -158,6 +337,7 @@ function rebuild(pieces: Piece[]): PrototypeCard {
     ...pieces[0].card,
     id: `block-${crypto.randomUUID()}`,
     text, reading: readings.join(''), meaning, note,
+    pbHyeonto: hasHyeonto ? hyeonto : undefined,
     grammar: grammar.length ? grammar : undefined,
     interp: interp.length ? interp : undefined,
     pbReferences: [...references.values()],
@@ -179,6 +359,8 @@ export function mergeBlocks(cards: PrototypeCard[], ids: string[]): PrototypeCar
 export function designateRange(cards: PrototypeCard[], start: BlockPosition, end: BlockPosition): PrototypeCard[] {
   const first = position(cards, start);
   const last = position(cards, end);
+  start = { ...start, offset: snapHyeonto(cards[first], start.offset) };
+  end = { ...end, offset: snapHyeonto(cards[last], end.offset) };
   if (first > last || (first === last && start.offset >= end.offset)) throw new Error('빈 범위 또는 역방향 범위입니다.');
   const selected = cards.slice(first, last + 1).map((card, i, subset) => ({
     card, start: i === 0 ? start.offset : 0, end: i === subset.length - 1 ? end.offset : length(card),

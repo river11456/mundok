@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { designateRange, insertBlock, mergeBlocks, moveBlock, migrateLegacyNotes } from './model.ts';
+import { designateRange, insertBlock, mergeBlocks, moveBlock, migrateLegacyNotes, composeHyeonto, getHyeonto, suggestHyeonto, setHyeonto, hyeontoSegments } from './model.ts';
 import { USER_DOCS_KEY, loadUserDocs, userEditCard, userSaveGrammar, userSaveInterp } from '../../../src/user-docs.ts';
 import { alignReading } from '../../../src/reading-align.ts';
 
@@ -286,4 +286,167 @@ test('migration skips already active related fields but not identical unrelated 
   assert.equal(migrated[2].note, '');
   const missing = migrateLegacyNotes([unrelated, card('a', '甲', '갑', { pbReferences: [reference] })]);
   assert.equal(missing[1].note, '같은 필기');
+});
+
+
+test('hyeonto suggestions preserve exact mixed text and require explicit confirmation', () => {
+  const original = card('h', '설명 𠀀하고 學에 대한 설명.也라', '');
+  const data = suggestHyeonto(original);
+  assert.deepEqual(data, { original: '설명 𠀀 學 대한 설명.也', marks: [
+    { offset: 4, text: '하고' }, { offset: 6, text: '에' }, { offset: 14, text: '라' },
+  ] });
+  assert.equal(composeHyeonto(data), original.text);
+  assert.equal(getHyeonto(original), null);
+  assert.deepEqual(hyeontoSegments(original), [{ text: original.text, kind: 'original' }]);
+  const confirmed = setHyeonto(original, data);
+  assert.equal(confirmed.text, original.text);
+  assert.deepEqual(getHyeonto(confirmed), data);
+  assert.equal(hyeontoSegments(confirmed).map(part => part.text).join(''), original.text);
+  assert.deepEqual(hyeontoSegments(confirmed).filter(part => part.kind === 'hyeonto').map(part => part.text), ['하고', '에', '라']);
+  assert.equal(original.pbHyeonto, undefined);
+});
+
+test('hyeonto insertion replacement and removal preserve readings notes and range coordinates', () => {
+  const original = card('h', '𠀀乙 丙', '갑을 병', { meaning: '해석', note: '메모',
+    grammar: [{ type: 'S', start: 0, end: 1 }, { type: 'V', start: 1, end: 2 }],
+    interp: [{ start: 1, end: 4 }],
+  });
+  const inserted = setHyeonto(original, { original: original.text, marks: [{ offset: 1, text: '하고' }, { offset: 4, text: '이라' }] });
+  assert.equal(inserted.text, '𠀀하고乙 丙이라');
+  assert.equal(inserted.reading, '갑하고을 병이라');
+  assert.deepEqual(inserted.grammar, [{ type: 'S', start: 0, end: 1 }, { type: 'V', start: 3, end: 4 }]);
+  assert.deepEqual(inserted.interp, [{ start: 3, end: 6 }]);
+  assert.equal(inserted.meaning, '해석');
+  assert.equal(inserted.note, '메모');
+  const replaced = setHyeonto(inserted, { original: original.text, marks: [{ offset: 1, text: '은' }] });
+  assert.equal(replaced.reading, '갑은을 병');
+  assert.deepEqual(replaced.grammar, [{ type: 'S', start: 0, end: 1 }, { type: 'V', start: 2, end: 3 }]);
+  const removed = setHyeonto(replaced, { original: original.text, marks: [] });
+  assert.equal(removed.text, original.text);
+  assert.equal(removed.reading, original.reading);
+  assert.deepEqual(removed.grammar, original.grammar);
+  assert.deepEqual(removed.interp, original.interp);
+});
+
+test('hyeonto split snaps before or within a mark to keep it with its preceding Han', () => {
+  const original = setHyeonto(card('h', '𠀀하고乙이라', '갑하고을이라', { meaning: '필기' }), {
+    original: '𠀀乙', marks: [{ offset: 1, text: '하고' }, { offset: 2, text: '이라' }],
+  });
+  for (const offset of [1, 2, 3]) {
+    const split = designateRange([original], { id: 'h', offset: 0 }, { id: 'h', offset });
+    assert.deepEqual(split.map(value => value.text), ['𠀀하고', '乙이라']);
+    assert.deepEqual(split.map(value => getHyeonto(value)), [
+      { original: '𠀀', marks: [{ offset: 1, text: '하고' }] },
+      { original: '乙', marks: [{ offset: 1, text: '이라' }] },
+    ]);
+    assert.deepEqual(split.map(value => value.meaning), ['필기', '']);
+    const merged = mergeBlocks(split, split.map(value => value.id));
+    assert.equal(merged[0].text, original.text);
+    assert.deepEqual(getHyeonto(merged[0]), getHyeonto(original));
+    assert.equal(merged[0].reading, original.reading);
+  }
+  const rest = designateRange([original], { id: 'h', offset: 1 }, { id: 'h', offset: 6 });
+  assert.deepEqual(rest.map(value => value.text), ['𠀀하고', '乙이라']);
+  assert.throws(() => designateRange([original], { id: 'h', offset: 1 }, { id: 'h', offset: 2 }));
+});
+
+test('merge preserves unclassified Korean and shifts only confirmed hyeonto offsets', () => {
+  const left = card('a', '설명 學은 ');
+  const right = setHyeonto(card('b', '𠀀하고乙'), { original: '𠀀乙', marks: [{ offset: 1, text: '하고' }] });
+  const result = mergeBlocks([left, right], ['a', 'b'])[0];
+  assert.equal(result.text, '설명 學은 𠀀하고乙');
+  assert.deepEqual(getHyeonto(result), { original: '설명 學은 𠀀乙', marks: [{ offset: 7, text: '하고' }] });
+  assert.deepEqual(hyeontoSegments(result).filter(part => part.kind === 'hyeonto').map(part => part.text), ['하고']);
+});
+
+test('hyeonto metadata survives JSON storage but external source editing invalidates its use', () => {
+  const original = setHyeonto(card('a', '學而', '학이'), { original: '學而', marks: [{ offset: 1, text: '은' }] });
+  const loaded = JSON.parse(JSON.stringify(original));
+  assert.deepEqual(getHyeonto(loaded), getHyeonto(original));
+  const edited = { ...loaded, text: '學은時習', reading: '학은시습' };
+  assert.equal(getHyeonto(edited), null);
+  assert.deepEqual(edited.pbHyeonto, original.pbHyeonto);
+  assert.deepEqual(hyeontoSegments(edited), [{ text: edited.text, kind: 'original' }]);
+  const reconfirmed = setHyeonto(edited, suggestHyeonto(edited));
+  assert.equal(composeHyeonto(getHyeonto(reconfirmed)), edited.text);
+});
+
+test('selective legacy classification uses an exact reviewed baseline while editing marks', () => {
+  const original = card('a', '甲은乙설명', '갑은을설명');
+  const baseline = { original: '甲乙설명', marks: [{ offset: 1, text: '은' }] };
+  const changed = setHyeonto(original, { original: baseline.original, marks: [{ offset: 1, text: '하고' }] }, baseline);
+  assert.equal(changed.text, '甲하고乙설명');
+  assert.equal(changed.reading, '갑하고을설명');
+  assert.equal(getHyeonto(changed).original, '甲乙설명');
+  assert.throws(() => setHyeonto(original, { original: '甲乙', marks: [{ offset: 1, text: '하고' }] }, baseline), /원문/);
+});
+
+test('hyeonto rejects invalid anchors and uncertain reading changes without mutating the source', () => {
+  for (const marks of [[{ offset: 0, text: '은' }], [{ offset: 2, text: '은' }], [{ offset: 1, text: 'x' }], [{ offset: 1, text: '은' }, { offset: 1, text: '이' }]]) {
+    assert.throws(() => composeHyeonto({ original: '甲 ', marks }));
+  }
+  const original = card('a', '甲이乙', '갑이');
+  const snapshot = JSON.stringify(original);
+  const confirmed = setHyeonto(original, suggestHyeonto(original));
+  assert.equal(confirmed.reading, '갑이');
+  assert.throws(() => setHyeonto(confirmed, { original: '甲乙', marks: [{ offset: 1, text: '하고' }] }), /독음/);
+  assert.equal(JSON.stringify(original), snapshot);
+});
+
+test('removed hyeonto-only annotations remain archived rather than attaching to a different Han', () => {
+  const original = setHyeonto(card('a', '甲이乙', '갑이을', { grammar: [{ type: 'phrase', start: 1, end: 2 }] }), suggestHyeonto(card('a', '甲이乙')));
+  const changed = setHyeonto(original, { original: '甲乙', marks: [] });
+  assert.equal(changed.grammar, undefined);
+  assert.deepEqual(changed.pbReferences[0].grammar, original.grammar);
+  assert.equal(changed.pbReferences[0].text, original.text);
+  assert.equal(changed.pbReferences[0].needsReview, true);
+});
+
+
+test('initial learning keeps blank readings blank and preserves known partial Han readings', () => {
+  const data = { original: '學而時習之', marks: [{ offset: 5, text: '면' }] };
+  const blank = setHyeonto(card('a', data.original), data);
+  assert.equal(blank.reading, '');
+  assert.equal(blank.text, '學而時習之면');
+  const partial = setHyeonto(card('b', data.original, '학·시'), data);
+  assert.equal(partial.reading, '학·시··면');
+  const changed = setHyeonto(partial, { ...data, marks: [{ offset: 5, text: '하고' }] });
+  assert.equal(changed.reading, '학·시··하고');
+});
+
+test('existing sentence storage keeps confirmed metadata and safely invalidates it on raw text edits', () => {
+  const savedStorage = globalThis.localStorage;
+  const storage = new Map();
+  globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) };
+  try {
+    const original = setHyeonto(card('a', '學而', '학이'), { original: '學而', marks: [{ offset: 1, text: '은' }] });
+    localStorage.setItem(USER_DOCS_KEY, JSON.stringify([{ id: 'doc', title: '문헌', sub: '', levels: { sentence: [original] } }]));
+    userEditCard('doc', 'sentence', 'a', { text: original.text, reading: original.reading, meaning: '해석', note: '필기' });
+    const saved = loadUserDocs()[0].levels.sentence[0];
+    assert.deepEqual(getHyeonto(saved), getHyeonto(original));
+    userEditCard('doc', 'sentence', 'a', { text: '學은時習', reading: '학은시습', meaning: '해석', note: '필기' });
+    const edited = loadUserDocs()[0].levels.sentence[0];
+    assert.equal(getHyeonto(edited), null);
+    assert.deepEqual(edited.pbHyeonto, original.pbHyeonto);
+    assert.equal(edited.meaning, '해석');
+    assert.equal(edited.note, '필기');
+  } finally {
+    if (savedStorage === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = savedStorage;
+  }
+});
+
+
+test('hyeonto changes archive stale and newly removed annotations against their own source text', () => {
+  const initial = setHyeonto(card('a', '甲乙', '갑을', { grammar: [{ type: 'S', start: 0, end: 1 }] }), {
+    original: '甲乙', marks: [{ offset: 1, text: '이' }],
+  });
+  const edited = { ...initial, text: '丙甲이乙', reading: '병갑이을',
+    grammar: [...initial.grammar, { type: 'phrase', start: 2, end: 3 }],
+  };
+  const confirmed = setHyeonto(edited, suggestHyeonto(edited));
+  const changed = setHyeonto(confirmed, { original: '丙甲乙', marks: [] });
+  assert.equal(changed.grammar, undefined);
+  assert.deepEqual(changed.pbReferences.find(ref => ref.text === initial.text).grammar, initial.grammar);
+  assert.deepEqual(changed.pbReferences.find(ref => ref.text === edited.text).grammar, [{ type: 'phrase', start: 2, end: 3 }]);
 });

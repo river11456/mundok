@@ -82,3 +82,29 @@ body.pb-document #sh-fab,body.pb-document>button[aria-label="사용법 보기"] 
   .pb-grip,.pb-open { min-height: 28px; }
 }
 @media(prefers-reduced-motion:reduce) { .pb-block { transition: none; } }
+
+/* Hyeonto is attached prose, visually secondary but above AA text contrast. */
+.pb-t { font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', sans-serif; font-size: .7em; font-weight: 400; color: #626873; letter-spacing: 0; }
+.pb-source .pb-t { margin-inline: .08em .16em; }
+.pb-hide-hyeonto .pb-source .pb-t,.pb-hide-hyeonto #card-front .cc.pb-t { display: none; }
+#card-front .cc.pb-t { margin-inline: .025em; }
+#card-front .cc.pb-t .cc-rd { display: none; }
+.pb-hyeonto-open { position: absolute; right: -37px; top: 43px; padding: 2px 4px; opacity: 0; }
+.pb-block:hover .pb-hyeonto-open,.pb-block:focus-within .pb-hyeonto-open { opacity: 1; }
+.pb-hyeonto-dialog { width: min(720px, calc(100vw - 36px)); }
+.pb-hyeonto-guide { font-size: 12px; line-height: 1.7; color: var(--sub); }
+.pb-hyeonto-line { font-size: 28px; line-height: 2.3; padding: 24px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pb-hyeonto-unit { display: inline; }
+.pb-han-anchor { font: inherit; color: inherit; border-radius: 4px; padding: 0; }
+.pb-han-anchor:hover,.pb-han-anchor:focus-visible,.pb-han-anchor.on { background: #edf4ff; color: var(--accent-deep); }
+.pb-t-edit { margin-inline: .08em .2em; border-radius: 3px; }
+.pb-t-edit:hover { background: #edf4ff; color: var(--accent-deep); }
+.pb-t-input { border: 0; border-bottom: 1.5px solid var(--accent); background: #edf4ff; padding: 3px 4px; border-radius: 3px 3px 0 0; min-width: 2em; max-width: 100%; outline: none; line-height: 1.5; }
+.pb-hyeonto-error { color: var(--fail); font-size: 12px; line-height: 1.6; }
+.pb-hyeonto-dialog .pb-add-foot { gap: 16px; }
+.pb-hyeonto-dialog button:focus-visible,.pb-hyeonto-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media(max-width:700px) {
+  .pb-hyeonto-line { font-size: 25px; }
+  .pb-hyeonto-open { right: -32px; }
+}
+@media(hover:none) { .pb-hyeonto-open { opacity: .8; } }
