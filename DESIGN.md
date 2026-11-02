@@ -291,6 +291,17 @@
 
 ## Recorded decisions
 
+### Sentence-block learning prototype (draft, #28)
+
+The local [sentence-block prototype](design/prototypes/sentence-blocks/README.md) explores a new initial-learning flow. It is not the current production contract. The user's two-month usage prioritizes sentence learning; removing Anki and reducing word/character navigation belong to the subsequent product redesign.
+
+- Opening a document presents its complete body. Dragging text reveals **문장으로 지정**; the chosen range becomes a sentence block.
+- Adjacent selected blocks can be merged. A grip moves blocks, and insertion controls between blocks add body text where the lecturer introduces it. Block changes support undo within the current session.
+- Clicking a block opens the existing sentence learning screen, retaining its readings, explanation editor, grammar and drill-down behavior. **문장 복습** starts existing sequential review.
+- The laptop keyboard/mouse is the primary input surface. Existing library, typography, colors and sentence components are reused.
+- The prototype uses isolated local sample documents. Changed boundaries preserve old explanations as reference notes instead of assigning potentially incorrect meanings or grammar coordinates to a new sentence.
+- Production navigation, storage migration, full Anki removal and mobile interaction approval remain outside this prototype. The decisions below continue to describe the shipped design until superseded by a product PR.
+
 These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
 - [x] First pass reserves folder `color`/`icon` fields only; customization UI is a [#9](https://github.com/river11456/mundok/issues/9) candidate.
 - [x] Search, sort, list view, and drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.

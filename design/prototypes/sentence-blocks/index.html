@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>문독 · 문장 블록 리뉴얼</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="theme-color" content="#F4F4F6">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* 해서(한자 본문 전체) — 콘텐츠 한자만 서브셋해 self-host (scripts/subset-font.mjs) */
+    @font-face {
+      font-family: 'LXGW WenKai TC';
+      src: url('/fonts/wenkai-tc-sub.woff2') format('woff2');
+      font-weight: 400;
+      font-display: swap;
+    }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', -apple-system, 'Apple SD Gothic Neo', sans-serif;
+    }
+    /* 첫 페인트용 리터럴 — 토큰 정본은 src/style.css :root (--bg·--ink) */
+    body { background: #F4F4F6; color: #1D1D1F; transition: background 0.4s ease; }
+    /* 본문 여백 — 폰 과다 여백 축소(clamp) + PWA 노치 safe-area. 첫 페인트 레이아웃이라 여기 정의 */
+    body {
+      padding: max(clamp(16px, 4vw, 48px), env(safe-area-inset-top))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-right))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-bottom))
+               max(clamp(16px, 4vw, 48px), env(safe-area-inset-left));
+    }
+    body.anki-mode { background: #EBF1F8; }
+    /* 한자 텍스트 = 해서 전면 적용 (2026-07-18, 기존 "kai 본문 금지" 방침 폐기).
+       폴백 사슬: 서브셋 결측 한자 → 로컬 LXGW WenKai(SC) → 명조(Noto Serif TC, 붓 획과 이질감 최소) → 한글·기타는 고딕.
+       원본 폰트 미지원 한자는 subset-font.mjs 가 빌드 시점에 감지·경고한다 (font-cmap.mjs). */
+    .hanja, .kai { font-family: 'LXGW WenKai TC', 'LXGW WenKai', 'Noto Serif TC', 'Pretendard Variable', Pretendard, 'Noto Sans KR', 'Noto Sans TC', 'Noto Sans SC', sans-serif; font-weight: 400; }
+    @keyframes screenIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .screen-enter { animation: screenIn 0.22s ease both; }
+    .stagger > * { animation: screenIn 0.28s ease both; }
+    .stagger > *:nth-child(1) { animation-delay: 40ms; }
+    .stagger > *:nth-child(2) { animation-delay: 100ms; }
+    .stagger > *:nth-child(3) { animation-delay: 160ms; }
+    .stagger > *:nth-child(4) { animation-delay: 220ms; }
+    .stagger > *:nth-child(5) { animation-delay: 280ms; }
+    .stagger > *:nth-child(6) { animation-delay: 340ms; }
+  </style>
+</head>
+<!-- 센터링은 #app의 auto 마진(safe center) — 콘텐츠가 화면보다 길면 마진이 0으로 해소돼
+     상단부터 정상 스크롤된다. flex items-center는 이 경우 상단을 잘라 스크롤 불가로 만든다. -->
+<body class="min-h-dvh flex">
+  <div id="app" class="w-full m-auto flex justify-center"></div>
+  <div class="pb-preview-bar"><span><b>문독 리뉴얼 목업</b> 샘플 문헌 · 로컬 미리보기</span><span id="pb-status" role="status" aria-live="polite">기존 문독 데이터와 분리되어 있습니다</span></div>
+  <div id="pb-selection" class="pb-selection" hidden><button class="btn-primary" id="pb-designate">문장으로 지정</button><button id="pb-cancel-selection" aria-label="선택 취소">×</button></div>
+  <dialog id="pb-add" class="pb-add-dialog" aria-labelledby="pb-add-title"><form id="pb-add-form"><div class="pb-add-head"><h2 id="pb-add-title">본문 추가</h2><button type="button" id="pb-add-close" aria-label="닫기">×</button></div><label for="pb-new-text">새 문장</label><textarea class="hanja" id="pb-new-text" rows="4" required placeholder="수업에서 추가로 설명한 원문을 입력하세요"></textarea><div class="pb-add-foot"><button class="btn-primary" type="submit">이 위치에 추가</button></div></form></dialog>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
