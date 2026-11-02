@@ -1,6 +1,6 @@
 # Design
 
-> UI·상호작용 기준 문서다. **2026-09-20, 제품 2.4.1**의 구현을 확인했다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
+> UI·상호작용 기준 문서다. **2026-11-02, 3.2.0 출시 준비 코드**의 초안 보관 동작을 반영했으며 배포 완료를 뜻하지 않는다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
 > 아래 원칙과 접근성·반응형·오류 상태 요구는 구현·리뷰 기준이며, 모든 대상 기기의 검증 완료 선언이 아니다. 실제 기기·PWA·복원 근거는 [#5](https://github.com/river11456/mundok/issues/5)에서 확보한다.
 
 ## Current implementation and follow-up
@@ -9,6 +9,7 @@
 | --- | --- | --- |
 | 폴더 라이브러리 | 폴더 진입·breadcrumbs·생성·이름변경·삭제·문헌 이동 구현 | 모델은 임의 깊이, 생성 UI는 2단계 제한. 합의된 중첩 목표는 [#4](https://github.com/river11456/mundok/issues/4) |
 | 문장 학습 편집기 | 큰 학습 모달, 한자별 독음·부분 입력·붙여넣기·빈칸 자동 입력·해석·메모 구현 | 폰에서는 전체 높이 시트. 기기·IME 실제 사용 검증은 #5 |
+| 작성 중 초안 | 기존 카드 수정의 임시 저장 상태·홈 이어쓰기·파일 보관·확인 후 버리기 | 정식 반영은 저장 버튼. 카드 추가·문헌 생성·본문 추가·정보 수정은 후속 범위([#26](https://github.com/river11456/mundok/issues/26)) |
 | 한자 도움 | 내장 사전의 대표·대체 후보, 빈 값 보강, 기존 값 보존, Daum 확인 링크 구현 | 사전 제안이 정답 보증은 아니며 수동 입력·확인을 유지 |
 | 꾸미기·탐색 확장 | color/icon은 예약 필드, 사용자 편집 UI 없음 | 검색·정렬·목록·드래그 이동과 함께 [#9](https://github.com/river11456/mundok/issues/9) 후보 |
 | 학습 요약 | 홈 연속 학습·결과 화면의 오늘 학습과 오답 요약 | 별도 장기 통계 대시보드는 없음 |
@@ -17,7 +18,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-09-20
+- Last refreshed: 2026-11-02
 - Primary product surfaces:
   - Home library and folder navigation
   - Document detail overlay
@@ -33,6 +34,7 @@
   - `src/collections.ts`: `parentId` folder tree storage, normalization, and pure collection logic
   - `src/shelf-ui.ts`: shelf create/rename and document move sheets
   - `src/editcard.ts`: large sentence learning modal with per-Han reading cells, interpretation, and note; other card types keep the compact modal
+  - `src/storage/drafts.ts` and `src/draft-list.ts`: separate local drafts, home resume/export/discard, preserved malformed records
   - `src/addcard.ts`: character add/enrichment flow with bundled dictionary candidates, blank-only filling, duplicate preservation, and Daum verification link
   - `src/reading-align.ts` and `src/sentence-reading-autofill.ts`: complete/partial reading alignment, paste distribution, and suggestions that preserve entered values
   - `src/style.css`: tokens, modal surfaces, card cells, reading labels, folder library, responsive and focus rules
@@ -174,7 +176,7 @@
 - Keyboard/focus behavior:
   - Breadcrumbs, folder tiles, document tiles, toolbar buttons, dialogs, move destinations, character inspector controls, candidate choices, and reading cells must be reachable with visible focus.
   - Reading cells need efficient arrow/tab movement without breaking Korean IME composition.
-  - Escape may close transient panels only when it will not discard unsaved sentence edits without confirmation.
+  - Escape, backdrop click, and 닫기 in the card editor preserve the draft before closing; failed preservation keeps the editor open. 초안 버리기 requires explicit confirmation.
 - Contrast/readability:
   - Do not use `--faint` for required folder, document, character, reading, or candidate text.
   - Suggestions may be visually lighter than confirmed values, but must remain readable.
@@ -234,6 +236,15 @@
   - Avoid explanatory paragraphs inside the library.
   - Put guidance only in empty states, dialogs, and inline states where the next action is otherwise ambiguous.
   - Candidate copy should be transparent: "빈 칸만 채움", "기존 값 유지", and "다음에서 확인" are acceptable short labels.
+
+## Card draft interaction contract
+
+- Existing card editing preserves raw text, reading cells, overflow, unresolved paste, and Korean IME input locally; restoring must retain the existing reading validation requirements.
+- Show `이 기기에 임시 저장됨` only after a successful write. Keep `저장` as the explicit action that applies changes to the card, and use `닫기` for leaving a preserved draft.
+- Home lists `작성 중인 내용` across documents with last-edited time and `이어쓰기`, `파일로 보관`, and `초안 버리기`. Drafts remain in this browser and are excluded from the full backup; say so beside the actions.
+- Storage failure keeps the current input visible with a persistent error, retry, and file export. Do not imply that closing or an app lifecycle event guarantees preservation when storage failed.
+- If the stored card differs from the draft baseline, freeze editing and final save until the learner reviews the current card and explicitly chooses to continue with the draft. Missing targets and unreadable drafts retain export/discard access without automatic recreation or overwrite.
+- File export preserves draft JSON for recovery; no draft-file import flow exists. Adding cards and creating/appending/editing document metadata remain follow-up work. Actual mobile/PWA recovery evidence belongs in #5.
 
 ## Dictionary Assist Contract
 - Trigger: selecting a single Han character in the sentence learning editor or character-add flow may open dictionary assistance.

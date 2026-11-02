@@ -1,6 +1,7 @@
 import { store, exportUserData, importUserData } from './storage';
 import { hasPendingRecovery } from './storage/recovery';
 import { storageErrorMessage } from './storage/recovery-ui';
+import { preserveEditDraft } from './editcard';
 
 /**
  * 정적 배포(LocalStore) 모드에서만 노출되는 데이터 백업 메뉴.
@@ -26,6 +27,7 @@ export function initBackup(): void {
     </button>
     <p class="px-3 pt-1 pb-1 text-[10px] leading-snug t-sub">
       추가·수정한 카드와 학습 기록은 이 브라우저에만 저장됩니다. 기기를 바꾸거나 기록을 지우기 전에 백업하세요.
+      작성 중인 초안은 전체 백업에 포함되지 않습니다. 홈의 작성 중인 내용에서 별도로 파일로 보관해 주세요.
     </p>`;
   document.body.appendChild(pop);
 
@@ -64,6 +66,11 @@ export function initBackup(): void {
   fileInput.addEventListener('change', async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
+    if (!preserveEditDraft()) {
+      alert('작성 중인 내용을 임시 저장하지 못했습니다. 편집창에서 입력을 파일로 보관하거나 다시 시도한 뒤 가져와 주세요.');
+      fileInput.value = '';
+      return;
+    }
     if (!confirm('다른 문독 탭과 앱 창을 모두 닫아 주세요. 이전 버전의 창은 복원을 방해할 수 있습니다.\n현재 이 브라우저의 카드 데이터를 백업 파일 내용으로 덮어씁니다.\n계속하시겠습니까?')) {
       fileInput.value = '';
       return;
