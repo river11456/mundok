@@ -57,6 +57,19 @@ test('design documentation exemption does not hide product HTML or styles', () =
   }
 });
 
+test('reviewed local sentence prototype does not deploy; unknown and mixed product paths still do', () => {
+  const prototype = ['index.html', 'main.ts', 'model.ts', 'model.test.mjs', 'prototype.css', 'tsconfig.json']
+    .map(name => `design/prototypes/sentence-blocks/${name}`);
+  const result = check({ version: '2.3.2', changedFiles: prototype });
+  assert.equal(result.productChanged, false);
+  assert.deepEqual(result.errors, []);
+  for (const path of ['design/prototypes/new/main.ts', 'design/prototypes/sentence-blocks/runtime.ts', 'src/main.ts', 'vite.config.mts']) {
+    const mixed = check({ version: '2.3.2', changedFiles: [...prototype, path] });
+    assert.equal(mixed.productChanged, true, path);
+    assert.match(mixed.errors.join(), /increased app version/, path);
+  }
+});
+
 test('product classifier includes build, generated assets, metadata and unknown executable paths', () => {
   for (const path of ['src/a.ts', 'public/sw.js', 'catalog/_collections.json', 'index.html', 'package.json', 'package-lock.json', 'vite.config.mts', 'tsconfig.json', 'scripts/lint-data.mjs', 'scripts/promote.mjs', 'scripts/build-hanja-dictionary.mjs', 'scripts/font-cmap.mjs', 'scripts/subset-font.mjs', 'scripts/new-build.mjs', 'new-runtime.js', 'src/README.md']) assert.equal(isProductPath(path), true, path);
 });

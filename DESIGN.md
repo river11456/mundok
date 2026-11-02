@@ -291,6 +291,20 @@
 
 ## Recorded decisions
 
+### Sentence-block learning prototype (draft, #28)
+
+The local [sentence-block prototype](design/prototypes/sentence-blocks/README.md) explores a new initial-learning flow. It is not the current production contract. The user's two-month usage prioritizes sentence learning; removing Anki and reducing word/character navigation belong to the subsequent product redesign.
+
+Visual direction: preserve Mundok's existing light-gray background, white surfaces, blue accents, WenKai Hanja typography, library and shared back/home navigation. References inform only comfortable reading rhythm (Bear) and contextual block controls (Craft). The separate sidebar and warm palette experiment are superseded; the prototype does not redefine production tokens. Continuous paragraphs omit repeated sentence numbers/statuses and individual card borders. Handles, selection controls, insertion affordances and sentence-open arrows appear on hover or keyboard focus; touch devices expose them. A persistent **본문 추가** action keeps adding discoverable.
+
+- Opening a document presents its complete body. Dragging text reveals **문장으로 지정**; the chosen range becomes a sentence block.
+- Adjacent selected blocks can be merged. A grip moves blocks, and insertion controls between blocks add body text where the lecturer introduces it. Block changes support undo within the current session.
+- Clicking a block opens the existing sentence learning screen, retaining its readings, explanation editor, grammar and drill-down behavior. **문장 복습** starts existing sequential review.
+- The laptop keyboard/mouse is the primary input surface. Existing library, typography, colors and sentence components are reused.
+- The prototype uses isolated local sample documents. On split, all meaning and notes remain on the earliest resulting piece of each original sentence; later pieces start empty. Merge joins meaning and notes in source order. Readings and grammar follow their characters. Existing sentence UI displays and edits these ordinary fields, without inherited-note labels, panels or context dialogs. Previous prototype references are materialized once into the earliest associated block while preserving current edits.
+- Hyeonto prototype: preserve WenKai for Han; confirmed Korean particles use Pretendard/Noto Sans KR at 70% of the surrounding type, regular weight, #626873 (over 5:1 against white). Keep particles on the baseline, without badges or boxes. A contextual **현토** control opens an inline editor: select the preceding Han, enter the particle, save. Existing mixed text is a suggestion only; learners may retain individual Korean runs in the original before confirming. Original/marks are stored separately alongside a compatible composed text. Splits snap to the end of an attached particle, and merges retain anchors. Confirmed particles can be hidden for reading; range editing always shows them. Changes through the old combined-text editor deactivate unmatched metadata until reconfirmed.
+- Production navigation, storage migration, full Anki removal and mobile interaction approval remain outside this prototype. The decisions below continue to describe the shipped design until superseded by a product PR.
+
 These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
 - [x] First pass reserves folder `color`/`icon` fields only; customization UI is a [#9](https://github.com/river11456/mundok/issues/9) candidate.
 - [x] Search, sort, list view, and drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.
