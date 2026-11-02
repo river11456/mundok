@@ -15,7 +15,7 @@ import { acquireEditingSession } from '../../../src/storage/editing-session';
 import { USER_DOCS_KEY, loadUserDocs } from '../../../src/user-docs';
 import { V3_COLLECTIONS_KEY } from '../../../src/collections';
 import { V3_PREFS_KEY, V3_SESSION_KEY } from '../../../src/migrate-v1';
-import { esc } from '../../../src/render-shared';
+import { esc, backBtn, homeBtn } from '../../../src/render-shared';
 import type { CardJSON } from '../../../src/types';
 import { designateRange, insertBlock, mergeBlocks, moveBlock } from './model';
 import daeyi from '../../../catalog/대의정성.json';
@@ -159,25 +159,11 @@ function renderDocument(): void {
   if (!doc) { library(); return; }
   const blocks = doc.levels.sentence ?? [];
   document.body.classList.add('pb-document');
-  app.innerHTML = `<div class="pb-layout">
-    <aside class="pb-sidebar" aria-label="문헌 탐색">
-      <button class="pb-brand" data-pb="library" aria-label="문독 라이브러리"><span class="kai">文讀</span><span>한문 학습 노트</span></button>
-      <button class="pb-library-link" data-pb="library"><span aria-hidden="true">←</span> 라이브러리</button>
-      <div class="pb-sidebar-label">나의 문헌</div>
-      <nav class="pb-doc-list">${DOCS.map(item => `<button data-pb="document" data-id="${esc(item.id)}" ${item.id === doc.id ? 'aria-current="page"' : ''}><span class="pb-doc-icon" aria-hidden="true">▤</span><span>${esc(item.sub || item.title)}</span></button>`).join('')}</nav>
-      <div class="pb-sidebar-bottom"><span class="pb-save-dot"></span>이 기기에 저장됨</div>
-    </aside>
-    <div class="pb-main">
-      <header class="pb-header">
-        <nav class="pb-breadcrumb" aria-label="현재 문헌"><button data-pb="library">나의 문헌</button><span>/</span><span>${esc(doc.sub)}</span></nav>
-        <button class="pb-review" data-pb="review" ${blocks.length ? '' : 'disabled'}>문장 복습 <span aria-hidden="true">↗</span></button>
-      </header>
-      <div class="pb-workspace">
-        <section class="pb-title-row"><div class="pb-document-title"><p class="pb-eyebrow">${esc(doc.sub)}</p><h1>${esc(doc.title)}</h1><p class="pb-subtitle">문장 ${blocks.length}개</p></div></section>
-        <div class="pb-toolbar"><span id="pb-selection-label">본문을 드래그해 문장으로 지정하세요</span><div class="pb-tools"><button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><button class="pb-tool pb-undo" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소" title="실행 취소 (⌘/Ctrl+Z)">↶</button><button class="pb-tool" data-pb="add" data-index="${blocks.length}">＋ 본문 추가</button></div></div>
-        <main class="pb-sheet" aria-label="문헌 본문"><div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><div class="pb-source">${esc(card.text)}</div><button class="pb-open" data-pb="study" data-id="${esc(card.id)}" aria-label="문장 열기" title="문장 열기">↗</button></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end">${blocks.length ? '文讀' : '＋ 본문 추가로 첫 문장을 써 보세요'}</div></main>
-      </div>
-    </div>
+  app.innerHTML = `<div class="pb-workspace">
+    <header class="pb-header">${backBtn('서재')} ${homeBtn()}</header>
+    <section class="pb-title-row"><div class="pb-document-title"><h1 class="hanja">${esc(doc.title)}</h1><p>${esc(doc.sub)}<span>·</span>문장 ${blocks.length}개</p></div><button class="btn-primary pb-review" data-pb="review" ${blocks.length ? '' : 'disabled'}>문장 복습 <span aria-hidden="true">→</span></button></section>
+    <main class="pb-sheet" aria-label="문헌 본문"><div class="pb-toolbar"><span id="pb-selection-label">본문을 드래그해 문장으로 지정하세요</span><div class="pb-tools"><button class="pb-tool" data-pb="clear" id="pb-clear" hidden>선택 해제</button><button class="pb-tool pb-merge" data-pb="merge" id="pb-merge" hidden>합치기</button><button class="pb-tool pb-undo" data-pb="undo" ${histories.get(doc.id)?.length ? '' : 'disabled'} aria-label="블록 작업 실행 취소" title="실행 취소 (⌘/Ctrl+Z)">↶</button><button class="pb-tool" data-pb="add" data-index="${blocks.length}">＋ 본문 추가</button></div></div>
+      <div id="pb-blocks">${blocks.map((card, i) => `${gap(i)}<article class="pb-block" data-block="${esc(card.id)}"><div class="pb-block-tools"><input type="checkbox" class="pb-check" aria-label="${i + 1}번 블록 선택" ${selected.has(card.id) ? 'checked' : ''}><button class="pb-grip" aria-label="${i + 1}번 블록 이동, 방향키로도 이동 가능">⠿</button></div><div class="pb-source hanja">${esc(card.text)}</div><button class="pb-open" data-pb="study" data-id="${esc(card.id)}" aria-label="문장 열기" title="문장 열기">↗</button></article>`).join('')}${gap(blocks.length)}</div><div class="pb-sheet-end kai">${blocks.length ? '文讀' : '＋ 본문 추가로 첫 문장을 써 보세요'}</div></main>
   </div>`;
   updateSelectionToolbar();
 }
@@ -254,7 +240,6 @@ function setupPrototype(): void {
       event.stopImmediatePropagation();
       switch (own.dataset.pb) {
         case 'library': library(); break;
-        case 'document': openDocument(own.dataset.id!); break;
         case 'review': if (cards()[0]) openSentence(cards()[0].id, true); break;
         case 'study': openSentence(own.dataset.id!); break;
         case 'add': openAdd(Number(own.dataset.index)); break;
@@ -267,6 +252,7 @@ function setupPrototype(): void {
     if (existing) {
       const action = existing.dataset.action;
       if (action === 'open-doc' || action === 'overlay-ref') { event.stopImmediatePropagation(); openDocument(existing.dataset.arg!); }
+      else if (action === 'nav-back' && document.body.classList.contains('pb-document')) { event.stopImmediatePropagation(); library(); }
       else if (action === 'nav-home') { event.stopImmediatePropagation(); library(); }
       else if (action === 'nav-back' && S.scr === 'study' && !S.navStack.length) { event.stopImmediatePropagation(); openDocument(S.docId!); }
       else if (action === 'resume') { event.stopImmediatePropagation(); openDocument(S.docId ?? DOCS[0].id); }
