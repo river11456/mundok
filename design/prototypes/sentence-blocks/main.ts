@@ -17,7 +17,7 @@ import { V3_COLLECTIONS_KEY } from '../../../src/collections';
 import { V3_PREFS_KEY, V3_SESSION_KEY } from '../../../src/migrate-v1';
 import { esc, backBtn, homeBtn } from '../../../src/render-shared';
 import type { CardJSON } from '../../../src/types';
-import { designateRange, insertBlock, mergeBlocks, moveBlock } from './model';
+import { designateRange, insertBlock, mergeBlocks, moveBlock, type PrototypeCard } from './model';
 import daeyi from '../../../catalog/대의정성.json';
 import sanggo from '../../../catalog/상고천진론.json';
 import sagi from '../../../catalog/사기조신대론.json';
@@ -150,6 +150,46 @@ function openSentence(id: string, review = false): void {
   window.scrollTo({ top: 0 });
 }
 
+// Inherited notes use the existing answer area. Original context is opt-in.
+function studyCard(): PrototypeCard | undefined {
+  if (S.scr !== 'study' || S.lv?.key !== 'sentence') return;
+  const id = S.lv.cards[S.seqIdx]?.id;
+  return loadUserDocs().find(doc => doc.id === S.docId)?.levels.sentence?.find(card => card.id === id);
+}
+
+function attachStudyNotes(): void {
+  if (document.body.classList.contains('pb-document') || !S.seqFlipped) return;
+  const card = studyCard();
+  const back = app.querySelector('.card-back');
+  if (!card?.pbReferences?.length || !back || back.querySelector('[data-pb="note-context"]')) return;
+  const inherited = (field: 'meaning' | 'note') => [...new Set(card.pbReferences!.map(ref => ref[field]).filter(Boolean))].join('\n\n');
+  const meaning = !card.meaning ? inherited('meaning') : '';
+  const note = !card.note ? inherited('note') : '';
+  const context = document.createElement('button');
+  context.className = 'pb-context-link'; context.dataset.pb = 'note-context';
+  context.textContent = meaning ? '분할 전 문장 해석 ⓘ' : '원래 문장·필기 ⓘ';
+  context.setAttribute('aria-haspopup', 'dialog');
+  back.prepend(context);
+  if (meaning) {
+    const value = document.createElement('div'); value.className = 'meaning text-left pb-inherited'; value.textContent = meaning;
+    context.after(value);
+  }
+  if (note) {
+    const value = document.createElement('div');
+    value.className = 'text-sm t-sub text-left leading-relaxed whitespace-pre-line border-t border-[rgba(0,0,0,.05)] pt-3 pb-inherited';
+    value.textContent = note; back.append(value);
+  }
+}
+
+function openNoteContext(): void {
+  const card = studyCard();
+  if (!card?.pbReferences?.length) return;
+  const names = { S: '주어', V: '서술어', O: '목적어', phrase: '구절' };
+  const field = (label: string, value: string) => value ? `<div class="pb-note-field"><dt>${label}</dt><dd>${esc(value)}</dd></div>` : '';
+  $('pb-context-body').innerHTML = card.pbReferences.map(ref => `<section class="pb-note-source"><p class="pb-note-original hanja">${esc(ref.text)}</p><dl>${field('음', ref.reading)}${field('해석', ref.meaning)}${field('메모', ref.note)}${field('문법', ref.grammar.map(item => `${names[item.type]} · ${[...ref.text].slice(item.start, item.end).join('')}`).join(' / '))}${field('해석 순서', ref.interp.map(item => [...ref.text].slice(item.start, item.end).join('')).join(' → '))}</dl></section>`).join('');
+  $<HTMLDialogElement>('pb-context').showModal();
+}
+
 function gap(i: number): string {
   return `<div class="pb-gap" data-slot="${i}"><button class="pb-insert" data-pb="add" data-index="${i}" aria-label="${i + 1}번째 위치에 본문 추가"><span>＋</span><span class="pb-insert-label">본문 추가</span></button></div>`;
 }
@@ -230,6 +270,7 @@ function setupPrototype(): void {
   new MutationObserver(() => {
     if (S.docOverlay) openDocument(S.docOverlay);
     else if (S.scr === 'level' && S.docId) openDocument(S.docId);
+    else attachStudyNotes();
   }).observe(app, { childList: true });
   // Capture only navigation owned by this prototype; existing study actions use real handlers.
   app.addEventListener('click', event => {
@@ -240,6 +281,7 @@ function setupPrototype(): void {
       event.stopImmediatePropagation();
       switch (own.dataset.pb) {
         case 'library': library(); break;
+        case 'note-context': openNoteContext(); break;
         case 'review': if (cards()[0]) openSentence(cards()[0].id, true); break;
         case 'study': openSentence(own.dataset.id!); break;
         case 'add': openAdd(Number(own.dataset.index)); break;
@@ -258,7 +300,7 @@ function setupPrototype(): void {
       else if (action === 'resume') { event.stopImmediatePropagation(); openDocument(S.docId ?? DOCS[0].id); }
       return;
     }
-    if (target.closest('.pb-block-tools') || target.closest('.pb-block-foot')) return;
+    if (target.closest('.pb-block-tools')) return;
     const source = target.closest<HTMLElement>('.pb-source');
     if (source && !window.getSelection()?.toString() && Date.now() >= suppressedClickUntil) {
       event.stopImmediatePropagation(); openSentence(source.closest<HTMLElement>('[data-block]')!.dataset.block!);
@@ -280,6 +322,7 @@ function setupPrototype(): void {
   };
   $('pb-cancel-selection').onclick = dismissSelection;
   $('pb-add-close').onclick = closeAdd;
+  $('pb-context-close').onclick = () => $<HTMLDialogElement>('pb-context').close();
   $('pb-add-form').onsubmit = event => {
     event.preventDefault();
     const text = $<HTMLTextAreaElement>('pb-new-text').value;
@@ -317,9 +360,10 @@ function setupPrototype(): void {
   window.addEventListener('blur', () => endDrag(false));
   window.addEventListener('scroll', () => { if (selectedRange) dismissSelection(); }, { passive: true });
   document.addEventListener('keydown', event => {
-    if ($<HTMLDialogElement>('pb-add').open) { event.stopImmediatePropagation(); return; }
+    if ($<HTMLDialogElement>('pb-add').open || $<HTMLDialogElement>('pb-context').open) { event.stopImmediatePropagation(); return; }
     if (modalOpen()) return;
     const target = event.target as HTMLElement;
+    if (target.closest('[data-pb="note-context"]') && ['Enter', ' '].includes(event.key)) { event.stopImmediatePropagation(); return; }
     if (document.body.classList.contains('pb-document')) {
       event.stopImmediatePropagation();
       if (event.key === 'Escape') { dismissSelection(); endDrag(false); selected.clear(); renderDocument(); }

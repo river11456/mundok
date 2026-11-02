@@ -301,7 +301,7 @@ Visual direction: preserve Mundok's existing light-gray background, white surfac
 - Adjacent selected blocks can be merged. A grip moves blocks, and insertion controls between blocks add body text where the lecturer introduces it. Block changes support undo within the current session.
 - Clicking a block opens the existing sentence learning screen, retaining its readings, explanation editor, grammar and drill-down behavior. **문장 복습** starts existing sequential review.
 - The laptop keyboard/mouse is the primary input surface. Existing library, typography, colors and sentence components are reused.
-- The prototype uses isolated local sample documents. Changed boundaries preserve old explanations as reference notes instead of assigning potentially incorrect meanings or grammar coordinates to a new sentence.
+- The prototype uses isolated local sample documents. Changed boundaries retain structured original-context notes. Contained grammar/interpretation ranges follow their characters; crossing or uncertain ranges remain original-context references. The document body shows no note panels. In the existing sentence answer area, current notes take priority and empty fields display inherited notes with a small original-context label. The label opens a compact dialog; review hides inherited answers until revealed.
 - Production navigation, storage migration, full Anki removal and mobile interaction approval remain outside this prototype. The decisions below continue to describe the shipped design until superseded by a product PR.
 
 These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
