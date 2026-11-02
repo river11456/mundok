@@ -16,9 +16,37 @@ export interface BlockReference {
 }
 export interface PrototypeCard extends CardJSON {
   pbReferences?: BlockReference[];
+  pbLegacyNotesMigrated?: boolean;
   // Generated fields are not new user notes; text also anchors local reference spans.
   pbDerived?: { text: string; meaning: string; note: string; grammar?: GrammarAnnotation[]; interp?: InterpChunk[] };
 }
+/** One-time conversion of the previous prototype's shared note references. */
+export function migrateLegacyNotes(cards: PrototypeCard[]): PrototypeCard[] {
+  const result = cards.slice();
+  const handled = new Set(cards.filter(card => card.pbLegacyNotesMigrated)
+    .flatMap(card => (card.pbReferences ?? []).map(reference => reference.id)));
+  const contains = (value: string, part: string) => (`\n\n${value}\n\n`).includes(`\n\n${part}\n\n`);
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
+    if (card.pbLegacyNotesMigrated || !card.pbReferences?.some(ref => ref.meaning || ref.note)) continue;
+    let updated = { ...result[i], pbLegacyNotesMigrated: true };
+    for (const reference of card.pbReferences) {
+      if (handled.has(reference.id)) continue;
+      handled.add(reference.id);
+      for (const field of ['meaning', 'note'] as const) {
+        const content = reference[field];
+        if (!content) continue;
+        const alreadyActive = result.some(candidate => candidate.pbReferences?.some(ref => ref.id === reference.id)
+          && contains(candidate[field], content));
+        if (!alreadyActive) updated = { ...updated, [field]: [updated[field], content].filter(Boolean).join('\n\n') };
+      }
+      result[i] = updated;
+    }
+    result[i] = updated;
+  }
+  return result;
+}
+
 interface Piece { card: PrototypeCard; start: number; end: number }
 const length = (card: CardJSON) => [...card.text].length;
 const whole = (card: CardJSON): Piece => ({ card, start: 0, end: length(card) });
@@ -31,7 +59,7 @@ function position(cards: PrototypeCard[], point: BlockPosition): number {
   return index;
 }
 
-/** Preserve certain character ranges; sentence-wide notes retain their original context. */
+/** Sentence-wide notes stay on the first fragment; ranged annotations follow their characters. */
 function rebuild(pieces: Piece[]): PrototypeCard {
   const references = new Map<string, BlockReference>();
   const readings: string[] = [];
@@ -51,9 +79,8 @@ function rebuild(pieces: Piece[]): PrototypeCard {
   for (const { card, start, end } of pieces) {
     const source = [...card.text];
     const slice = source.slice(start, end);
-    const isWhole = start === 0 && end === source.length;
     texts.push(slice.join(''));
-    if (isWhole) {
+    if (start === 0) {
       if (card.meaning) meanings.push(card.meaning);
       if (card.note) notes.push(card.note);
     }
@@ -71,11 +98,11 @@ function rebuild(pieces: Piece[]): PrototypeCard {
     const transfer = <T extends { start: number; end: number }>(entries: T[], target: T[]) => {
       for (const entry of entries) {
         if (entry.end <= start || entry.start >= end) continue;
-        if (entry.start >= start && entry.end <= end) {
-          target.push({ ...entry, start: entry.start - start + offset, end: entry.end - start + offset });
-        } else {
+        const clipped = { start: Math.max(entry.start, start) - start + offset, end: Math.min(entry.end, end) - start + offset };
+        target.push({ ...entry, ...clipped });
+        if (entry.start < start || entry.end > end) {
           crossing = true;
-          crossingSpans.push({ start: Math.max(entry.start, start) - start + offset, end: Math.min(entry.end, end) - start + offset });
+          crossingSpans.push(clipped);
         }
       }
     };
@@ -112,16 +139,14 @@ function rebuild(pieces: Piece[]): PrototypeCard {
         });
       if (spans.length) retain({ ...reference, spans, needsReview: reference.needsReview || anchorChanged || (!!(reference.meaning || reference.note) && reference.spans.some(span => span.start < start || span.end > end)) });
     }
-    const ownNotes = (!card.pbDerived || card.meaning !== card.pbDerived.meaning || card.note !== card.pbDerived.note)
-      && !!(card.meaning || card.note);
-    if (ownNotes || crossing || (!certain && !!card.reading)) {
+    if (crossing || (!certain && !!card.reading)) {
       const snapshot = {
         sourceId: card.id, text: card.text, reading: card.reading,
-        meaning: ownNotes ? card.meaning : '', note: ownNotes ? card.note : '',
+        meaning: '', note: '',
         grammar: grammarParts.current, interp: interpParts.current,
       };
-      retain({ ...snapshot, id: JSON.stringify(snapshot), needsReview: crossing || (!isWhole && ownNotes) || (!certain && !!card.reading),
-        spans: ownNotes || (!certain && !!card.reading)
+      retain({ ...snapshot, id: JSON.stringify(snapshot), needsReview: crossing || (!certain && !!card.reading),
+        spans: !certain && !!card.reading
           ? [{ start: offset, end: offset + slice.length }] : crossingSpans });
     }
     offset += slice.length;
@@ -136,6 +161,7 @@ function rebuild(pieces: Piece[]): PrototypeCard {
     grammar: grammar.length ? grammar : undefined,
     interp: interp.length ? interp : undefined,
     pbReferences: [...references.values()],
+    pbLegacyNotesMigrated: true,
     pbDerived: { text, meaning, note, grammar: grammar.map(entry => ({ ...entry })), interp: interp.map(entry => ({ ...entry })) },
     editedAt: Date.now(),
   };

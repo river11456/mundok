@@ -82,15 +82,3 @@ body.pb-document #sh-fab,body.pb-document>button[aria-label="사용법 보기"] 
   .pb-grip,.pb-open { min-height: 28px; }
 }
 @media(prefers-reduced-motion:reduce) { .pb-block { transition: none; } }
-
-.pb-context-link { color: var(--sub); font-size: 11px; line-height: 1.6; align-self: flex-start; text-align: left; border-radius: 4px; padding: 2px 0; }
-.pb-context-link:hover { color: var(--accent-deep); }
-.pb-context-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-.pb-inherited { white-space: pre-wrap; }
-.pb-context-dialog { width: min(480px, calc(100vw - 36px)); max-height: 75dvh; overflow-y: auto; }
-.pb-context-help { font-size: 11px; color: var(--sub); margin: -10px 0 20px; }
-.pb-note-source + .pb-note-source { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 20px; }
-.pb-note-original { color: var(--ink); font-size: 21px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 16px; }
-.pb-note-field { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 10px; margin-top: 10px; font-size: 12px; line-height: 1.7; }
-.pb-note-field dt { color: var(--sub); font-size: 11px; }
-.pb-note-field dd { color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }

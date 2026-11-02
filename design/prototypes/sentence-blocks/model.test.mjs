@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { designateRange, insertBlock, mergeBlocks, moveBlock } from './model.ts';
+import { designateRange, insertBlock, mergeBlocks, moveBlock, migrateLegacyNotes } from './model.ts';
 import { USER_DOCS_KEY, loadUserDocs, userEditCard, userSaveGrammar, userSaveInterp } from '../../../src/user-docs.ts';
 import { alignReading } from '../../../src/reading-align.ts';
 
@@ -31,27 +31,21 @@ test('cross-block designation preserves all exact whitespace and untouched metad
   assert.equal(JSON.stringify(cards), snapshot);
 });
 
-test('split keeps contained annotations active and retains original notes with crossing annotations', () => {
+test('three-way split puts all notes on the earliest fragment and clips ranged annotations', () => {
   const original = card('a', '學而時習之', '학이시습지', {
     meaning: '배우고 때때로 익힌다', note: '교수님 설명',
-    grammar: [{ type: 'V', start: 0, end: 1 }], interp: [{ start: 2, end: 5 }], status: 'draft',
+    grammar: [{ type: 'V', start: 0, end: 2 }], interp: [{ start: 2, end: 5 }], status: 'draft',
   });
   const result = designateRange([original], { id: 'a', offset: 1 }, { id: 'a', offset: 3 });
-  assert.deepEqual(result[0].grammar, original.grammar);
-  assert.equal(result[1].grammar, undefined);
-  for (const c of result) {
-    assert.equal(c.meaning, '');
-    assert.equal(c.note, '');
-    assert.equal(c.interp, undefined);
-    assert.equal(c.status, 'draft');
-    assert.equal(c.pbReferences.length, 1);
-    const reference = c.pbReferences[0];
-    assert.equal(reference.text, original.text);
-    assert.equal(reference.meaning, original.meaning);
-    assert.equal(reference.note, original.note);
-    assert.deepEqual(reference.interp, original.interp);
-    assert.equal(reference.needsReview, true);
-  }
+  assert.deepEqual(result.map(c => c.text), ['學', '而時', '習之']);
+  assert.deepEqual(result.map(c => c.meaning), [original.meaning, '', '']);
+  assert.deepEqual(result.map(c => c.note), [original.note, '', '']);
+  assert.deepEqual(result[0].grammar, [{ type: 'V', start: 0, end: 1 }]);
+  assert.deepEqual(result[1].grammar, [{ type: 'V', start: 0, end: 1 }]);
+  assert.deepEqual(result[1].interp, [{ start: 1, end: 2 }]);
+  assert.deepEqual(result[2].interp, [{ start: 0, end: 2 }]);
+  assert.ok(result.every(c => c.status === 'draft'));
+  assert.ok(result.flatMap(c => c.pbReferences).every(ref => !ref.meaning && !ref.note));
 });
 
 test('ambiguous reading retained verbatim in notes and blank slots stay explicit', () => {
@@ -69,7 +63,7 @@ test('merge preserves source order, readings and references; rejects non-contigu
   assert.equal(merged[0].text, '學은 習이다.');
   assert.equal(merged[0].reading, '학은 습이다.');
   assert.equal(merged[0].meaning, '배움');
-  assert.deepEqual(merged[0].pbReferences.map(ref => ref.sourceId), ['a', 'b']);
+  assert.deepEqual(merged[0].pbReferences, []);
   assert.ok(merged[0].pbReferences.every(ref => !ref.needsReview));
   assert.match(merged[0].note, /반복/);
   assert.equal(merged[1], cards[2]);
@@ -122,34 +116,38 @@ test('contained grammar and interpretation ranges shift by Unicode codepoints in
   assert.deepEqual(merged.interp, [{ start: 0, end: 1 }, { start: 3, end: 5 }]);
 });
 
-test('repeated split and merge keeps one original reference and filters unrelated source spans', () => {
+test('repeated split and merge retains notes once without shared note references', () => {
   const original = card('a', '甲乙丙丁', '갑을병정', { meaning: '원래 해석', note: '원래 필기' });
-  let blocks = designateRange([original], { id: 'a', offset: 0 }, { id: 'a', offset: 2 });
+  let blocks = designateRange([original], { id: 'a', offset: 1 }, { id: 'a', offset: 3 });
   for (let i = 0; i < 3; i++) {
+    assert.deepEqual(blocks.map(c => c.note), [original.note, '', '']);
     const merged = mergeBlocks(blocks, blocks.map(c => c.id))[0];
-    assert.equal(merged.pbReferences.length, 1);
-    assert.equal(merged.pbReferences[0].note, original.note);
-    blocks = designateRange([merged], { id: merged.id, offset: 0 }, { id: merged.id, offset: 2 });
+    assert.equal(merged.note, original.note);
+    assert.equal(merged.meaning, original.meaning);
+    assert.equal(merged.pbReferences.length, 0);
+    blocks = designateRange([merged], { id: merged.id, offset: 1 }, { id: merged.id, offset: 3 });
   }
-  const other = card('b', '戊己', '무기', { note: '다른 문장' });
-  const combined = mergeBlocks([blocks[0], other], [blocks[0].id, other.id])[0];
-  const separated = designateRange([combined], { id: combined.id, offset: 0 }, { id: combined.id, offset: 2 });
-  assert.deepEqual(separated[0].pbReferences.map(ref => ref.sourceId), ['a']);
-  assert.deepEqual(separated[1].pbReferences.map(ref => ref.sourceId), ['b']);
 });
 
-test('new notes after a split survive another split and changed text retains uncertain inherited references', () => {
+test('cross-card selection assigns each original note to its earliest surviving fragment', () => {
+  const a = card('a', '甲乙', '갑을', { meaning: 'A 해석', note: 'A 필기' });
+  const b = card('b', '丙丁', '병정', { meaning: 'B 해석', note: 'B 필기' });
+  const c = card('c', '戊己', '무기', { meaning: 'C 해석', note: 'C 필기' });
+  const blocks = designateRange([a, b, c], { id: 'a', offset: 1 }, { id: 'c', offset: 1 });
+  assert.deepEqual(blocks.map(c => c.text), ['甲', '乙丙丁戊', '己']);
+  assert.deepEqual(blocks.map(c => c.meaning), ['A 해석', 'B 해석\n\nC 해석', '']);
+  assert.deepEqual(blocks.map(c => c.note), ['A 필기', 'B 필기\n\nC 필기', '']);
+});
+
+test('new notes after a split survive on the first fragment of another split', () => {
   const original = card('a', '甲乙丙丁', '갑을병정', { note: '첫 필기' });
   const [part] = designateRange([original], { id: 'a', offset: 0 }, { id: 'a', offset: 3 });
-  // Mirrors the existing editor: update known fields without replacing the card object.
   const edited = JSON.parse(JSON.stringify(part));
   Object.assign(edited, { text: '戊甲乙丙', reading: '무갑을병', meaning: '추가 해석', note: '새 필기' });
   const result = designateRange([edited], { id: edited.id, offset: 0 }, { id: edited.id, offset: 1 });
-  for (const block of result) {
-    assert.ok(block.pbReferences.some(ref => ref.note === '첫 필기' && ref.needsReview));
-    assert.ok(block.pbReferences.some(ref => ref.note === '새 필기' && ref.meaning === '추가 해석'));
-    assert.ok(block.pbReferences.every(ref => ref.spans.every(span => span.start >= 0 && span.end <= [...block.text].length)));
-  }
+  assert.deepEqual(result.map(c => c.meaning), ['추가 해석', '']);
+  assert.deepEqual(result.map(c => c.note), ['새 필기', '']);
+  assert.ok(result.every(c => !c.pbReferences.length));
 });
 
 test('moving annotated blocks preserves objects and merge retains whole note order', () => {
@@ -178,9 +176,10 @@ test('existing editor storage roundtrip preserves references and invalidates cha
     for (const block of result) {
       assert.equal(block.grammar, undefined);
       assert.ok(block.pbReferences.some(ref => ref.text === part.text && ref.grammar.length && ref.needsReview));
-      assert.ok(block.pbReferences.some(ref => ref.note === '원본 설명'));
-      assert.ok(block.pbReferences.some(ref => ref.note === '수정 메모' && ref.meaning === '추가 해석'));
+      assert.ok(block.pbReferences.every(ref => !ref.note && !ref.meaning));
     }
+    assert.deepEqual(result.map(c => c.meaning), ['추가 해석', '']);
+    assert.deepEqual(result.map(c => c.note), ['수정 메모', '']);
   } finally {
     if (savedStorage === undefined) delete globalThis.localStorage;
     else globalThis.localStorage = savedStorage;
@@ -251,4 +250,40 @@ test('adding annotations after a text edit does not promote unchanged old coordi
       && ref.interp.length === 1 && ref.interp[0].start === 0));
     assert.ok(block.pbReferences.every(ref => ref.grammar.every(entry => entry.type !== 'V')));
   }
+});
+
+const legacyReference = (id, meaning, note) => ({ id, sourceId: id, text: '甲乙', reading: '갑을',
+  meaning, note, grammar: [], interp: [], needsReview: true, spans: [{ start: 0, end: 1 }] });
+
+test('legacy migration restores notes once on first associated block without overwriting current notes', () => {
+  const reference = legacyReference('old', '이전 해석', '이전 필기');
+  const originals = [card('a', '甲', '갑', { note: '새 필기', pbReferences: [reference] }),
+    card('b', '乙', '을', { pbReferences: [reference] })];
+  const snapshot = JSON.stringify(originals);
+  const migrated = migrateLegacyNotes(originals);
+  assert.equal(JSON.stringify(originals), snapshot);
+  assert.deepEqual(migrated.map(c => c.meaning), ['이전 해석', '']);
+  assert.deepEqual(migrated.map(c => c.note), ['새 필기\n\n이전 필기', '']);
+  assert.ok(migrated.every(c => c.pbLegacyNotesMigrated));
+  assert.deepEqual(migrateLegacyNotes(migrated), migrated);
+  const merged = mergeBlocks(migrated, migrated.map(c => c.id))[0];
+  const split = designateRange([merged], { id: merged.id, offset: 0 }, { id: merged.id, offset: 1 });
+  const reloaded = migrateLegacyNotes(JSON.parse(JSON.stringify(split)));
+  assert.deepEqual(reloaded.map(c => c.meaning), ['이전 해석', '']);
+  assert.deepEqual(reloaded.map(c => c.note), ['새 필기\n\n이전 필기', '']);
+});
+
+test('migration skips already active related fields but not identical unrelated notes', () => {
+  const reference = legacyReference('old', '이전 해석', '같은 필기');
+  const unrelated = card('u', '外', '외', { meaning: '이전 해석', note: '같은 필기' });
+  const originals = [unrelated,
+    card('a', '甲', '갑', { note: '같은 필기', pbReferences: [reference] }),
+    card('b', '乙', '을', { pbReferences: [reference] })];
+  const migrated = migrateLegacyNotes(originals);
+  assert.equal(migrated[0], unrelated);
+  assert.equal(migrated[1].meaning, '이전 해석');
+  assert.equal(migrated[1].note, '같은 필기');
+  assert.equal(migrated[2].note, '');
+  const missing = migrateLegacyNotes([unrelated, card('a', '甲', '갑', { pbReferences: [reference] })]);
+  assert.equal(missing[1].note, '같은 필기');
 });
