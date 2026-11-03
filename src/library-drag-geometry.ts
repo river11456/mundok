@@ -1,12 +1,15 @@
 export interface BookRect { id: string; left: number; right: number; top: number; bottom: number }
-/** Choose the nearest row, then the first book whose horizontal midpoint is ahead. */
-export function insertionAt(books: BookRect[], x: number, y: number): { beforeId: string | null; anchor: BookRect; after: boolean } | null {
-  if (!books.length) return null;
-  const distance = (b: BookRect) => Math.max(b.top - y, y - b.bottom, 0);
-  const nearest = books.reduce((a, b) => distance(b) < distance(a) ? b : a);
-  const row = books.filter(b => Math.abs(b.top - nearest.top) < 5);
-  const next = row.find(b => x < (b.left + b.right) / 2);
-  if (next) return { beforeId: next.id, anchor: next, after: false };
-  const last = row[row.length - 1];
-  return { beforeId: books[books.indexOf(last) + 1]?.id ?? null, anchor: last, after: true };
+
+/** Slots stay in their original layout order, independent of animated book positions. */
+export function reflowAt(slots: BookRect[], sourceId: string, x: number, y: number): { order: string[]; beforeId: string | null } | null {
+  if (!slots.some(slot => slot.id === sourceId)) return null;
+  const rowDistance = (slot: BookRect) => Math.max(slot.top - y, y - slot.bottom, 0);
+  const nearestRow = slots.reduce((a, b) => rowDistance(b) < rowDistance(a) ? b : a);
+  const row = slots.filter(slot => Math.abs(slot.top - nearestRow.top) < 5);
+  const distance = (slot: BookRect) => Math.abs(x - (slot.left + slot.right) / 2);
+  const destination = row.reduce((a, b) => distance(b) < distance(a) ? b : a);
+  const index = slots.indexOf(destination);
+  const order = slots.map(slot => slot.id).filter(id => id !== sourceId);
+  order.splice(index, 0, sourceId);
+  return { order, beforeId: order[index + 1] ?? null };
 }

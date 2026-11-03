@@ -303,7 +303,7 @@
 
 These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
 - [x] First pass reserves folder `color`/`icon` fields only; customization UI is a [#9](https://github.com/river11456/mundok/issues/9) candidate.
-- [x] Library search, sort, list view, and document drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.
+- [x] Library search, automatic sorting and list view remain [#9](https://github.com/river11456/mundok/issues/9) candidates. Document drag/drop and manual ordering shipped in v4.1.0 (#33/#34); physical mobile verification remains open.
 - [x] Deleting a folder preserves content by promoting its documents and child folders to the deleted folder's parent or root.
 - [x] A document created while browsing a folder is automatically placed in that folder.
 - [x] Folder visuals use the whole tabbed folder silhouette as the interactive surface; no folder icon inside a generic rectangular card.
@@ -317,8 +317,19 @@ These are decisions about scope, not a completed-test checklist. Service audienc
 
 ## 문헌 드래그·수동 정렬 (#33)
 
-- 문헌 표지에서 마우스/펜은 8px 이상 이동, 터치는 300ms 길게 누른 뒤 이동한다. 터치가 먼저 움직이면 스크롤에 양보한다. 폴더/상단 경로는 이동 대상이며 문헌 사이의 삽입선은 순서 변경 위치다.
-- 잡힌 표지의 투명도, 따라오는 제목 미리보기, 목적지 폴더 테두리, 삽입선으로 현재 동작을 표시한다. 가장자리에서 자동 스크롤하며 새 배치는 저장 성공 후 확정한다.
+- 문헌 표지에서 마우스/펜은 8px 이상 이동, 터치는 300ms 길게 누른 뒤 이동한다. 터치가 먼저 움직이면 스크롤에 양보한다. 폴더/상단 경로는 이동 대상이며 문헌들이 자리를 비우며 순서 변경 위치를 보여 준다.
+- 잡힌 표지의 옅은 잔상, 따라오는 실제 표지 복제, 은은한 목적지 폴더 강조, 주변 문헌의 실시간 재배치로 현재 동작을 표시한다. 가장자리에서 자동 스크롤하며 새 배치는 저장 성공 후 확정한다.
 - Esc·창 비활성화·포인터 취소·화면 전환은 취소한다. 드래그 직후 클릭이 문헌을 열지 않게 차단한다.
 - 각 문헌의 ⋯ 메뉴에서 앞/뒤 이동과 폴더 이동을 제공한다. 키보드도 동일한 기능을 사용하며, 순서 변경 후 문헌 표지로 초점을 돌리고 결과를 읽어 준다.
 - 폴더 우선 배치와 참고문헌 숨김 규칙을 유지한다. 폴더 자체 드래그·자동 폴더 진입·다중 선택·외부 파일 드롭은 이번 범위에 포함하지 않는다.
+
+## Drag-and-drop feedback (#35)
+
+- Status: Implemented, 2026-11-03, 출시 전 검증 코드. 사용자 확인에 따라 **드래그 중 UI만** 개선했다. 공식 범위는 [#35](https://github.com/river11456/mundok/issues/35).
+- 기본 화면의 로고·표지 디자인·그리드·메뉴·안내 문구는 유지한다. 데이터와 입력 제스처 계약도 유지한다.
+- 잡기/끌기: 제목 상자 대신 실제 표지 복제, 현재 삽입될 칸은 옅은 잔상으로 표시한다. 복제의 포커스·ID·스크린리더 중복과 포인터 간섭을 제거한다.
+- 대상: 폴더/상단 경로는 은은한 강조. 순서 변경 시 영향을 받는 문헌 전체가 제목과 메뉴를 포함해 한 칸씩 이동하며, 줄 경계도 이어서 재배치한다. 드래그 시작 시 원래 칸을 고정해 움직이는 문헌 때문에 목표 위치가 흔들리지 않게 한다. 폴더 위치는 유지한다.
+- 놓기/취소: 저장 성공 후 짧은 안착, 취소는 원위치 복귀. 저장 실패·화면 전환에는 성공 연출을 하지 않고 잔여 요소를 정리한다.
+- 모션: 주변 문헌 재배치는 180ms, 안착/복귀는 160ms, 움직임 감소 설정에서는 이동 애니메이션 생략.
+- 구현: library-drag.ts와 드래그 전용 CSS 중심. geometry/UI 연결은 필요한 최소 범위만 수정한다.
+- 검증: 기본 화면 동일성, 잡기·목적지·실시간 재배치·놓기·취소 상태, 여러 줄·자동 스크롤·터치·Esc·저장 실패 회귀. 구현 후 lint/test/build와 독립 리뷰.
