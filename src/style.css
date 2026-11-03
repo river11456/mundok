@@ -475,27 +475,6 @@ button { touch-action: manipulation; }
     .tile:hover .chev { color: var(--sub); }
   }
 
-  /* 안키 난이도 버튼 */
-  .rate-btn {
-    flex: 1;
-    padding: 15px 0;
-    font-size: 13.5px;
-    font-weight: 600;
-    border-radius: 14px;
-    border: 1px solid;
-    background: var(--surface);
-    transition: transform .2s var(--spring), background .15s;
-  }
-  .rate-hard { color: var(--fail); border-color: rgba(215, 0, 21, .25); }
-  .rate-mid { color: var(--warn); border-color: rgba(178, 80, 0, .25); }
-  .rate-easy { color: var(--o-fg); border-color: rgba(29, 122, 51, .28); }
-  @media (hover: hover) {
-    .rate-btn:hover { transform: translateY(-1px); }
-    .rate-hard:hover { background: rgba(215, 0, 21, .06); }
-    .rate-mid:hover { background: rgba(178, 80, 0, .07); }
-    .rate-easy:hover { background: rgba(52, 199, 89, .10); }
-  }
-
   /* 카드 뒷면 (정답 영역) */
   .card-back { border-top: 1px solid var(--line-soft); padding-top: 22px; }
   .reading-line { font-size: 21px; font-weight: 500; color: #3A3A3C; }

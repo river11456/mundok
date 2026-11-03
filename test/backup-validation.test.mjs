@@ -140,3 +140,51 @@ test('unsafe integer progress counts are rejected', () => {
   backup.progress.session.streak.count = 1e20;
   assert.throws(() => validateBackup(backup), /백업/);
 });
+
+
+const annotatedBackup = () => ({ version: 3, content: { docs: [{ id: 'd', title: '', sub: '', sentenceLayoutEdited: true, levels: { sentence: [{
+  id: 's1', text: '甲은乙', reading: '갑은을', meaning: '', note: '',
+  hyeonto: { original: '甲乙', marks: [{ offset: 1, text: '은' }] },
+  blockDerived: { text: '甲은乙', meaning: '', note: '', grammar: [], interp: [] },
+  blockReferences: [{ id: 'r', sourceId: 's1', text: '甲乙', reading: '갑을', meaning: '', note: '', grammar: [{ type: 'S', start: 0, end: 1 }], interp: [], needsReview: true, spans: [{ start: 0, end: 3 }] }],
+}] } }] } });
+
+test('new sentence metadata validates without mutation, including inactive hyeonto snapshots', () => {
+  const backup = annotatedBackup();
+  const copy = structuredClone(backup);
+  validateBackup(backup);
+  assert.deepEqual(backup, copy);
+  backup.content.docs[0].levels.sentence[0].text = '甲과乙';
+  validateBackup(backup); // old hyeonto is retained but inactive, not silently applied
+});
+for (const [name, mutate] of [
+  ['particle anchor outside original', c => c.hyeonto.marks[0].offset = 3],
+  ['particle attached to non-Han', c => c.hyeonto.original = '한乙'],
+  ['non-Hangul particle', c => c.hyeonto.marks[0].text = '<script>'],
+  ['duplicate particle anchors', c => c.hyeonto.marks.push({ offset: 1, text: '이' })],
+  ['historical grammar out of bounds', c => c.blockReferences[0].grammar[0].end = 10000],
+  ['current reference spans out of bounds', c => c.blockReferences[0].spans[0].end = 10000],
+  ['invalid reference review flag', c => c.blockReferences[0].needsReview = 'yes'],
+  ['invalid derived text', c => c.blockDerived.text = null],
+]) {
+  test(`rejects damaged sentence metadata: ${name}`, () => {
+    const backup = annotatedBackup();
+    mutate(backup.content.docs[0].levels.sentence[0]);
+    assert.throws(() => validateBackup(backup));
+  });
+}
+test('rejects non-boolean sentence layout marker', () => {
+  const backup = annotatedBackup();
+  backup.content.docs[0].sentenceLayoutEdited = 'yes';
+  assert.throws(() => validateBackup(backup));
+});
+
+test('last session accepts stable card IDs and rejects invalid values while retaining old backups', () => {
+  const backup = fixture('v3');
+  backup.progress.session.last.cardId = 's1';
+  assert.doesNotThrow(() => validateBackup(backup));
+  backup.progress.session.last.cardId = 12;
+  assert.throws(() => validateBackup(backup), /cardId/);
+  delete backup.progress.session.last.cardId;
+  assert.doesNotThrow(() => validateBackup(backup));
+});

@@ -9,21 +9,15 @@ export function initShortcutHelp(): void {
       <table class="w-full text-xs t-sub border-separate" style="border-spacing:0 6px">
         <tbody>
           <tr><td class="t-faint pr-4 whitespace-nowrap">홈</td><td class="kbd mr-2">1–N</td><td>문헌 선택</td></tr>
-          <tr><td class="t-faint pr-4">문헌</td><td class="kbd mr-2">Enter</td><td>순차 시작 (⇧Enter 안키)</td></tr>
-          <tr><td class="t-faint pr-4"></td><td class="kbd mr-2">1–N</td><td>참고문헌 선택</td></tr>
-          <tr><td class="t-faint pr-4">단위</td><td class="kbd mr-2">1–N</td><td>단위 선택</td></tr>
-          <tr><td colspan="3" class="pt-2 pb-1 t-faint text-xs">순차 모드</td></tr>
+          <tr><td class="t-faint pr-4">문헌</td><td class="kbd mr-2">Enter</td><td>문장 복습 시작</td></tr>
+          <tr><td class="t-faint pr-4"></td><td class="kbd mr-2">⌘/Ctrl Z</td><td>블록 작업 실행 취소</td></tr>
+          <tr><td colspan="3" class="pt-2 pb-1 t-faint text-xs">문장 학습·복습</td></tr>
           <tr><td></td><td class="kbd mr-2">Space</td><td>뒤집기</td></tr>
           <tr><td></td><td class="kbd mr-2">← →</td><td>이전 / 다음</td></tr>
-          <tr><td colspan="3" class="pt-2 pb-1 t-faint text-xs">안키 모드</td></tr>
-          <tr><td></td><td class="kbd mr-2">Space</td><td>뒤집기</td></tr>
-          <tr><td></td><td class="kbd mr-2">1 / 2 / 3</td><td>어려움 / 보통 / 쉬움</td></tr>
-          <tr><td></td><td class="kbd mr-2">R</td><td>다시 시작 (결과 화면)</td></tr>
           <tr><td colspan="3" class="pt-2 pb-1 t-faint text-xs">전체</td></tr>
           <tr><td></td><td class="kbd mr-2">G</td><td>문법 표시 (문장 카드)</td></tr>
           <tr><td></td><td class="kbd mr-2">Esc</td><td>뒤로가기</td></tr>
           <tr><td></td><td class="kbd mr-2">?</td><td>단축키 도움말</td></tr>
-          <tr><td></td><td class="kbd mr-2 t-faint" style="font-size:10px">Ctrl⇧R</td><td>안키 기록 초기화</td></tr>
         </tbody>
       </table>
       <div class="mt-5 text-center text-xs t-sub">Esc 또는 ? 로 닫기</div>

@@ -1,4 +1,5 @@
-import { S, DOCS, curDoc, resetAnki, resetGrammarView, loadAnki, shuffle, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { sessionCardIndex } from './session-position';
+import { S, DOCS, curDoc, resetGrammarView, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { folderPath, homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
@@ -9,13 +10,11 @@ import { deleteUserDoc, loadUserDocs } from './user-docs';
 import { render } from './render';
 import { isShortcutHelpOpen, showShortcutHelp, hideShortcutHelp } from './shortcut-help';
 import { isOnboardingOpen } from './onboarding';
-import { rate } from './anki';
 import { deleteCard } from './addcard';
 import { consumeSuppressedClick, dismissCellSelect } from './cell-select';
 import { toggleInterpPlay } from './interp-play';
 import { resumeCardDraft, showEditModal } from './editcard';
 import { discardHomeDraft, exportHomeDraft } from './draft-list';
-import type { Mode } from './types';
 
 // ── Navigation ────────────────────────────────────────────
 function closeLibraryAddMenu(): void { S.libraryAddMenu = false; }
@@ -36,34 +35,44 @@ function focusLibraryAddOption(index = 0): void {
 
 function navHome(): void  { resetGrammarView(); closeLibraryAddMenu(); S.navStack = []; S.scr = 'home'; S.mode = null; S.docOverlay = null; S.folderId = null; render(); }
 
-/** 문헌 열기 = 상세 오버레이 — 홈 표지·참고문헌·level 뒤로가기 공통 단일 창구. */
-function openDoc(id: string): void {
+/** 문헌은 본문부터 연다. 문헌 관리 오버레이는 별도 보조 동작이다. */
+export function openDoc(id: string): void {
+  syncUserDocs();
+  if (!DOCS.some(doc => doc.id === id)) { navHome(); return; }
   closeLibraryAddMenu();
-  S.scr = 'home';
+  resetGrammarView();
+  S.navStack = [];
+  S.scr = 'document';
   S.mode = null;
+  S.lv = null;
   S.docId = id;
-  S.docOverlay = id;
+  S.docOverlay = null;
   render();
+  window.scrollTo({ top: 0 });
 }
 
 function closeOverlay(): void { S.docOverlay = null; render(); }
-function navLevel(m: Mode): void    { closeLibraryAddMenu(); S.mode  = m;  S.scr = 'level'; render(); }
 
-/** 오버레이에서 모드 시작 — mode 화면 없이 바로 단위 선택으로. */
-function startOverlayMode(m: Mode): void {
-  const id = S.docOverlay;
-  if (!id) return;
-  S.docId = id;
-  S.docOverlay = null;
-  navLevel(m);
+export function openSentence(id: string, review = false): void {
+  const levelIndex = curDoc()?.levels.findIndex(level => level.key === 'sentence') ?? -1;
+  if (levelIndex < 0) return;
+  const index = curDoc().levels[levelIndex].cards.findIndex(card => card.id === id);
+  if (index < 0) return;
+  startStudy(levelIndex, index, !review);
+}
+
+function startDocumentReview(): void {
+  const level = curDoc()?.levels.find(item => item.key === 'sentence');
+  if (level?.cards[0]) openSentence(level.cards[0].id, true);
+  else if (S.docId) openDoc(S.docId);
 }
 
 function navBack(): void {
   closeLibraryAddMenu();
   resetGrammarView();   // 드릴다운 복귀 포함 — 카드 이동은 항상 문법 리셋
   if (S.scr === 'study' && popNav()) { render(); return; }
-  if      (S.scr === 'level') openDoc(S.docId!);
-  else if (S.scr === 'study') navLevel(S.mode!);
+  if (S.scr === 'study' || S.scr === 'level') openDoc(S.docId!);
+  else if (S.scr === 'document') { S.scr = 'home'; S.docOverlay = null; S.mode = null; render(); }
   else if (S.scr === 'home' && S.folderId) {
     const path = folderPath(S.folderId);
     S.folderId = path[path.length - 1]?.parentId ?? null;
@@ -79,25 +88,21 @@ function openFolder(id: string | null): void {
   render();
 }
 
-function startStudy(lvIdx: number, seqStart = 0): void {
+function startStudy(lvIdx: number, seqStart = 0, revealed = false): void {
+  const level = curDoc()?.levels[lvIdx];
+  if (!level?.cards.length) return;
   resetGrammarView();
+  closeLibraryAddMenu();
+  S.docOverlay = null;
   S.navStack = [];
-  S.lv = curDoc().levels[lvIdx];
-
-  if (S.mode === 'seq') {
-    S.seqIdx = Math.min(seqStart, S.lv.cards.length - 1);
-    S.seqFlipped = false;
-  } else {
-    S.allCards = loadAnki(S.lv.cards);
-    S.queue    = shuffle([...S.allCards]);
-    S.total    = S.queue.length;
-    S.side     = 'front';
-    S.busy     = false;
-  }
-
+  S.lv = level;
+  S.mode = 'seq';
+  S.seqIdx = Math.max(0, Math.min(seqStart, level.cards.length - 1));
+  S.seqFlipped = revealed;
   S.scr = 'study';
   saveLastSession();
   render();
+  window.scrollTo({ top: 0 });
 }
 
 /** 홈 히어로 "이어하기" — 마지막 학습 위치로 복귀 (A3). */
@@ -106,19 +111,11 @@ function resumeStudy(): void {
   if (!last) return;
   const doc = DOCS.find(d => d.id === last.docId);
   const lvIdx = doc?.levels.findIndex(l => l.key === last.lvKey) ?? -1;
-  if (!doc || lvIdx < 0) return;
+  if (!doc) return;
   S.docId = doc.id;
-  S.mode  = last.mode;
-  startStudy(lvIdx, last.mode === 'seq' ? last.idx : 0);
-}
-
-function hardReset(): void {
-  resetAnki();
-  startStudy(curDoc().levels.indexOf(S.lv!));
-}
-
-function restartStudy(): void {
-  startStudy(curDoc().levels.indexOf(S.lv!));
+  const index = lvIdx < 0 ? -1 : sessionCardIndex(last, doc.levels[lvIdx].cards);
+  if (index < 0) { openDoc(doc.id); return; }
+  startStudy(lvIdx, index);
 }
 
 function seqPrev(): void {
@@ -129,17 +126,11 @@ function seqNext(): void {
   if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
 }
 
-/** 카드 플립 — Space 키·카드 탭·"정답 보기" 버튼 공통. 안키는 앞→뒤 단방향(평가로만 진행). */
+/** Space·카드 탭·정답 보기의 공통 동작. */
 function flipCard(): void {
-  if (S.mode === 'seq') {
-    S.seqFlipped = !S.seqFlipped;
-    // 뒷면(뜻)을 실제로 확인한 시점을 "학습했다"로 간주 — 안키 모드의 rate() 시점과 대응
-    if (S.seqFlipped) touchLastStudied();
-    render();
-  } else if (S.side === 'front') {
-    S.side = 'back';
-    render();
-  }
+  S.seqFlipped = !S.seqFlipped;
+  if (S.seqFlipped) touchLastStudied();
+  render();
 }
 
 // ── Click delegation ──────────────────────────────────────
@@ -174,14 +165,14 @@ export function setupClick(): void {
     switch (btn.dataset.action) {
       case 'nav-home':    navHome();                    break;
       case 'nav-back':    navBack();                    break;
-      case 'nav-level':   navLevel(arg! as Mode);       break;
       case 'start-study': startStudy(parseInt(arg!));   break;
       case 'open-doc':    openDoc(arg!);                break;
       case 'close-overlay': closeOverlay();             break;
       case 'overlay-backdrop':
         if (e.target === btn) closeOverlay();           // 바깥(백드롭 자체) 클릭만 닫기
         break;
-      case 'overlay-mode': startOverlayMode(arg! as Mode); break;
+      case 'doc-manage': S.docOverlay = S.docId; render(); break;
+      case 'document-review': startDocumentReview(); break;
       case 'overlay-ref':  openDoc(arg!);               break;
       case 'open-folder':  openFolder(arg ? arg : null); break;
       case 'library-add-toggle': {
@@ -251,21 +242,20 @@ export function setupClick(): void {
         saveCollections(moveDoc(loadCollections(), id, null));   // 폴더 배치 잔재 청소
         syncUserDocs();
         S.docOverlay = null;
+        S.docId = null; S.lv = null; S.mode = null; S.navStack = []; S.scr = 'home';
         render();
         break;
       }
       case 'seq-prev':    seqPrev();                             break;
       case 'seq-next':    seqNext();                             break;
       case 'flip':        flipCard();                            break;
-      case 'restart':     restartStudy();                        break;
-      case 'anki-rate':   rate(parseInt(arg!) as 1|2|3);        break;
       case 'edit-card': {
-        const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
+        const card = S.lv!.cards[S.seqIdx];
         showEditModal(card, S.lv!.key);
         break;
       }
       case 'delete-card': {
-        const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
+        const card = S.lv!.cards[S.seqIdx];
         deleteCard(S.docId!, S.lv!.key, card.id, card.front);
         break;
       }
@@ -292,7 +282,7 @@ export function setupClick(): void {
         render();
         break;
       case 'interp-play': {
-        const card = S.mode === 'seq' ? S.lv!.cards[S.seqIdx] : S.queue[0];
+        const card = S.lv!.cards[S.seqIdx];
         toggleInterpPlay(card?.interp);
         break;
       }
@@ -327,7 +317,8 @@ export function setupKeyboard(): void {
       const el = document.getElementById(id);   // ge-overlay는 첫 열림 전엔 DOM에 없다 (지연 생성)
       return el !== null && !el.classList.contains('hidden');
     });
-    if (modalOpen || isOnboardingOpen()) return;
+    if (modalOpen || document.querySelector('dialog[open]') || isOnboardingOpen()) return;
+    if ((e.target as HTMLElement).matches('input,textarea,select,[contenteditable="true"]')) return;
 
     if (S.libraryAddMenu && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
       const options = [...document.querySelectorAll<HTMLButtonElement>('.library-add-option:not(:disabled)')];
@@ -342,13 +333,6 @@ export function setupKeyboard(): void {
       return;
     }
 
-    // Hard reset (anki only)
-    if (e.ctrlKey && e.shiftKey && e.key === 'R') {
-      e.preventDefault();
-      if (S.scr === 'study' && S.mode === 'anki') hardReset();
-      return;
-    }
-
     if (e.key === '?') {
       if (isShortcutHelpOpen()) hideShortcutHelp(); else showShortcutHelp();
       return;
@@ -359,26 +343,27 @@ export function setupKeyboard(): void {
       if (dismissCellSelect()) return;   // 셀 선택 해제가 뒤로가기보다 우선
       if (S.grammarMenu) { S.grammarMenu = false; render(); return; }
       if (S.libraryAddMenu) { S.libraryAddMenu = false; render(); focusLibraryAddTrigger(); return; }
-      if (S.scr === 'home' && S.docOverlay) { closeOverlay(); return; }
+      if (S.docOverlay) { closeOverlay(); return; }
       navBack();
       return;
     }
 
+    // Let focused controls keep their native Enter/Space activation.
+    if ((e.key === 'Enter' || e.code === 'Space')
+        && (e.target as HTMLElement).closest('button,a,summary')) return;
+
+    if (S.docOverlay) {
+      const i = +e.key - 1;
+      const refs = refsOf(S.docOverlay);
+      if (refs[i]) openDoc(refs[i].id);
+      return;
+    }
     if (S.scr === 'home') {
       const i = +e.key - 1;
-      if (S.docOverlay) {
-        if (e.key === 'Enter') {   // Enter=순차(주 버튼), ⇧Enter=안키
-          e.preventDefault();
-          startOverlayMode(e.shiftKey ? 'anki' : 'seq');
-          return;
-        }
-        const refs = refsOf(S.docOverlay);   // 오버레이 안에서는 참고문헌 숫자 배지 우선
-        if (refs[i]) openDoc(refs[i].id);
-        return;
-      }
-      const doc = homeDocs(S.folderId);   // 서가 표시 순서(참고문헌 제외)와 일치
+      const doc = homeDocs(S.folderId);
       if (doc[i]) openDoc(doc[i].id);
-
+    } else if (S.scr === 'document') {
+      if (e.key === 'Enter') { e.preventDefault(); startDocumentReview(); }
     } else if (S.scr === 'level') {
       const i = +e.key - 1;
       const lvs = curDoc().levels;
@@ -392,20 +377,9 @@ export function setupKeyboard(): void {
         render();
         return;
       }
-      if (S.mode === 'seq') {
-        if (e.code === 'Space') { e.preventDefault(); flipCard(); }
-        else if (e.key === 'ArrowRight' || e.key === 'Enter') seqNext();
-        else if (e.key === 'ArrowLeft') seqPrev();
-      } else {
-        if (S.side === 'front' && e.code === 'Space') { e.preventDefault(); flipCard(); }
-        else if (S.side === 'back') {
-          if (e.key === '1') rate(1);
-          else if (e.key === '2') rate(2);
-          else if (e.key === '3') rate(3);
-        } else if (S.side === 'result' && (e.key === 'r' || e.key === 'R')) {
-          restartStudy();
-        }
-      }
+      if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+      else if (e.key === 'ArrowRight' || e.key === 'Enter') seqNext();
+      else if (e.key === 'ArrowLeft') seqPrev();
     }
   });
 }

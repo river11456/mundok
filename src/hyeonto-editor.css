@@ -1,0 +1,28 @@
+/* Hyeonto follows the original baseline; color remains readable on white. */
+.hyeonto-token { font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', sans-serif; font-size: .7em; font-weight: 400; color: #626873; letter-spacing: 0; }
+.document-source .hyeonto-token { margin-inline: .08em .16em; }
+.hide-hyeonto .document-source .hyeonto-token,.hide-hyeonto #card-front .cc.hyeonto-token { display: none; }
+#card-front .cc.hyeonto-token { margin-inline: .025em; }
+#card-front .cc.hyeonto-token .cc-rd { display: none; }
+.hyeonto-tool { padding: 6px 8px; color: var(--sub); font-size: 11px; border-radius: 5px; white-space: nowrap; }
+.hyeonto-tool:hover:not(:disabled) { background: var(--bg); color: var(--accent-deep); }
+.hyeonto-tool:disabled { opacity: .55; cursor: default; }
+.hy-dialog { margin: auto; border: 1px solid var(--line); border-radius: 22px; padding: 28px; width: min(720px, calc(100vw - 36px)); max-height: calc(100dvh - 36px); overflow-y: auto; box-shadow: 0 20px 60px #172b4826; color: var(--ink); background: var(--surface); }
+.hy-dialog::backdrop { background: #151e3538; backdrop-filter: blur(3px); }
+.hy-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+.hy-head h2 { font-size: 18px; font-weight: 600; }
+.hy-head button { width: 28px; height: 28px; color: var(--sub); }
+.hy-guide { font-size: 12px; line-height: 1.7; color: var(--sub); }
+.hy-line { font-size: 28px; line-height: 2.3; padding: 24px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hy-unit { display: inline; }
+.hy-anchor { font: inherit; color: inherit; border-radius: 4px; padding: 0; }
+.hy-anchor:hover,.hy-anchor:focus-visible,.hy-anchor.on { background: #edf4ff; color: var(--accent-deep); }
+.hy-token-edit { margin-inline: .08em .2em; border-radius: 3px; }
+.hy-token-edit:hover { background: #edf4ff; color: var(--accent-deep); }
+.hy-input { border: 0; border-bottom: 1.5px solid var(--accent); background: #edf4ff; padding: 3px 4px; border-radius: 3px 3px 0 0; min-width: 2em; max-width: 100%; outline: none; line-height: 1.5; }
+.hy-error { color: var(--fail); font-size: 12px; line-height: 1.6; }
+.hy-foot { display: flex; justify-content: flex-end; gap: 16px; margin-top: 22px; }
+.hy-foot .btn-primary { box-shadow: none; }
+.hy-dialog button:focus-visible,.hyeonto-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.hy-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media(max-width:700px) { .hy-line { font-size: 25px; } }

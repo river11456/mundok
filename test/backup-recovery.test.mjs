@@ -1,6 +1,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { designateRange, setHyeonto, getHyeonto } from '../src/sentence-blocks.ts';
 import { registerHooks } from 'node:module';
 
 // Test-only resolution for the browser modules' extensionless TypeScript imports.
@@ -345,3 +346,20 @@ for (const format of ['legacy-userdata', 'v2']) {
     assert.equal(storage.getItem('unrelated/key'), 'keep');
   });
 }
+
+
+test('actual export and import roundtrip preserves block layout, hyeonto and archived annotations', async t => {
+  const source = { id: 's1', text: '甲乙丙', reading: '갑을병', meaning: '해석', note: '필기', grammar: [{ type: 'phrase', start: 0, end: 3 }] };
+  const confirmed = setHyeonto(source, { original: source.text, marks: [{ offset: 1, text: '은' }] });
+  const blocks = designateRange([confirmed], { id: 's1', offset: 0 }, { id: 's1', offset: 1 });
+  const doc = { id: 'blocks', title: '문헌', sub: '', sentenceLayoutEdited: true, source: { catalogId: 'blocks', version: 1, removed: ['s2'] }, levels: { sentence: blocks } };
+  storage.setItem('mundok-v3/docs', JSON.stringify([doc]));
+  storage.setItem('mundok-v3/session', JSON.stringify({ last: null, streak: { lastDate: '', count: 0, todayCards: 0 } }));
+  const before = await exported(t);
+  storage.clear();
+  await importUserData(file(before));
+  assert.deepEqual(loadUserDocs(), JSON.parse(JSON.stringify([doc])));
+  assert.deepEqual(getHyeonto(loadUserDocs()[0].levels.sentence[0]), { original: '甲', marks: [{ offset: 1, text: '은' }] });
+  const after = await exported(t);
+  assert.deepEqual(withoutExportTime(after), withoutExportTime(before));
+});

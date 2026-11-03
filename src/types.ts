@@ -1,6 +1,5 @@
-export type Screen = 'home' | 'level' | 'study';
+export type Screen = 'home' | 'document' | 'level' | 'study';
 export type Mode   = 'seq' | 'anki';
-export type Side   = 'front' | 'back' | 'result';
 
 export interface Card {
   id: string;
@@ -9,6 +8,7 @@ export interface Card {
   back: string;
   note: string;
   fail_count: number;
+  hyeonto?: HyeontoData;
   interp?: InterpChunk[];   // 해석 순서 청크 (sentence 전용) — 배열 순서 = 해석 순서
 }
 
@@ -113,6 +113,7 @@ export type ReviewEvent =
 
 export interface LastSession {
   docId: string;
+  cardId?: string; // stable resume position; absent in legacy backups
   lvKey: LevelKey;
   mode:  Mode;
   idx:   number;   // seq: 현재 카드 인덱스 / anki: 완료 장수 (표시용)
@@ -135,7 +136,26 @@ export interface PrefsData {
 // ── 문헌별 JSON 콘텐츠 스키마 (CSV + userdata.json 통합본) ──────────────
 //   src/data/<문헌>.json 의 형태. 안정적 카드 id를 1급 시민으로 갖는다.
 
+export interface BlockReference {
+  id: string;
+  sourceId: string;
+  text: string;
+  reading: string;
+  meaning: string;
+  note: string;
+  grammar: GrammarAnnotation[];
+  interp: InterpChunk[];
+  needsReview: boolean;
+  spans: { start: number; end: number }[];
+}
+export interface HyeontoMark { offset: number; text: string }
+export interface HyeontoData { original: string; marks: HyeontoMark[] }
+
 export interface CardJSON {
+  hyeonto?: HyeontoData;
+  blockReferences?: BlockReference[];
+  blockDerived?: { text: string; meaning: string; note: string; grammar?: GrammarAnnotation[]; interp?: InterpChunk[] };
+
   id:      string;   // 문헌 내 안정 id (c1/w1/s1/p1...). 텍스트와 무관하게 영구 불변.
   text:    string;   // 앞면 (= Card.front)
   reading: string;
@@ -149,6 +169,8 @@ export interface CardJSON {
 }
 
 export interface DocJSON {
+  sentenceLayoutEdited?: boolean; // Preserve user sentence order across catalog updates.
+
   id:     string;    // = 파일명 (기존 docId·localStorage 키 호환)
   schemaVersion?: number;  // 데이터 모델 버전 — v2 쓰기 경로가 3을 스탬프. 부재 = v1 산출물 (SPEC 2.3)
   title:  string;

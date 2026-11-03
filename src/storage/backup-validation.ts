@@ -1,3 +1,6 @@
+import { composeHyeonto } from '../sentence-blocks.ts';
+import type { HyeontoData } from '../types.ts';
+
 /** Backup preflight is pure: reject damaged values before any storage mutation. */
 type ObjectValue = Record<string, unknown>;
 const levels = ['char', 'word', 'sentence', 'paragraph'];
@@ -35,6 +38,29 @@ function card(v: unknown, p: string): ObjectValue {
   id(c.id, `${p}.id`); fields(c, ['text', 'reading', 'meaning', 'note'], p);
   if (c.grammar !== undefined) ranges(c.grammar, `${p}.grammar`, c.text as string, true);
   if (c.interp !== undefined) ranges(c.interp, `${p}.interp`, c.text as string);
+  if (c.hyeonto !== undefined) {
+    // A raw-text edit may leave an inactive snapshot. Validate its own structure,
+    // not equality with current text; getHyeonto gates use by exact reconstruction.
+    try { composeHyeonto(c.hyeonto as HyeontoData); }
+    catch { check(false, `${p}.hyeonto`); }
+  }
+  if (c.blockDerived !== undefined) {
+    const derived = object(c.blockDerived, `${p}.blockDerived`);
+    fields(derived, ['text', 'meaning', 'note'], `${p}.blockDerived`);
+    if (derived.grammar !== undefined) ranges(derived.grammar, `${p}.blockDerived.grammar`, derived.text as string, true);
+    if (derived.interp !== undefined) ranges(derived.interp, `${p}.blockDerived.interp`, derived.text as string);
+  }
+  if (c.blockReferences !== undefined) {
+    const anchor = c.blockDerived === undefined ? c.text : object(c.blockDerived, p).text;
+    array(c.blockReferences, `${p}.blockReferences`).forEach(raw => {
+      const ref = object(raw, `${p}.blockReferences`);
+      fields(ref, ['id', 'sourceId', 'text', 'reading', 'meaning', 'note'], `${p}.blockReferences`);
+      check(typeof ref.needsReview === 'boolean', `${p}.blockReferences.needsReview`);
+      ranges(ref.grammar, `${p}.blockReferences.grammar`, ref.text as string, true);
+      ranges(ref.interp, `${p}.blockReferences.interp`, ref.text as string);
+      ranges(ref.spans, `${p}.blockReferences.spans`, anchor as string);
+    });
+  }
   optional(c, 'drill', p, strings); optional(c, 'editedAt', p, number);
   if (c.status !== undefined) check(c.status === 'draft', `${p}.status`);
   return c;
@@ -45,6 +71,7 @@ function docs(v: unknown, p: string): void {
     const d = object(raw, p);
     id(d.id, `${p}.id`); check(!docIds.has(d.id), `${p}: 중복 문헌 ID`); docIds.add(d.id);
     fields(d, ['title', 'sub'], p);
+    if (d.sentenceLayoutEdited !== undefined) check(typeof d.sentenceLayoutEdited === 'boolean', `${p}.sentenceLayoutEdited`);
     for (const k of ['color', 'updatedAt']) optional(d, k, p, string);
     for (const k of ['order', 'schemaVersion', 'version']) optional(d, k, p, number);
     if (d.source !== undefined) {
@@ -80,6 +107,7 @@ function last(v: unknown, p: string): void {
   if (v === null) return;
   const s = object(v, p);
   id(s.docId, `${p}.docId`); level(s.lvKey, `${p}.lvKey`);
+  if (s.cardId !== undefined) id(s.cardId, `${p}.cardId`);
   check(s.mode === 'seq' || s.mode === 'anki', `${p}.mode`);
   count(s.idx, `${p}.idx`); count(s.total, `${p}.total`); number(s.ts, `${p}.ts`);
 }
