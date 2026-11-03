@@ -65,10 +65,11 @@ export function openHyeonto(cardId: string): void {
   const card = loadUserDocs().find(doc => doc.id === S.docId)?.levels.sentence?.find(item => item.id === cardId);
   if (!card) return;
   const confirmed = getHyeonto(card);
-  const baseline = confirmed ?? suggestHyeonto(card);
+  const suggestion = confirmed ?? suggestHyeonto(card);
+  const baseline: HyeontoData = confirmed ?? { ...suggestion, marks: suggestion.marks.map(mark => ({ ...mark, unconfirmed: true })) };
   edit = {
     docId: S.docId, cardId, baseline: clone(baseline), draft: clone(baseline), snapshot: JSON.stringify(card),
-    active: null, legacy: !confirmed && baseline.marks.length > 0,
+    active: null, legacy: baseline.marks.some(mark => mark.unconfirmed),
     returnFocus: document.activeElement instanceof HTMLElement ? document.activeElement : null,
   };
   composing = false;
@@ -96,7 +97,7 @@ function renderEditor(): void {
     return `<span class="hy-unit">${original}${token}</span>`;
   }).join('');
   const keep = $<HTMLButtonElement>('hy-keep');
-  const candidate = edit.baseline.marks.find(mark => mark.offset === active);
+  const candidate = edit.baseline.marks.find(mark => mark.offset === active && mark.unconfirmed);
   keep.hidden = !legacy || !candidate;
   keep.textContent = candidate ? `‘${candidate.text}’ 원문에 남기기` : '원문에 남기기';
 }
@@ -112,7 +113,7 @@ function closeEditor(): void {
 function keepOriginal(): void {
   if (!edit || edit.active === null) return;
   const offset = edit.active;
-  const mark = edit.baseline.marks.find(item => item.offset === offset);
+  const mark = edit.baseline.marks.find(item => item.offset === offset && item.unconfirmed);
   if (!mark) return;
   const fold = (data: HyeontoData): HyeontoData => {
     const chars = [...data.original];

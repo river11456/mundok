@@ -47,7 +47,7 @@
 - Keep the existing cool-gray background, white surfaces, blue actions, WenKai Han text, and library navigation. No separate sidebar or new visual identity.
 - Show the document as a continuous readable body. Block controls stay quiet; selection exposes **문장으로 지정**, and each block opens the existing sentence learning screen.
 - Support merge of adjacent selected blocks, handle-based reorder (including keyboard arrows), add, and undo. Do not unfold old annotations under the body; meaning and notes stay on the first fragment after splitting.
-- Render confirmed hyeonto on the Han baseline in Pretendard / Noto Sans KR / sans-serif, at **70%** of the Han size, weight **400**, color **#626873**, with restrained inline spacing. Keep Han font and layout unchanged.
+- Render confirmed hyeonto and unconfirmed legacy candidates identically on the Han baseline in Pretendard / Noto Sans KR / sans-serif, at **70%** of the Han size, weight **400**, color **#626873**, with restrained inline spacing. Keep Han font and layout unchanged. Candidate styling does not confirm or mutate stored text; explicitly retained original text keeps its original styling.
 - Hyeonto editing selects the preceding Han and shows an inline input. Existing Hangul is a reviewable candidate with **원문에 남기기**, not an automatic data migration. Hide/show applies to reading surfaces; range editing keeps all source positions visible.
 - Document management remains a secondary action for metadata, export, references, and existing material. Word/character learning remains available as supporting material and drilldown.
 

@@ -267,7 +267,8 @@ test('hyeonto suggestions preserve exact mixed text and require explicit confirm
   ] });
   assert.equal(composeHyeonto(data), original.text);
   assert.equal(getHyeonto(original), null);
-  assert.deepEqual(hyeontoSegments(original), [{ text: original.text, kind: 'original' }]);
+  assert.equal(hyeontoSegments(original).map(part => part.text).join(''), original.text);
+  assert.deepEqual(hyeontoSegments(original).filter(part => part.kind === 'hyeonto').map(part => part.text), ['하고', '에', '라']);
   const confirmed = setHyeonto(original, data);
   assert.equal(confirmed.text, original.text);
   assert.deepEqual(getHyeonto(confirmed), data);
@@ -320,13 +321,13 @@ test('hyeonto split snaps before or within a mark to keep it with its preceding 
   assert.throws(() => designateRange([original], { id: 'h', offset: 1 }, { id: 'h', offset: 2 }));
 });
 
-test('merge preserves unclassified Korean and shifts only confirmed hyeonto offsets', () => {
+test('merge preserves candidate display without confirming inferred hyeonto', () => {
   const left = card('a', '설명 學은 ');
   const right = setHyeonto(card('b', '𠀀하고乙'), { original: '𠀀乙', marks: [{ offset: 1, text: '하고' }] });
   const result = mergeBlocks([left, right], ['a', 'b'])[0];
   assert.equal(result.text, '설명 學은 𠀀하고乙');
-  assert.deepEqual(getHyeonto(result), { original: '설명 學은 𠀀乙', marks: [{ offset: 7, text: '하고' }] });
-  assert.deepEqual(hyeontoSegments(result).filter(part => part.kind === 'hyeonto').map(part => part.text), ['하고']);
+  assert.deepEqual(getHyeonto(result), { original: '설명 學 𠀀乙', marks: [{ offset: 4, text: '은', unconfirmed: true }, { offset: 6, text: '하고' }] });
+  assert.deepEqual(hyeontoSegments(result).filter(part => part.kind === 'hyeonto').map(part => part.text), ['은', '하고']);
 });
 
 test('hyeonto metadata survives JSON storage but external source editing invalidates its use', () => {
@@ -336,7 +337,8 @@ test('hyeonto metadata survives JSON storage but external source editing invalid
   const edited = { ...loaded, text: '學은時習', reading: '학은시습' };
   assert.equal(getHyeonto(edited), null);
   assert.deepEqual(edited.hyeonto, original.hyeonto);
-  assert.deepEqual(hyeontoSegments(edited), [{ text: edited.text, kind: 'original' }]);
+  assert.equal(hyeontoSegments(edited).map(part => part.text).join(''), edited.text);
+  assert.deepEqual(hyeontoSegments(edited).filter(part => part.kind === 'hyeonto').map(part => part.text), ['은']);
   const reconfirmed = setHyeonto(edited, suggestHyeonto(edited));
   assert.equal(composeHyeonto(getHyeonto(reconfirmed)), edited.text);
 });
@@ -499,3 +501,45 @@ test('raw source shortening archives ranges, keeps meaning and leaves valid reco
   assert.ok(saved.blockReferences.some(ref => ref.text === original.text && ref.grammar.length && ref.interp.length));
   replaceSentenceCards('doc', [saved], JSON.stringify([saved])); // shared backup validation accepts the archived state
 }));
+
+
+test('legacy and confirmed hyeonto share display segments while explicit original text stays original', () => {
+  const legacy = card('h', '설명 學而時習之면 不亦說乎아', '');
+  const snapshot = JSON.stringify(legacy);
+  const confirmed = setHyeonto(legacy, suggestHyeonto(legacy));
+  assert.deepEqual(hyeontoSegments(legacy), hyeontoSegments(confirmed));
+  assert.equal(JSON.stringify(legacy), snapshot);
+  assert.equal(getHyeonto(legacy), null);
+  const kept = setHyeonto(legacy, {
+    original: '설명 學而時習之면 不亦說乎', marks: [{ offset: [...'설명 學而時習之면 不亦說乎'].length, text: '아' }],
+  });
+  assert.deepEqual(hyeontoSegments(kept).filter(part => part.kind === 'hyeonto').map(part => part.text), ['아']);
+  assert.ok(hyeontoSegments(kept).some(part => part.kind === 'original' && part.text.includes('면')));
+});
+
+
+test('legacy candidate split snaps the whole mark to preceding Han without confirming it', () => {
+  const source = card('legacy', '甲하고乙이라');
+  for (const offset of [1, 2, 3]) {
+    const pieces = designateRange([source], { id: source.id, offset: 0 }, { id: source.id, offset });
+    assert.deepEqual(pieces.map(piece => piece.text), ['甲하고', '乙이라']);
+    assert.ok(pieces.every(piece => piece.hyeonto === undefined));
+    assert.deepEqual(pieces.map(piece => hyeontoSegments(piece).filter(segment => segment.kind === 'hyeonto').map(segment => segment.text)), [['하고'], ['이라']]);
+  }
+});
+
+test('mixed candidate metadata survives split and JSON; explicit confirmation clears markers and keeps original exclusions', () => {
+  const kept = setHyeonto(card('kept', '甲면乙아'), { original: '甲면乙', marks: [{ offset: 3, text: '아' }] });
+  const legacy = card('legacy', '丙하고丁');
+  const merged = mergeBlocks([kept, legacy], ['kept', 'legacy'])[0];
+  assert.deepEqual(getHyeonto(merged), { original: '甲면乙丙丁', marks: [{ offset: 3, text: '아' }, { offset: 4, text: '하고', unconfirmed: true }] });
+  const loaded = JSON.parse(JSON.stringify(merged));
+  assert.deepEqual(getHyeonto(loaded), getHyeonto(merged));
+  const split = designateRange([loaded], { id: loaded.id, offset: 0 }, { id: loaded.id, offset: 5 });
+  assert.deepEqual(split.map(piece => piece.text), ['甲면乙아丙하고', '丁']);
+  assert.equal(getHyeonto(split[0]).marks[1].unconfirmed, true);
+  assert.ok(hyeontoSegments(split[0]).some(segment => segment.kind === 'original' && segment.text.includes('면')));
+  const confirmed = setHyeonto(loaded, getHyeonto(loaded));
+  assert.ok(getHyeonto(confirmed).marks.every(mark => mark.unconfirmed === undefined));
+  assert.equal(confirmed.text, loaded.text);
+});

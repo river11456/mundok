@@ -13,9 +13,9 @@ function checkedHyeonto(data: HyeontoData): HyeontoData {
   const marks = data.marks.map(mark => {
     if (!mark || !Number.isInteger(mark.offset) || mark.offset < 1 || mark.offset > original.length
       || !isHan(original[mark.offset - 1]) || typeof mark.text !== 'string' || !hangul.test(mark.text)
-      || offsets.has(mark.offset)) throw new Error('현토는 한자 뒤에 한글로 입력하세요.');
+      || (mark.unconfirmed !== undefined && mark.unconfirmed !== true) || offsets.has(mark.offset)) throw new Error('현토는 한자 뒤에 한글로 입력하세요.');
     offsets.add(mark.offset);
-    return { offset: mark.offset, text: mark.text };
+    return { offset: mark.offset, text: mark.text, ...(mark.unconfirmed ? { unconfirmed: true as const } : {}) };
   }).sort((a, b) => a.offset - b.offset);
   return { original: data.original, marks };
 }
@@ -70,9 +70,9 @@ export function suggestHyeonto(card: CardJSON): HyeontoData {
   return { original: original.join(''), marks };
 }
 
+/** Display legacy candidates consistently without confirming or changing stored text. */
 export function hyeontoSegments(card: CardJSON): { text: string; kind: 'original' | 'hyeonto' }[] {
-  const data = getHyeonto(card);
-  if (!data) return [{ text: card.text, kind: 'original' }];
+  const data = getHyeonto(card) ?? suggestHyeonto(card);
   const layout = hyeontoLayout(data);
   const chars = [...card.text];
   const segments: { text: string; kind: 'original' | 'hyeonto' }[] = [];
@@ -88,7 +88,8 @@ export function hyeontoSegments(card: CardJSON): { text: string; kind: 'original
 
 /** The optional baseline is the user-reviewed separation before editing its marks. */
 export function setHyeonto(card: CardJSON, input: HyeontoData, baseline?: HyeontoData): CardJSON {
-  const data = checkedHyeonto(input);
+  const checked = checkedHyeonto(input);
+  const data: HyeontoData = { original: checked.original, marks: checked.marks.map(({ offset, text }) => ({ offset, text })) };
   const next = hyeontoLayout(data);
   if (next.text === card.text) return { ...card, hyeonto: data, editedAt: Date.now() };
   const oldData = baseline ?? getHyeonto(card)
@@ -153,13 +154,14 @@ export function setHyeonto(card: CardJSON, input: HyeontoData, baseline?: Hyeont
 }
 
 function snapHyeonto(card: CardJSON, offset: number): number {
-  const data = getHyeonto(card);
-  return data ? hyeontoLayout(data).spans.find(span => offset >= span.start && offset < span.end)?.end ?? offset : offset;
+  const data = getHyeonto(card) ?? suggestHyeonto(card);
+  return hyeontoLayout(data).spans.find(span => offset >= span.start && offset < span.end)?.end ?? offset;
 }
 
 function pieceHyeonto({ card, start, end }: Piece): HyeontoData {
-  const data = getHyeonto(card);
-  if (!data) return { original: [...card.text].slice(start, end).join(''), marks: [] };
+  const active = getHyeonto(card);
+  const suggested = active ?? suggestHyeonto(card);
+  const data: HyeontoData = active ?? { ...suggested, marks: suggested.marks.map(mark => ({ ...mark, unconfirmed: true })) };
   const layout = hyeontoLayout(data);
   const source = [...data.original];
   const original: string[] = [];
@@ -168,7 +170,7 @@ function pieceHyeonto({ card, start, end }: Piece): HyeontoData {
     if (index < start || index >= end) return;
     original.push(source[i]);
     const mark = layout.spans.find(span => span.offset === i + 1);
-    if (mark && mark.start >= start && mark.end <= end) marks.push({ offset: original.length, text: mark.text });
+    if (mark && mark.start >= start && mark.end <= end) marks.push({ ...data.marks.find(value => value.offset === i + 1)!, offset: original.length });
   });
   return { original: original.join(''), marks };
 }

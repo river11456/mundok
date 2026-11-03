@@ -161,6 +161,8 @@ for (const [name, mutate] of [
   ['particle anchor outside original', c => c.hyeonto.marks[0].offset = 3],
   ['particle attached to non-Han', c => c.hyeonto.original = '한乙'],
   ['non-Hangul particle', c => c.hyeonto.marks[0].text = '<script>'],
+  ['invalid candidate flag', c => c.hyeonto.marks[0].unconfirmed = false],
+  ['non-boolean candidate flag', c => c.hyeonto.marks[0].unconfirmed = 'true'],
   ['duplicate particle anchors', c => c.hyeonto.marks.push({ offset: 1, text: '이' })],
   ['historical grammar out of bounds', c => c.blockReferences[0].grammar[0].end = 10000],
   ['current reference spans out of bounds', c => c.blockReferences[0].spans[0].end = 10000],
@@ -187,4 +189,12 @@ test('last session accepts stable card IDs and rejects invalid values while reta
   assert.throws(() => validateBackup(backup), /cardId/);
   delete backup.progress.session.last.cardId;
   assert.doesNotThrow(() => validateBackup(backup));
+});
+
+test('candidate marks remain unconfirmed through backup validation', () => {
+  const backup = annotatedBackup();
+  backup.content.docs[0].levels.sentence[0].hyeonto.marks[0].unconfirmed = true;
+  const copy = structuredClone(backup);
+  validateBackup(backup);
+  assert.deepEqual(backup, copy);
 });

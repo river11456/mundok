@@ -148,7 +148,7 @@ export interface BlockReference {
   needsReview: boolean;
   spans: { start: number; end: number }[];
 }
-export interface HyeontoMark { offset: number; text: string }
+export interface HyeontoMark { offset: number; text: string; unconfirmed?: true }
 export interface HyeontoData { original: string; marks: HyeontoMark[] }
 
 export interface CardJSON {
