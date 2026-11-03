@@ -39,7 +39,7 @@ function selectable(): boolean {
 }
 
 function frontText(): string {
-  const card = S.mode === 'seq' ? S.lv?.cards[S.seqIdx] : S.queue[0];
+  const card = S.lv?.cards[S.seqIdx];
   return card?.front ?? '';
 }
 

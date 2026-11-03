@@ -2,7 +2,9 @@ import './style.css';
 import { render } from './render';
 import { initShortcutHelp } from './shortcut-help';
 import { initOnboarding } from './onboarding';
-import { setupClick, setupKeyboard } from './events';
+import { setupDocumentEditor } from './document-editor';
+import { initHyeontoEditor } from './hyeonto-editor';
+import { setupClick, setupKeyboard, openSentence } from './events';
 import { initAddCard } from './addcard';
 import { initCellSelect } from './cell-select';
 import { initDocCreate } from './doc-create';
@@ -42,6 +44,8 @@ async function init() {
   initShortcutHelp();
   initOnboarding();
   initBackup();            // 정적 모드에서만 백업 FAB 노출
+  setupDocumentEditor({ render, openSentence });
+  initHyeontoEditor({ render });
   setupClick();
   setupKeyboard();
   render();

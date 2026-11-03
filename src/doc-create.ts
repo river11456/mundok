@@ -137,7 +137,7 @@ async function finalize(): Promise<void> {
       if (placed !== collections) saveCollections(placed);
       hide();
       syncUserDocs();
-      S.docOverlay = id;   // 새 문헌 상세를 바로 열어 다음 행동(본문 추가·학습) 유도
+      S.docId = id; S.docOverlay = null; S.scr = 'document'; S.mode = null; S.lv = null; S.navStack = [];
       render();
     }
   } catch (e) {

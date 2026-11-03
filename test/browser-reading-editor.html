@@ -47,7 +47,7 @@ function reloadCard(id, type = 'sentence') {
   assert(doc, '저장 문헌 없음');
   S.docId = docId;
   S.lv = doc.levels.find(level => level.key === type);
-  S.allCards = S.lv.cards;
+
   S.scr = 'home';
   return S.lv.cards.find(card => card.id === id);
 }

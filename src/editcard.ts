@@ -20,6 +20,19 @@ function $<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
 }
 
+/** Reload active annotations and hyeonto too after a source-text edit. */
+function refreshEditedDocument(docId: string): void {
+  syncUserDocs();
+  if (S.docId !== docId) return;
+  const doc = DOCS.find(item => item.id === docId);
+  if (!doc) return;
+  if (S.lv) S.lv = doc.levels.find(level => level.key === S.lv!.key) ?? null;
+  S.navStack = S.navStack.flatMap(frame => {
+    const level = doc.levels.find(item => item.key === frame.lv.key);
+    return level ? [{ ...frame, lv: level, seqIdx: Math.min(frame.seqIdx, level.cards.length - 1) }] : [];
+  });
+}
+
 function hideModal(): void {
   $('ec-overlay').classList.add('hidden');
   editModalSession++;
@@ -188,7 +201,6 @@ export function resumeCardDraft(key: string): void {
     S.docId = draft.docId;
     if (card && level) {
       S.lv = level;
-      S.allCards = level.cards;
       showEditModal(card, draft.type);
     } else {
       const baseline = draft.baseline;
@@ -619,17 +631,7 @@ async function submitEdit(): Promise<void> {
     const coTargets   = textChanged ? findCoEditTargets(origFront, type) : [];
 
     await store().editCard({ docId, type: type as LevelKey, id: origId, origText: origFront, text, reading, meaning: back, note });
-    const patch = (c: Card) => {
-      if (c.id === origId) {
-        c.front = text; c.reading = reading; c.back = back; c.note = note;
-      }
-    };
-    DOCS.find(d => d.id === docId)?.levels.find(l => l.key === type)?.cards.forEach(patch);
-    if (S.docId === docId) {
-      S.lv?.cards.forEach(patch);
-      S.allCards.forEach(patch);
-      S.queue.forEach(patch);
-    }
+    refreshEditedDocument(docId);
     if (session !== editModalSession) return;
     activeDraft = { ...activeDraft!, baseline: intended };
     if (submittedContent !== JSON.stringify(draftContent())) {
@@ -763,9 +765,8 @@ async function applyCoEdit(): Promise<void> {
       });
       t.card.front = newFront;                                                  // DOCS(및 동일레벨 S.lv.cards) 갱신
       t.card.reading = reading;
-      const inAll = S.allCards.find(c => c.id === t.card.id); if (inAll) { inAll.front = newFront; inAll.reading = reading; }
-      const inQ   = S.queue.find(c => c.id === t.card.id);    if (inQ) { inQ.front = newFront; inQ.reading = reading; }
     }
+    refreshEditedDocument(docId);
     hideCoEditModal();
     render();
   } catch (e) {

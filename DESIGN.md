@@ -1,6 +1,6 @@
 # Design
 
-> UI·상호작용 기준 문서다. **2026-11-02, 3.2.0 출시 준비 코드**의 초안 보관 동작을 반영했으며 배포 완료를 뜻하지 않는다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
+> UI·상호작용 기준 문서다. **2026-11-03, 4.0.0 출시 준비 코드**의 문장 블록·현토 통합을 반영했으며 배포 완료를 뜻하지 않는다. 현행 기능·데이터 계약은 [SPEC.md](SPEC.md), 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 검증·변경 절차는 [PROCESS.md](PROCESS.md)를 따른다.
 > 아래 원칙과 접근성·반응형·오류 상태 요구는 구현·리뷰 기준이며, 모든 대상 기기의 검증 완료 선언이 아니다. 실제 기기·PWA·복원 근거는 [#5](https://github.com/river11456/mundok/issues/5)에서 확보한다.
 
 ## Current implementation and follow-up
@@ -12,16 +12,17 @@
 | 작성 중 초안 | 기존 카드 수정의 임시 저장 상태·홈 이어쓰기·파일 보관·확인 후 버리기 | 정식 반영은 저장 버튼. 카드 추가·문헌 생성·본문 추가·정보 수정은 후속 범위([#26](https://github.com/river11456/mundok/issues/26)) |
 | 한자 도움 | 내장 사전의 대표·대체 후보, 빈 값 보강, 기존 값 보존, Daum 확인 링크 구현 | 사전 제안이 정답 보증은 아니며 수동 입력·확인을 유지 |
 | 꾸미기·탐색 확장 | color/icon은 예약 필드, 사용자 편집 UI 없음 | 검색·정렬·목록·드래그 이동과 함께 [#9](https://github.com/river11456/mundok/issues/9) 후보 |
-| 학습 요약 | 홈 연속 학습·결과 화면의 오늘 학습과 오답 요약 | 별도 장기 통계 대시보드는 없음 |
+| 본문·문장 복습 | 문장 블록 지정·합치기·이동·추가·실행 취소, 문장 클릭 학습과 순차 복습 | 안키 평가·결과 화면 제거. 과거 로그·백업 읽기 유지 |
+| 현토 | 원문과 별도 저장, 한자 뒤 입력·후보 확인·표시 전환 | 기존 한글을 자동 확정하지 않음. 본문·문장 화면에서 같은 표시 규칙 적용 |
 
 8/1의 열린 선반·폴더 진입형 기각은 9/3 폴더 라이브러리 전환으로 대체됐다. 현재 제한을 장기 디자인 정책으로 고정하지 않는다.
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-11-02
+- Last refreshed: 2026-11-03
 - Primary product surfaces:
   - Home library and folder navigation
-  - Document detail overlay
+  - Document body and secondary management overlay
   - Shelf/folder creation and move dialogs
   - Sentence learning editor for one card at a time
   - Character add/edit dictionary-assist surfaces
@@ -41,6 +42,15 @@
   - [글자 셀 표시 기준](design/char-cell.md): current R1–R9 rendering and selection contracts
   - `.omx/` material is historical supporting context; current requirements are recorded here and in linked Issues.
 
+## Sentence body and hyeonto (#30)
+
+- Keep the existing cool-gray background, white surfaces, blue actions, WenKai Han text, and library navigation. No separate sidebar or new visual identity.
+- Show the document as a continuous readable body. Block controls stay quiet; selection exposes **문장으로 지정**, and each block opens the existing sentence learning screen.
+- Support merge of adjacent selected blocks, handle-based reorder (including keyboard arrows), add, and undo. Do not unfold old annotations under the body; meaning and notes stay on the first fragment after splitting.
+- Render confirmed hyeonto and unconfirmed legacy candidates identically on the Han baseline in Pretendard / Noto Sans KR / sans-serif, at **70%** of the Han size, weight **400**, color **#626873**, with restrained inline spacing. Keep Han font and layout unchanged. Candidate styling does not confirm or mutate stored text; explicitly retained original text keeps its original styling.
+- Hyeonto editing selects the preceding Han and shows an inline input. Existing Hangul is a reviewable candidate with **원문에 남기기**, not an automatic data migration. Hide/show applies to reading surfaces; range editing keeps all source positions visible.
+- Document management remains a secondary action for metadata, export, references, and existing material. Word/character learning remains available as supporting material and drilldown.
+
 ## Brand
 - Personality: quiet study tool, polished native-library feel, learned but not ornate
 - Trust signals: stable document organization, recoverable-feeling movement, clear current location, explicit learning state, no silent overwrite of learner-authored content
@@ -56,8 +66,8 @@
 - Non-goals:
   - Do not clone GoodNotes visual assets or exact UI.
   - Do not introduce account sync or backend storage in this change.
-  - Do not redesign flash-card sequence or Anki review behavior as part of the editor overhaul.
-  - Do not change grammar annotation editing, interpretation-order editing, paragraph-wide editing, or document-wide editing in the first pass.
+  - Anki review is removed; preserve historic records without exposing its former rating flow.
+  - Keep existing grammar and interpretation-order tools; paragraph-wide editing is outside this change.
   - Do not silently overwrite user-authored reading, meaning, explanation, note, or review data.
   - Do not depend on unsupported scraping of a consumer dictionary page as a production source.
 - Success signals:
@@ -86,14 +96,14 @@
 - Primary navigation:
   - Home library at root folder
   - Folder drill-in with breadcrumbs for ancestors
-  - Document detail overlay for a selected document
+  - Document body and secondary management overlay for a selected document
   - Study/review routes remain distinct from the learning editor
 - Core routes/screens:
-  - `home`, `level`, and `study` remain the main screens.
+  - `home`, `document`, `level`, and `study` are the main screens.
   - Folder path is home-state, not a new screen type unless implementation evidence proves otherwise.
   - Sentence editing uses a large modal and a full-height sheet at the phone breakpoint. Keep sentence context available during character lookup, reading entry, and interpretation writing.
 - Content hierarchy:
-  - Library root -> folder -> optional subfolder -> documents -> document detail overlay -> study/review modes
+  - Library root -> folder -> optional subfolder -> documents -> full body -> sentence learning/review
   - Sentence learning workspace -> original sentence -> character investigation -> per-character reading -> interpretation/explanation -> existing card fields
   - Existing deeper imported folder data remains representable and navigable. Current creation entry points limit depth to 2; removing that UI limit to match the agreed nesting goal is tracked in [#4](https://github.com/river11456/mundok/issues/4).
 
@@ -105,7 +115,7 @@
 - Principle 5: Suggestions are provisional. Dictionary values help fill blanks, but the learner or existing user data stays authoritative.
 - Principle 6: Partial reading is progress. Missing cells, accepted suggestions, and overflow/unmapped input should be legible without treating normal typing as failure.
 - Principle 7: Reading has one surface. Sentence cards show only the per-Han reading cells; bulk entry happens inside that surface by pasting into cells or asking local card/dictionary data to fill blank cells, rather than exposing a duplicate full-reading field.
-- Principle 8: The document detail overlay is a learning/review launch point, not a statistics dashboard. Keep the primary choice visible and progressively disclose references, management, and destructive actions.
+- Principle 8: The document body is the primary learning launch point. Keep sentence selection and review visible; references, export, and destructive actions belong in the secondary document management overlay.
 - Tradeoffs:
   - GoodNotes-like nested folders add data migration and move-dialog complexity; defer drag/drop until click/tap movement is solid.
   - Per-character reading cells are heavier than a single reading input, so preserve full-reading paste and bulk suggestion acceptance to keep batch entry fast.
@@ -145,7 +155,7 @@
 - New/changed components:
   - Folder-shaped tile whose full silhouette is the open target
   - Breadcrumb bar for root and nested folder locations
-  - Compact document launch overlay with primary learning/review actions and collapsed reference/management sections
+  - Continuous document body with quiet block controls and a secondary management overlay
   - Library toolbar with one Add button and an anchored three-action menu: New Folder, New Document, Get Document
   - Move destination sheet that shows nested paths
   - Folder actions for rename and content-preserving delete
@@ -286,19 +296,19 @@
   - Collection tree unit tests and migration tests for library changes.
   - Dictionary merge tests for blank-only filling, existing complete card preservation, incomplete-card enrichment, duplicate avoidance, and multiple candidates.
   - Reading editor tests for partial alignment, suggestion/confirmation state, full-reading paste distribution, and Korean IME-safe navigation.
-  - Regression tests for saved-card rendering in sequence and Anki review modes.
+  - Regression tests for sentence-block operations, hyeonto coordinates, sequential review, and reading historic Anki data.
   - `npm test`, `npm run build`, and at least desktop/mobile visual smoke after implementation.
 
 ## Recorded decisions
 
 These are decisions about scope, not a completed-test checklist. Service audience, support environments, data preservation, and support ownership remain open in [ROADMAP.md](ROADMAP.md).
 - [x] First pass reserves folder `color`/`icon` fields only; customization UI is a [#9](https://github.com/river11456/mundok/issues/9) candidate.
-- [x] Search, sort, list view, and drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.
+- [x] Library search, sort, list view, and document drag/drop are [#9](https://github.com/river11456/mundok/issues/9) candidates.
 - [x] Deleting a folder preserves content by promoting its documents and child folders to the deleted folder's parent or root.
 - [x] A document created while browsing a folder is automatically placed in that folder.
 - [x] Folder visuals use the whole tabbed folder silhouette as the interactive surface; no folder icon inside a generic rectangular card.
 - [x] New Folder, New Document, and Get Document share one contextual Add menu in the library toolbar.
-- [x] First editor pass focuses on sentence cards, not paragraph/document-level authoring.
+- [x] Sentence blocks are the primary authoring unit within the full document body.
 - [x] Flash-card review remains the review surface; the editor becomes the learning surface.
 - [x] Dictionary assistance fills or suggests only empty fields and never overwrites user-authored values.
 - [x] Daum dictionary is an external verification link, not a production scrape dependency.

@@ -1,3 +1,4 @@
+import { sessionCardIndex } from './session-position';
 import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession } from './state';
 import { homeDocs, shelvesForHome, refsOf, docColor, type HomeFolder } from './docs';
 import { resetCellSelect } from './cell-select';
@@ -6,7 +7,8 @@ import { getAnnotations } from './grammar';
 import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match';
 import { alignReading } from './reading-align';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
-import { renderResult } from './result-screen';
+import { documentEditorBeforeRender, renderDocumentEditor } from './document-editor';
+import { hyeontoIndices, renderHyeontoControls } from './hyeonto-editor';
 import { draftListHtml } from './draft-list';
 import type { Card, Doc, GrammarAnnotation } from './types';
 import { version } from '../package.json';
@@ -87,6 +89,7 @@ type FrontOpts = {
   /** 해석 순서 편집 — editMode 그리드가 SVO 대신 순번 배지를 그린다 */
   interpEdit?: boolean;
   interp?:     Card['interp'];
+  hyeonto?: Set<number>;
 };
 
 /** 셀 하나의 문법(SVO 배경·구절 테두리) 클래스 — 표시·편집 그리드가 공유 */
@@ -132,13 +135,13 @@ function renderFront(front: string, opts: FrontOpts): string {
         : (s?.svoType && s.isFirstSvo
             ? `<span class="text-[10px] font-bold leading-none select-none ${svoFg[s.svoType]}">${s.svoType}</span>`
             : hasAnyLabel ? `<span class="text-[10px] leading-none select-none invisible">_</span>` : '');
-      const rd = reads
+      const rd = reads && !opts.hyeonto?.has(i)
         ? `<span class="cc-rd-e ${reads[i] ? '' : 'invisible'}">${esc(reads[i] ?? '·')}</span>`
         : '';
       const chunkBg = ip ? ' bg-[rgba(46,124,246,.10)] rounded-sm' : '';
       return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)}${chunkBg} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}">
         ${badge}
-        <span class="hanja text-2xl leading-none pointer-events-none">${esc(ch)}</span>
+        <span class="hanja text-2xl leading-none pointer-events-none${opts.hyeonto?.has(i) ? ' hyeonto-token' : ''}">${esc(ch)}</span>
         ${rd}
       </span>`;
     }).join('');
@@ -161,8 +164,8 @@ function renderFront(front: string, opts: FrontOpts): string {
     const label = s?.svoType && s.isFirstSvo
       ? `<span class="cc-svo ${svoFg[s.svoType]}">${s.svoType}</span>`
       : '';
-    const rd = reads?.[i] ? `<span class="cc-rd">${esc(reads[i]!)}</span>` : '';
-    html += `<span class="cc${slotClasses(s)}" data-i="${i}">${esc(chars[i])}${label}${rd}</span>`;
+    const rd = reads?.[i] && !opts.hyeonto?.has(i) ? `<span class="cc-rd">${esc(reads[i]!)}</span>` : '';
+    html += `<span class="cc${slotClasses(s)}${opts.hyeonto?.has(i) ? ' hyeonto-token' : ''}" data-i="${i}">${esc(chars[i])}${label}${rd}</span>`;
   }
   if (curDrill !== null) html += '</span>';
   return html;
@@ -195,18 +198,19 @@ function grammarMenuBtn(): string {
 let _prevScr = '';
 
 export function render(): void {
+  documentEditorBeforeRender();
   stopInterpPlay();   // 셀이 재생성되므로 재생 타이머·상태 정리 (상호작용 = 재생 중단)
   resetCellSelect();
-  document.body.classList.toggle('anki-mode', S.mode === 'anki');
+  document.body.classList.toggle('document-view', S.scr === 'document');
   const entering = S.scr !== _prevScr;
   _prevScr = S.scr;
   switch (S.scr) {
     case 'home':  renderHome();           break;
-    case 'level': renderLevel();          break;
-    case 'study':
-      if (S.mode === 'seq') renderSeq(entering);
-      else renderAnki(entering);
+    case 'document':
+    case 'level':
+      $app().innerHTML = renderDocumentEditor() + (S.docOverlay ? docOverlayHtml(S.docOverlay) : '');
       break;
+    case 'study': renderSeq(entering); break;
   }
 }
 
@@ -253,6 +257,7 @@ function cardActions(lvKey?: string, card?: Card): string {
     </button>` : '';
   return `
   <div class="absolute top-4 right-4 flex gap-1 items-center">
+    ${lvKey === 'sentence' && card ? renderHyeontoControls(card.id) : ''}
     ${playBtn}
     <button data-action="edit-card" class="icon-btn" title="카드 수정" aria-label="카드 수정">
       <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
@@ -291,16 +296,18 @@ function heroHtml(): string {
   if (!last) return '';
   const doc = DOCS.find(d => d.id === last.docId);
   const lv  = doc?.levels.find(l => l.key === last.lvKey);
-  if (!doc || !lv) return '';
-  const modeLabel = last.mode === 'seq' ? '순차' : '안키';
-  const cur = last.mode === 'seq' ? Math.min(last.idx, lv.cards.length - 1) + 1 : last.idx;
+  if (!doc) return '';
+  const index = sessionCardIndex(last, lv?.cards ?? []);
+  const progress = index >= 0 && lv
+    ? `<span class="num">${index + 1} / ${lv.cards.length}</span> 진행`
+    : '문헌에서 이어보기';
   return `
     <div class="hero">
       <div class="hero-cover" style="--cbg:${docColor(doc)}"><span class="slip kai">${esc(doc.title)}</span></div>
       <div class="hero-main">
         <div class="hero-eyebrow">이어서 학습</div>
-        <div class="hero-title"><span class="kai hanja">${esc(doc.title)}</span> <span class="lv">· ${esc(lv.label)} · ${modeLabel}</span></div>
-        <div class="hero-sub">${heroWhen(last.ts)} 학습 · <span class="num">${cur} / ${last.total}</span> 진행</div>
+        <div class="hero-title"><span class="kai hanja">${esc(doc.title)}</span> <span class="lv">· ${esc(lv?.label ?? '본문')}</span></div>
+        <div class="hero-sub">${heroWhen(last.ts)} 학습 · ${progress}</div>
       </div>
       <button data-action="resume" class="hero-btn">이어하기</button>
     </div>`;
@@ -401,14 +408,13 @@ function docOverlayHtml(docId: string): string {
             <div class="detail-title kai hanja">${esc(d.title)}</div>
             <div class="detail-sub"><span class="num">총 ${docTotalCards(d)}장</span>${recent ? ` · 최근 학습 ${esc(recent)}` : ''}</div>
             <div class="detail-actions">
-              <button data-action="overlay-mode" data-arg="seq" class="btn-primary">순차 재생</button>
-              <button data-action="overlay-mode" data-arg="anki" class="btn-ghost">안키 모드</button>
+              <button data-action="document-review" class="btn-primary">문장 복습</button>
             </div>
           </div>
         </div>
       </div>
       <div class="detail-disclosures">
-        <details class="detail-disclosure">
+        <details class="detail-disclosure" open>
           <summary>문헌 관리</summary>
           <div class="detail-user-actions">
             <button data-action="doc-append" class="dua-btn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 2.6v8.8M2.6 7h8.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>본문 추가</button>
@@ -481,36 +487,6 @@ function renderHome(): void {
     ${S.docOverlay ? docOverlayHtml(S.docOverlay) : ''}`;
 }
 
-function renderLevel(): void {
-  const d = curDoc();
-  const modeLabel = S.mode === 'seq' ? '순차 재생' : '안키 모드';
-  const rows = d.levels.map((lv, i) => `
-    <button data-action="start-study" data-arg="${i}" class="tile w-full px-7 py-5">
-      <div class="flex items-center justify-between">
-        <div class="text-base font-bold t-ink">${esc(lv.label)}</div>
-        <div class="flex items-center gap-4">
-          <span class="text-sm t-sub num">${lv.cards.length}장</span>
-          <svg class="chev w-5 h-5 t-faint transition-colors" viewBox="0 0 16 16" fill="none">
-            <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-      </div>
-    </button>`).join('');
-
-  $app().innerHTML = `
-    <div class="screen-enter w-full max-w-lg flex flex-col gap-10">
-      <div class="flex items-center justify-between">
-        ${backBtn(d.title)}
-        ${homeBtn()}
-      </div>
-      <div class="text-center">
-        <div class="text-sm t-sub"><span class="hanja">${esc(d.title)}</span> · ${modeLabel}</div>
-        <div class="text-xl font-bold t-ink mt-1">단위 선택</div>
-      </div>
-      <div class="flex flex-col gap-3">${rows}</div>
-    </div>`;
-}
-
 function renderSeq(entering = false): void {
   const cards     = S.lv!.cards;
   const card      = cards[S.seqIdx];
@@ -522,7 +498,7 @@ function renderSeq(entering = false): void {
 
   const isSent = S.lv?.key === 'sentence';
   const isSentGrammar = isSent && S.grammarOn;
-  const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
+  const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.id) : [];
   const isChar = S.lv!.key === 'char';
   const reads  = isChar ? null : alignReading(card.front, card.reading);
   const rdOn   = S.seqFlipped && reads !== null;
@@ -533,6 +509,7 @@ function renderSeq(entering = false): void {
     editMode:     (isSentGrammar && S.grammarEditMode) || (isSent && S.interpEditMode),
     interpEdit:   isSent && S.interpEditMode,
     interp:       card.interp,
+    hyeonto: hyeontoIndices(card),
   });
 
   $app().innerHTML = `
@@ -567,70 +544,6 @@ function renderSeq(entering = false): void {
         <button data-action="seq-next" class="nav-btn" ${S.seqIdx === cards.length - 1 ? 'disabled' : ''}>
           다음 →
         </button>
-      </div>
-    </div>`;
-}
-
-function renderAnki(entering = false): void {
-  if (S.side === 'result') { renderResult(); return; }
-
-  const card = S.queue[0];
-  const done = S.total - S.queue.length;
-  const pct  = Math.round((done / S.total) * 100);
-  const d    = curDoc();
-
-  const ratingBtns = `
-    <div class="flex gap-3 w-full">
-      <button data-action="anki-rate" data-arg="1" class="rate-btn rate-hard"><span class="kb-only">1&nbsp;&nbsp;</span>어려움</button>
-      <button data-action="anki-rate" data-arg="2" class="rate-btn rate-mid"><span class="kb-only">2&nbsp;&nbsp;</span>보통</button>
-      <button data-action="anki-rate" data-arg="3" class="rate-btn rate-easy"><span class="kb-only">3&nbsp;&nbsp;</span>쉬움</button>
-    </div>`;
-
-  const cs = cardStyle(S.lv!.key);
-
-  const isSent = S.lv?.key === 'sentence';
-  const isSentGrammar   = isSent && S.grammarOn;
-  const sentAnnotations = isSentGrammar ? getAnnotations(S.docId!, card.front) : [];
-  const isFlipped       = S.side === 'back';
-  const isChar = S.lv!.key === 'char';
-  const reads  = isChar ? null : alignReading(card.front, card.reading);
-  const rdOn   = isFlipped && reads !== null;
-  const frontHtml = isChar ? esc(card.front) : renderFront(card.front, {
-    reads,
-    showReading:  isFlipped,
-    annotations:  sentAnnotations,
-    editMode:     (isSentGrammar && S.grammarEditMode) || (isSent && S.interpEditMode),
-    interpEdit:   isSent && S.interpEditMode,
-    interp:       card.interp,
-  });
-
-  $app().innerHTML = `
-    <div class="${entering ? 'screen-enter ' : ''}w-full ${cs.wrap} flex flex-col gap-6">
-      <div class="flex items-center justify-between">
-        ${backBtn(`${d.title} / ${S.lv!.label}`)}
-        <div class="flex items-center gap-4">
-          ${homeBtn()}
-          <span class="text-[13px] t-sub num">${done} / ${S.total}</span>
-        </div>
-      </div>
-
-      <div class="progress-track w-full" role="progressbar" aria-label="진행률"
-        aria-valuemin="0" aria-valuemax="${S.total}" aria-valuenow="${done}">
-        <div class="progress-fill" style="width:${pct}%"></div>
-      </div>
-
-      <div class="card-surface">
-        ${cardActions(S.lv?.key, card)}
-        <div id="card-front" class="${cs.front}${rdOn ? ' rd-on' : ''} t-ink">
-          ${frontHtml}
-        </div>
-        ${belowFront(isFlipped ? cardBack(card, cs, reads === null) : revealHint(), isChar)}
-        ${editHint()}
-      </div>
-
-      <div class="flex flex-col items-center gap-3">
-        ${S.side === 'back' ? ratingBtns : `
-          <div class="text-sm t-faint">정답을 확인한 뒤 난이도를 선택하세요</div>`}
       </div>
     </div>`;
 }

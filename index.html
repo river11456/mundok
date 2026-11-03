@@ -34,7 +34,6 @@
                max(clamp(16px, 4vw, 48px), env(safe-area-inset-bottom))
                max(clamp(16px, 4vw, 48px), env(safe-area-inset-left));
     }
-    body.anki-mode { background: #EBF1F8; }
     /* 한자 텍스트 = 해서 전면 적용 (2026-07-18, 기존 "kai 본문 금지" 방침 폐기).
        폴백 사슬: 서브셋 결측 한자 → 로컬 LXGW WenKai(SC) → 명조(Noto Serif TC, 붓 획과 이질감 최소) → 한글·기타는 고딕.
        원본 폰트 미지원 한자는 subset-font.mjs 가 빌드 시점에 감지·경고한다 (font-cmap.mjs). */

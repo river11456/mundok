@@ -1,5 +1,6 @@
 // 값 import는 .ts 확장자 명시 — node 테스트(strip-types)가 이 모듈을 직접 import한다
 import { LEVEL_ORDER, type CardJSON, type DocJSON, type GrammarAnnotation, type InterpChunk, type LevelKey } from './types.ts';
+import { validateBackup } from './storage/backup-validation.ts';
 import { SCHEMA_VERSION, V3_DOCS_KEY } from './migrate-v1.ts';
 
 /**
@@ -76,6 +77,20 @@ export function mergeCatalogUpdate(mine: DocJSON, theirs: DocJSON): { doc: DocJS
     const theirIds   = new Set(theirCards.map(c => c.id));
     const out: CardJSON[] = [];
 
+    if (k === 'sentence' && mine.sentenceLayoutEdited) {
+      const upstream = new Map(theirCards.map(card => [card.id, card]));
+      for (const mc of mineCards) {
+        if (removed.has(mc.id)) continue;
+        const tc = upstream.get(mc.id);
+        if (mc.editedAt && tc) kept++;
+        out.push(mc.editedAt || !tc ? mc : tc);
+      }
+      for (const tc of theirCards) {
+        if (!mineById.has(tc.id) && !removed.has(tc.id)) out.push(tc);
+      }
+      if (out.length) levels[k] = out;
+      continue;
+    }
     for (const tc of theirCards) {
       if (removed.has(tc.id)) continue;
       const mc = mineById.get(tc.id);
@@ -88,7 +103,7 @@ export function mergeCatalogUpdate(mine: DocJSON, theirs: DocJSON): { doc: DocJS
     if (out.length) levels[k] = out;
   }
 
-  const doc: DocJSON = { ...theirs, levels };
+  const doc: DocJSON = { ...theirs, levels, ...(mine.sentenceLayoutEdited ? { sentenceLayoutEdited: true } : {}) };
   return { doc, kept };
 }
 
@@ -162,6 +177,33 @@ export function updateUserDocMeta(docId: string, meta: { title: string; sub: str
     if (meta.color) d.color = meta.color;
     else delete d.color;
   });
+}
+
+/** Replace one sentence layout with optimistic concurrency and one atomic storage write. */
+export function replaceSentenceCards(docId: string, next: CardJSON[], expected: string): void {
+  // Unlike the forgiving display loader, writes fail closed on unreadable data.
+  const raw = localStorage.getItem(USER_DOCS_KEY);
+  const docs = raw === null ? [] : JSON.parse(raw) as DocJSON[];
+  if (!Array.isArray(docs)) throw new Error('저장된 문헌을 읽지 못했습니다.');
+  const doc = docs.find(item => item.id === docId);
+  if (!doc) throw new Error('문헌을 찾을 수 없습니다.');
+  const before = doc.levels.sentence ?? [];
+  if (JSON.stringify(before) !== expected) throw new Error('문장이 다른 곳에서 변경되었습니다. 새로 확인한 뒤 다시 시도하세요.');
+  const nextIds = new Set(next.map(card => card.id));
+  const orderChanged = JSON.stringify(before.map(card => card.id)) !== JSON.stringify(next.map(card => card.id));
+  if (doc.source) {
+    const removed = new Set(doc.source.removed ?? []);
+    for (const card of before) if (!nextIds.has(card.id)) removed.add(card.id);
+    // Undo can restore original IDs; they must no longer be tombstoned.
+    for (const id of nextIds) removed.delete(id);
+    doc.source = { ...doc.source, removed: [...removed] };
+  }
+  doc.levels.sentence = next;
+  if (orderChanged) doc.sentenceLayoutEdited = true;
+  doc.updatedAt = new Date().toISOString();
+  doc.schemaVersion = SCHEMA_VERSION;
+  validateBackup({ version: 3, content: { docs: [doc] } });
+  save(docs);
 }
 
 /** 문헌 삭제 — 학습기록(mundok-v3/log/*)은 호출측이 deleteDocProgress로 정리 */
@@ -240,7 +282,21 @@ export function userEditCard(
   withDoc(docId, d => {
     const t = d.levels[type]?.find(x => x.id === cardId);
     if (!t) throw new Error('카드를 찾을 수 없습니다');
-    // 내장 grammar·interp는 보존 — id가 붙어 있어 텍스트 변경에도 끊기지 않음
+    // A raw source edit has no reliable range mapping. Archive annotations instead
+    // of silently applying old coordinates to different characters.
+    if (t.text !== c.text) {
+      const spans = c.text.length ? [{ start: 0, end: [...c.text].length }] : [];
+      const references = (t.blockReferences ?? []).map(reference => ({ ...reference, needsReview: true, spans }));
+      if (t.grammar?.length || t.interp?.length) {
+        const snapshot = { sourceId: t.id, text: t.text, reading: t.reading,
+          meaning: '', note: '', grammar: t.grammar ?? [], interp: t.interp ?? [] };
+        references.push({ ...snapshot, id: JSON.stringify(snapshot), needsReview: true, spans });
+      }
+      t.blockReferences = references;
+      delete t.grammar;
+      delete t.interp;
+      t.blockDerived = { text: c.text, meaning: c.meaning, note: c.note, grammar: [], interp: [] };
+    }
     t.text = c.text; t.reading = c.reading; t.meaning = c.meaning; t.note = c.note;
     t.editedAt = Date.now();
   });

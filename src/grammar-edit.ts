@@ -40,19 +40,14 @@ function hidePicker(): void {
 
 function currentCard(): Card | undefined {
   if (!S.lv) return undefined;
-  return S.mode === 'seq' ? S.lv.cards[S.seqIdx] : S.queue[0];
-}
-
-function currentCardFront(): string {
-  return currentCard()?.front ?? '';
+  return S.lv.cards[S.seqIdx];
 }
 
 function showPicker(start: number, end: number, clientX: number, clientY: number): void {
   _pendingStart = start;
   _pendingEnd   = end;
 
-  const front    = currentCardFront();
-  const existing = getAnnotations(S.docId!, front).filter(a => a.start < end && a.end > start);
+  const existing = getAnnotations(S.docId!, currentCard()?.id ?? '').filter(a => a.start < end && a.end > start);
 
   const delBtn = document.getElementById('gp-delete')!;
   delBtn.style.display = existing.length > 0 ? '' : 'none';
@@ -70,7 +65,7 @@ async function applyAnnotation(type: GrammarType): Promise<void> {
   const docId = S.docId!;
   const card  = currentCard();
   const front = card?.front ?? '';
-  const anns  = getAnnotations(docId, front).filter(
+  const anns  = getAnnotations(docId, card?.id ?? '').filter(
     a => !(a.type === type && a.start < _pendingEnd && a.end > _pendingStart),
   );
   anns.push({ type, start: _pendingStart, end: _pendingEnd });
@@ -104,7 +99,7 @@ async function deleteOverlapping(): Promise<void> {
   const docId = S.docId!;
   const card  = currentCard();
   const front = card?.front ?? '';
-  const anns  = getAnnotations(docId, front).filter(
+  const anns  = getAnnotations(docId, card?.id ?? '').filter(
     a => !(a.start < _pendingEnd && a.end > _pendingStart),
   );
   hidePicker();

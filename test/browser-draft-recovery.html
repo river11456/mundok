@@ -40,7 +40,7 @@ function card(id) {
   const doc = DOCS.find(item => item.id === docId);
   assert(doc, '합성 문헌 없음');
   S.docId = docId; S.lv = doc.levels.find(level => level.key === 'sentence');
-  S.allCards = S.lv.cards; S.scr = 'home';
+   S.scr = 'home';
   return S.lv.cards.find(item => item.id === id);
 }
 const open = id => showEditModal(card(id), 'sentence');
@@ -206,7 +206,7 @@ async function runSuite() {
   const openWord = () => {
     syncUserDocs();
     S.docId = docId; S.lv = DOCS.find(item => item.id === docId).levels.find(level => level.key === 'word');
-    S.allCards = S.lv.cards;
+
     showEditModal(S.lv.cards.find(item => item.id === wordId), 'word');
   };
   openWord(); input($('ec-reading'), '문 장  '); input($('ec-note'), '  비문장 초안\n여러 줄  ');

@@ -182,24 +182,12 @@ async function submitCard(): Promise<void> {
     // 기존에는 word 레벨이 없으면 저장에는 성공해도 DOCS에 레벨이 생기지 않아
     // 문장 → 단어 드릴다운 링크가 렌더되지 않았다.
     syncUserDocs();
-    const { targetLevel, storedCard, isNew } = resolveRuntimeAddition(
+    const { targetLevel } = resolveRuntimeAddition(
       previousDoc, curDoc(), type as LevelKey, id,
     );
 
     if (S.lv?.key === type && targetLevel) {
       S.lv = targetLevel;
-      if (isNew && storedCard) {
-        // 현재 학습 중인 레벨이면 세션에도 반영한다.
-        const sessionCard: Card = { ...storedCard };
-        S.allCards.push(sessionCard);
-        if (S.mode === 'anki' && S.side !== 'result') {
-          S.queue.push(sessionCard);
-          S.total++;
-        }
-      } else if (storedCard) {
-        S.allCards = S.allCards.map(c => c.id === storedCard.id ? { ...storedCard } : c);
-        S.queue = S.queue.map(c => c.id === storedCard.id ? { ...storedCard } : c);
-      }
     }
     hideModal();
     render();
@@ -220,17 +208,12 @@ export async function deleteCard(docId: string, type: string, id: string, front:
   if (!confirm(`'${front}' 카드를 삭제합니다.\n\n삭제 후 복구가 불가능합니다. 계속하시겠습니까?`)) return;
   try {
     await store().deleteCard({ docId, type: type as LevelKey, id, text: front });
-    const targetLevel = curDoc().levels.find(l => l.key === type);
-    if (targetLevel) targetLevel.cards = targetLevel.cards.filter(c => c.id !== id);
-    S.allCards = S.allCards.filter(c => c.id !== id);
-    S.queue    = S.queue.filter(c => c.id !== id);
-    S.total    = S.allCards.length;
-    if (S.mode === 'seq' && S.lv) {
-      if (S.lv.cards.length === 0) { S.scr = 'level'; }
-      else { S.seqIdx = Math.min(S.seqIdx, S.lv.cards.length - 1); S.seqFlipped = false; }
-    } else if (S.mode === 'anki' && S.queue.length === 0) {
-      S.side = 'result';
-    }
+    syncUserDocs();
+    const levelKey = S.lv?.key;
+    S.lv = curDoc().levels.find(level => level.key === levelKey) ?? null;
+    S.navStack = [];
+    if (!S.lv?.cards.length) { S.scr = 'document'; S.mode = null; }
+    else { S.seqIdx = Math.min(S.seqIdx, S.lv.cards.length - 1); S.seqFlipped = false; }
     render();
   } catch (e) {
     alert(e instanceof Error ? e.message : '삭제에 실패했습니다.');

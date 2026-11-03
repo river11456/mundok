@@ -8,33 +8,22 @@ const OB_SLIDES: { title: string; html: string }[] = [
     title: '학습 시작하기',
     html: `
       <div class="flex flex-col items-center gap-1.5 text-sm">
-        ${['문헌 선택','모드 선택','단위 선택','학습'].map((s, i, a) =>
+        ${['문헌 선택','문장으로 지정','음·해석 작성','문장 복습'].map((s, i, a) =>
           `<span class="px-5 py-2 bg-[rgba(0,0,0,.05)] rounded-xl t-ink w-32 text-center">${s}</span>${i < a.length-1 ? '<span class="t-faint text-xs">↓</span>' : ''}`
         ).join('')}
       </div>
       <p class="text-sm t-sub leading-relaxed mt-4 text-center">
-        순차 모드는 카드를 차례로 넘기며 공부하고,<br>
-        안키 모드는 모르는 카드를 집중 반복합니다.
+        본문을 드래그해 수업에서 설명하는 범위를 정하고,<br>
+        문장을 열어 음과 해석을 정리합니다.
       </p>`,
   },
   {
-    title: '안키 모드',
+    title: '문장 블록 편집',
     html: `
-      <div class="flex justify-center gap-3">
-        ${[
-          ['Space','뒤집기','bg-[rgba(0,0,0,.05)]','t-ink',''],
-          ['1','어려움','bg-[rgba(215,0,21,.05)]','text-[var(--fail)]','border border-[rgba(215,0,21,.25)]'],
-          ['2','보통','bg-[rgba(178,80,0,.06)]','text-[var(--warn)]','border border-[rgba(178,80,0,.25)]'],
-          ['3','쉬움','bg-[var(--o-bg)]','text-[var(--o-fg)]','border border-[rgba(29,122,51,.28)]'],
-        ].map(([k,l,bg,tc,b]) =>
-          `<div class="flex flex-col items-center gap-1.5">
-            <kbd class="px-3 py-2 ${bg} ${tc} ${b} rounded-lg font-mono text-sm">${k}</kbd>
-            <span class="text-xs t-faint">${l}</span>
-          </div>`
-        ).join('')}
-      </div>
-      <p class="text-sm t-sub leading-relaxed mt-5 text-center">
-        어려움·보통으로 평가한 카드는 다시 출제되고<br>쉬움은 오늘 학습 완료로 처리됩니다.
+      <p class="text-sm t-sub leading-relaxed text-center">
+        본문을 드래그한 뒤 <b class="t-ink">문장으로 지정</b>을 누르세요.<br>
+        연속된 블록을 선택해 합치고, 손잡이로 순서를 바꿀 수 있습니다.<br>
+        <b class="t-ink">현토</b>를 누르면 한자 뒤에 토를 따로 입력합니다.
       </p>`,
   },
   {

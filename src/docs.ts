@@ -1,6 +1,6 @@
-import type { Doc, Level, GrammarEntry, DocJSON, GroupsJSON, ShelfJSON } from './types';
+import type { Doc, Level, DocJSON, GroupsJSON, ShelfJSON } from './types';
 import { LEVEL_ORDER, LEVEL_LABEL } from './types';
-import { initGrammar } from './grammar';
+import { initGrammar, type CardGrammarEntry } from './grammar';
 import { initStore } from './storage';
 import { initializeStorage } from './storage/recovery';
 import { migrateV1IfNeeded, migrateProgressIfNeeded, purgeV1IfMigrated } from './migrate-v1';
@@ -38,6 +38,7 @@ function toDoc(dj: DocJSON): Doc {
         back:       c.meaning,
         note:       c.note,
         fail_count: 0,
+        ...(c.hyeonto ? { hyeonto: c.hyeonto } : {}),
         ...(c.interp?.length ? { interp: c.interp } : {}),
       })),
     }));
@@ -53,6 +54,7 @@ export let DOCS: Doc[] = [];
 /** 유저 공간(mundok-v3/docs) 전체를 DOCS로 재구성 — 생성·수정·삭제·설치 후 호출. */
 export function syncUserDocs(): void {
   DOCS = loadUserDocs().map(toDoc);
+  initGrammar(collectGrammar());
 }
 
 // ── 서가 (SPEC 3.4): 참고문헌 관계(refs)는 카탈로그 소유, 선반은 사용자 소유 ──
@@ -207,12 +209,12 @@ export function docColor(doc: Doc): string {
 }
 
 /** 유저 공간 문헌들의 카드 내장 문법 주석을 grammar.ts 형태로 펼친다. */
-function collectGrammar(): GrammarEntry[] {
-  const out: GrammarEntry[] = [];
+function collectGrammar(): CardGrammarEntry[] {
+  const out: CardGrammarEntry[] = [];
   for (const dj of loadUserDocs()) {
     for (const k of LEVEL_ORDER) {
       for (const c of dj.levels[k] ?? []) {
-        if (c.grammar?.length) out.push({ docId: dj.id, cardFront: c.text, annotations: c.grammar });
+        if (c.grammar?.length) out.push({ docId: dj.id, cardId: c.id, cardFront: c.text, annotations: c.grammar });
       }
     }
   }
@@ -238,6 +240,5 @@ export async function initDocs(): Promise<void> {
     migrateProgressIfNeeded(loadUserDocs());  // v1 → v3 학습기록·설정 1회
     seedCollectionsIfNeeded(GROUPS.shelves, loadUserDocs().map(d => d.id));  // 사용자 선반 1회 시드 (SPEC 3.4)
     syncUserDocs();
-    initGrammar(collectGrammar());
   });
 }
