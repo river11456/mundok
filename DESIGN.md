@@ -11,7 +11,7 @@
 | 문장 학습 편집기 | 큰 학습 모달, 한자별 독음·부분 입력·붙여넣기·빈칸 자동 입력·해석·메모 구현 | 폰에서는 전체 높이 시트. 기기·IME 실제 사용 검증은 #5 |
 | 작성 중 초안 | 기존 카드 수정의 임시 저장 상태·홈 이어쓰기·파일 보관·확인 후 버리기 | 정식 반영은 저장 버튼. 카드 추가·문헌 생성·본문 추가·정보 수정은 후속 범위([#26](https://github.com/river11456/mundok/issues/26)) |
 | 한자 도움 | 내장 사전의 대표·대체 후보, 빈 값 보강, 기존 값 보존, Daum 확인 링크 구현 | 사전 제안이 정답 보증은 아니며 수동 입력·확인을 유지 |
-| 꾸미기·탐색 확장 | color/icon은 예약 필드, 사용자 편집 UI 없음 | 검색·정렬·목록·드래그 이동과 함께 [#9](https://github.com/river11456/mundok/issues/9) 후보 |
+| 꾸미기·탐색 확장 | color/icon은 예약 필드, 사용자 편집 UI 없음 | 검색·목록 보기와 함께 [#9](https://github.com/river11456/mundok/issues/9) 후보 |
 | 본문·문장 복습 | 문장 블록 지정·합치기·이동·추가·실행 취소, 문장 클릭 학습과 순차 복습 | 안키 평가·결과 화면 제거. 과거 로그·백업 읽기 유지 |
 | 현토 | 원문과 별도 저장, 한자 뒤 입력·후보 확인·표시 전환 | 기존 한글을 자동 확정하지 않음. 본문·문장 화면에서 같은 표시 규칙 적용 |
 
@@ -117,7 +117,7 @@
 - Principle 7: Reading has one surface. Sentence cards show only the per-Han reading cells; bulk entry happens inside that surface by pasting into cells or asking local card/dictionary data to fill blank cells, rather than exposing a duplicate full-reading field.
 - Principle 8: The document body is the primary learning launch point. Keep sentence selection and review visible; references, export, and destructive actions belong in the secondary document management overlay.
 - Tradeoffs:
-  - GoodNotes-like nested folders add data migration and move-dialog complexity; defer drag/drop until click/tap movement is solid.
+  - GoodNotes-like nested folders add data migration and move-dialog complexity; Document drag/drop now complements click/tap movement; folder dragging remains out of scope.
   - Per-character reading cells are heavier than a single reading input, so preserve full-reading paste and bulk suggestion acceptance to keep batch entry fast.
   - Local-first static PWA constraints favor bundled or locally cached dictionary data plus external verification links over secret-bearing APIs.
 
@@ -314,3 +314,11 @@ These are decisions about scope, not a completed-test checklist. Service audienc
 - [x] Daum dictionary is an external verification link, not a production scrape dependency.
 - [x] Sentence cards use a large responsive learning modal; at the phone breakpoint it becomes a full-height sheet while other card types keep the compact modal.
 - [x] Bundled dictionary source is libhangul's pinned `data/hanja/hanja.txt`; source metadata and BSD-3-Clause attribution live in `THIRD_PARTY_NOTICES.md`.
+
+## 문헌 드래그·수동 정렬 (#33)
+
+- 문헌 표지에서 마우스/펜은 8px 이상 이동, 터치는 300ms 길게 누른 뒤 이동한다. 터치가 먼저 움직이면 스크롤에 양보한다. 폴더/상단 경로는 이동 대상이며 문헌 사이의 삽입선은 순서 변경 위치다.
+- 잡힌 표지의 투명도, 따라오는 제목 미리보기, 목적지 폴더 테두리, 삽입선으로 현재 동작을 표시한다. 가장자리에서 자동 스크롤하며 새 배치는 저장 성공 후 확정한다.
+- Esc·창 비활성화·포인터 취소·화면 전환은 취소한다. 드래그 직후 클릭이 문헌을 열지 않게 차단한다.
+- 각 문헌의 ⋯ 메뉴에서 앞/뒤 이동과 폴더 이동을 제공한다. 키보드도 동일한 기능을 사용하며, 순서 변경 후 문헌 표지로 초점을 돌리고 결과를 읽어 준다.
+- 폴더 우선 배치와 참고문헌 숨김 규칙을 유지한다. 폴더 자체 드래그·자동 폴더 진입·다중 선택·외부 파일 드롭은 이번 범위에 포함하지 않는다.

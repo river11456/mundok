@@ -1,3 +1,4 @@
+import { loadLibraryOrder, orderedIds } from './library-order';
 import type { Doc, Level, DocJSON, GroupsJSON, ShelfJSON } from './types';
 import { LEVEL_ORDER, LEVEL_LABEL } from './types';
 import { initGrammar, type CardGrammarEntry } from './grammar';
@@ -173,12 +174,17 @@ export function shelvesForHome(folderId: string | null = null): HomeShelf[] {
   const current  = folderId ? byFolder.get(folderId) : null;
   const currentId = current?.id ?? null;
 
-  const docs = current
+  let docs = current
     ? current.docIds
       .map(id => byId.get(id))
       .filter((d): d is Doc => d !== undefined)
     : DOCS.filter(d => !folders.some(s => s.docIds.includes(d.id)) && !childIds.has(d.id))
       .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
+
+  if (!current) {
+    const byId = new Map(docs.map(d => [d.id, d]));
+    docs = orderedIds(docs.map(d => d.id), loadLibraryOrder()).map(id => byId.get(id)!);
+  }
 
   const childFolders = folders
     .filter(s => (s.parentId ?? null) === currentId)

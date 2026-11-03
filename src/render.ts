@@ -313,7 +313,7 @@ function heroHtml(): string {
     </div>`;
 }
 
-function coverHtml(d: Doc, key: number | undefined): string {
+function coverHtml(d: Doc, key: number | undefined, count: number): string {
   const refs   = refsOf(d.id);
   const recent = getDocLastStudied(d.id);
   const coverBtn = `
@@ -330,9 +330,17 @@ function coverHtml(d: Doc, key: number | undefined): string {
        </div>`
     : coverBtn;
   return `
-    <div class="book">
+    <div class="book" data-library-doc="${esc(d.id)}">
       ${wrapped}
       <div class="book-label"><div class="k">${esc(d.sub)}</div></div>
+      <details class="book-organize">
+        <summary aria-label="${esc(d.title)} 정리" title="문헌 정리">⋯</summary>
+        <div class="book-organize-menu">
+          <button data-action="library-earlier" data-arg="${esc(d.id)}" ${key === 1 ? 'disabled' : ''}>앞으로 이동</button>
+          <button data-action="library-later" data-arg="${esc(d.id)}" ${key === count ? 'disabled' : ''}>뒤로 이동</button>
+          <button data-action="library-move" data-arg="${esc(d.id)}">폴더 이동</button>
+        </div>
+      </details>
     </div>`;
 }
 
@@ -343,7 +351,7 @@ function folderTileHtml(f: HomeFolder): string {
   ].filter(Boolean).join(' · ') || '비어 있음';
   return `
     <div class="folder-card">
-      <button data-action="open-folder" data-arg="${esc(f.id)}" class="folder-tile" aria-label="${esc(f.name)} 폴더 열기">
+      <button data-library-folder="${esc(f.id)}" data-action="open-folder" data-arg="${esc(f.id)}" class="folder-tile" aria-label="${esc(f.name)} 폴더 열기">
         <span class="folder-name">${esc(f.name)}</span>
         <span class="folder-meta">${esc(meta)}</span>
       </button>
@@ -449,13 +457,13 @@ function renderHome(): void {
   const library = shelvesForHome(S.folderId)[0];
 
   const crumbs = [
-    `<button data-action="open-folder" data-arg="" class="crumb${S.folderId === null ? ' on' : ''}" ${S.folderId === null ? 'aria-current="page"' : ''}>라이브러리</button>`,
+    `<button data-library-folder="" data-action="open-folder" data-arg="" class="crumb${S.folderId === null ? ' on' : ''}" ${S.folderId === null ? 'aria-current="page"' : ''}>라이브러리</button>`,
     ...library.ancestors.map(f => `
       <span class="crumb-sep" aria-hidden="true">/</span>
-      <button data-action="open-folder" data-arg="${esc(f.id)}" class="crumb${f.id === S.folderId ? ' on' : ''}" ${f.id === S.folderId ? 'aria-current="page"' : ''}>${esc(f.name)}</button>`),
+      <button data-library-folder="${esc(f.id)}" data-action="open-folder" data-arg="${esc(f.id)}" class="crumb${f.id === S.folderId ? ' on' : ''}" ${f.id === S.folderId ? 'aria-current="page"' : ''}>${esc(f.name)}</button>`),
   ].join('');
   const folderTiles = library.folders.map(folderTileHtml).join('');
-  const covers = library.docs.map(d => coverHtml(d, keyOf.get(d.id))).join('');
+  const covers = library.docs.map(d => coverHtml(d, keyOf.get(d.id), library.docs.length)).join('');
   const contents = `<div class="library-grid">${folderTiles}${covers}</div>`;
   const empty = !folderTiles && !covers
     ? `<div class="shelf-empty">${library.system ? '아직 문헌이나 폴더가 없습니다.' : '빈 폴더입니다.'}</div>`
@@ -477,6 +485,7 @@ function renderHome(): void {
         <nav class="breadcrumbs" aria-label="현재 폴더">${crumbs}</nav>
         <div class="library-actions">${addMenu}</div>
       </div>
+      ${library.docs.length ? '<p class="library-drag-hint">문헌을 끌어 폴더에 넣거나 순서를 바꾸세요. 터치에서는 길게 누르세요. ⋯ 메뉴로도 정리할 수 있습니다.</p>' : ''}
       ${empty}
       ${contents}
       <div class="home-foot">

@@ -1,3 +1,6 @@
+import { LIBRARY_ORDER_KEY, loadLibraryOrder, orderedIds, assertLibraryWritable } from './library-order.ts';
+import { loadCollections } from './collections.ts';
+import { withStorageRecovery } from './storage/recovery.ts';
 // 값 import는 .ts 확장자 명시 — node 테스트(strip-types)가 이 모듈을 직접 import한다
 import { LEVEL_ORDER, type CardJSON, type DocJSON, type GrammarAnnotation, type InterpChunk, type LevelKey } from './types.ts';
 import { validateBackup } from './storage/backup-validation.ts';
@@ -120,7 +123,22 @@ export function loadUserDocs(): DocJSON[] {
 }
 
 function save(docs: DocJSON[]): void {
-  localStorage.setItem(USER_DOCS_KEY, JSON.stringify(docs));
+  assertLibraryWritable();
+  if (localStorage.getItem(LIBRARY_ORDER_KEY) === null) {
+    localStorage.setItem(USER_DOCS_KEY, JSON.stringify(docs));
+    return;
+  }
+  const placed = new Set(loadCollections().flatMap(s => s.docIds));
+  const ids = docs.filter(d => !placed.has(d.id)).map(d => d.id);
+  const next = orderedIds(ids, loadLibraryOrder());
+  if (JSON.stringify(next) === JSON.stringify(loadLibraryOrder())) {
+    localStorage.setItem(USER_DOCS_KEY, JSON.stringify(docs));
+    return;
+  }
+  withStorageRecovery(() => {
+    localStorage.setItem(USER_DOCS_KEY, JSON.stringify(docs));
+    localStorage.setItem(LIBRARY_ORDER_KEY, JSON.stringify(next));
+  });
 }
 
 /** 문헌을 찾아 fn 적용 후 schemaVersion·updatedAt 갱신·저장. 없으면 throw. */

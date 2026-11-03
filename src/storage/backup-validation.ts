@@ -165,6 +165,7 @@ function keyDump(v: unknown): void {
     else if (key === 'mundok-v3/session') session(value, key);
     else if (key === 'mundok-v3/prefs') prefs(value, key);
     else if (key === 'mundok-v3/collections') collections(value, key);
+    else if (key === 'mundok-v3/library-order') strings(value, key);
     else if (key.startsWith('mundok-v3/log/')) { id(key.slice('mundok-v3/log/'.length), key); logs(value, key); }
     else if (key === 'hanja-v2/last-session') last(value, key);
     else if (key === 'hanja-v2/streak') streak(value, key);
@@ -189,6 +190,7 @@ export function validateBackup(value: unknown): void {
   if (b.version === 3) {
     const c = object(b.content, 'content'); docs(c.docs, 'content.docs');
     optional(c, 'collections', 'content', collections);
+    optional(c, 'libraryOrder', 'content', strings);
     if (b.progress !== undefined) {
       const p = object(b.progress, 'progress');
       if (p.logs !== undefined) for (const [key, events] of Object.entries(object(p.logs, 'progress.logs'))) {

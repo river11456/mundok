@@ -1,3 +1,4 @@
+import { LIBRARY_ORDER_KEY, normalizeOrder } from '../library-order';
 import type { Store } from './types';
 import { LocalStore } from './local';
 import { V3_DOCS_KEY, V3_SESSION_KEY, V3_PREFS_KEY } from '../migrate-v1';
@@ -54,7 +55,7 @@ export function exportUserData(): void {
   const backup = {
     version:    3,
     exportedAt: new Date().toISOString(),
-    content:    { docs: readJson(V3_DOCS_KEY) ?? [], collections: normalizeShelves(readJson(V3_COLLECTIONS_KEY) ?? []) },
+    content:    { docs: readJson(V3_DOCS_KEY) ?? [], collections: normalizeShelves(readJson(V3_COLLECTIONS_KEY) ?? []), ...(readJson(LIBRARY_ORDER_KEY) !== null ? { libraryOrder: normalizeOrder(readJson(LIBRARY_ORDER_KEY)) } : {}) },
     progress:   { logs, session: readJson(V3_SESSION_KEY) },
     preference: readJson(V3_PREFS_KEY) ?? {},
   };
@@ -102,6 +103,7 @@ export async function importUserData(file: File): Promise<void> {
     if (Array.isArray(content.collections)) {
       keys[V3_COLLECTIONS_KEY] = JSON.stringify(normalizeShelves(content.collections));
     }
+    if (Array.isArray(content.libraryOrder)) keys[LIBRARY_ORDER_KEY] = JSON.stringify(normalizeOrder(content.libraryOrder));
     for (const [docId, ev] of Object.entries(logs)) {
       keys[`${V3_LOG_PREFIX}${docId}`] = JSON.stringify(ev);
     }

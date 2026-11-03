@@ -1,3 +1,6 @@
+import { initLibraryDrag } from './library-drag';
+import { applyLibraryMove } from './library-ui';
+import { S } from './state';
 import './style.css';
 import { render } from './render';
 import { initShortcutHelp } from './shortcut-help';
@@ -46,6 +49,7 @@ async function init() {
   initBackup();            // 정적 모드에서만 백업 FAB 노출
   setupDocumentEditor({ render, openSentence });
   initHyeontoEditor({ render });
+  initLibraryDrag({ currentFolder: () => S.folderId, move: applyLibraryMove });
   setupClick();
   setupKeyboard();
   render();
