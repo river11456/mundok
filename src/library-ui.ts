@@ -23,9 +23,9 @@ function announce(message: string): void {
 }
 
 /** Shared completion for pointer and keyboard organization. Persist before rendering. */
-export function applyLibraryMove(docId: string, folderId: string | null, beforeId?: string | null): void {
+export function applyLibraryMove(docId: string, folderId: string | null, beforeId?: string | null): boolean {
   try {
-    if (!moveLibraryDoc(docId, folderId, beforeId)) return;
+    if (!moveLibraryDoc(docId, folderId, beforeId)) return false;
     render();
     const book = Array.from(document.querySelectorAll<HTMLElement>('[data-library-doc]'))
       .find(element => element.dataset.libraryDoc === docId);
@@ -33,8 +33,10 @@ export function applyLibraryMove(docId: string, folderId: string | null, beforeI
       ?? document.querySelector<HTMLElement>('.breadcrumbs [aria-current="page"]');
     focusTarget?.focus({ preventScroll: true });
     announce(beforeId === undefined ? '문헌을 이동했습니다.' : '문헌 순서를 변경했습니다.');
+    return true;
   } catch (error) {
     announce(storageErrorMessage(error));
+    return false;
   }
 }
 
