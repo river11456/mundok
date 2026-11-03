@@ -1,4 +1,4 @@
-import { insertionAt } from './library-drag-geometry';
+import { reflowAt, type BookRect } from './library-drag-geometry';
 
 interface Options {
   currentFolder: () => string | null;
@@ -11,12 +11,13 @@ export function initLibraryDrag(options: Options): void {
   let pointerId: number | null = null;
   let touch = false, active = false, sx = 0, sy = 0, x = 0, y = 0;
   let timer = 0, frame = 0, suppressUntil = 0;
-  let ghost: HTMLElement | null = null, marker: HTMLElement | null = null, highlight: HTMLElement | null = null;
+  let ghost: HTMLElement | null = null, highlight: HTMLElement | null = null;
   let drop: { folder: string | null; before?: string | null } | null = null;
   let origin: string | null = null;
   let gripX = 0, gripY = 0;
-  let shifted: HTMLElement | null = null;
-  let shiftAfter = false;
+  let slots: BookRect[] = [];
+  let books: HTMLElement[] = [];
+  let dragGrid: Element | null = null;
   let settling: HTMLElement | null = null;
   let settleTimer = 0, settleFrame = 0;
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -46,8 +47,8 @@ export function initLibraryDrag(options: Options): void {
   }
   function clearTarget() {
     highlight?.classList.remove('library-drop-target'); highlight = null;
-    if (marker) marker.hidden = true;
-    shifted?.classList.remove('library-insert-before', 'library-insert-after'); shifted = null; drop = null;
+    for (const book of books) book.style.removeProperty('transform');
+    drop = null;
   }
   function cancel(animate = false) {
     stopSettlement();
@@ -58,7 +59,8 @@ export function initLibraryDrag(options: Options): void {
     clearTimeout(timer); cancelAnimationFrame(frame); clearTarget();
     source?.classList.remove('library-drag-source'); ghost?.remove(); ghost = null;
     document.body.classList.remove('library-dragging'); source = null; active = false; pointerId = null;
-    marker?.remove(); marker = null;
+    for (const book of books) book.classList.remove('library-reflow-item');
+    books = []; slots = []; dragGrid = null;
     if (animate) settle(returning, cover);
   }
   function paint() {
@@ -75,29 +77,17 @@ export function initLibraryDrag(options: Options): void {
       drop = { folder: folder.dataset.libraryFolder || null }; return;
     }
     const grid = hit?.closest('.library-grid');
-    if (!grid || hit?.closest('.folder-card')) { clearTarget(); return; }
-    const books = Array.from(grid.querySelectorAll<HTMLElement>('[data-library-doc]'))
-      .map(el => ({ id: el.dataset.libraryDoc!, ...rect(el) }));
-    const insertion = insertionAt(books, x, y);
-    if (!insertion) { clearTarget(); return; }
+    if (!grid || grid !== dragGrid || hit?.closest('.folder-card')) { clearTarget(); return; }
+    const preview = reflowAt(slots, source.dataset.libraryDoc!, x + window.scrollX, y + window.scrollY);
+    if (!preview) { clearTarget(); return; }
     highlight?.classList.remove('library-drop-target'); highlight = null;
-    drop = { folder: origin, before: insertion.beforeId };
-    if (!marker) {
-      marker = document.createElement('div'); marker.className = 'library-insertion';
-      marker.setAttribute('aria-hidden', 'true'); document.body.append(marker);
+    drop = { folder: origin, before: preview.beforeId };
+    for (let index = 0; index < books.length; index++) {
+      const book = books[index];
+      const destination = slots[preview.order.indexOf(slots[index].id)];
+      const dx = destination.left - slots[index].left, dy = destination.top - slots[index].top;
+      book.style.transform = `translate(${dx}px, ${dy}px)`;
     }
-    marker.hidden = false;
-    const r = insertion.anchor;
-    Object.assign(marker.style, { left: `${(insertion.after ? r.right : r.left) - 2}px`, top: `${r.top}px`, height: `${r.bottom - r.top}px` });
-    const nextShift = Array.from(grid.querySelectorAll<HTMLElement>('[data-library-doc]')).find(el => el.dataset.libraryDoc === r.id) ?? null;
-    if (nextShift !== shifted || shiftAfter !== insertion.after) {
-      shifted?.classList.remove('library-insert-before', 'library-insert-after');
-      shifted = nextShift; shiftAfter = insertion.after;
-      if (shifted !== source) shifted?.classList.add(insertion.after ? 'library-insert-after' : 'library-insert-before');
-    }
-  }
-  function rect(el: HTMLElement) {
-    const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
   }
   function tick() {
     if (!active) return;
@@ -107,6 +97,16 @@ export function initLibraryDrag(options: Options): void {
   }
   function activate() {
     if (!source?.isConnected) { cancel(); return; }
+    // Freeze the home entrance before measuring the slots or cloning the cover.
+    source.closest('.home')?.classList.remove('screen-enter');
+    dragGrid = source.closest('.library-grid');
+    books = Array.from(dragGrid?.querySelectorAll<HTMLElement>('[data-library-doc]') ?? []);
+    slots = books.map(book => {
+      const r = book.getBoundingClientRect();
+      return { id: book.dataset.libraryDoc!, left: r.left + window.scrollX, right: r.right + window.scrollX,
+        top: r.top + window.scrollY, bottom: r.bottom + window.scrollY };
+    });
+    for (const book of books) book.classList.add('library-reflow-item');
     active = true; source.classList.add('library-drag-source'); document.body.classList.add('library-dragging');
     const cover = source.querySelector<HTMLElement>('.cover');
     if (!cover) { cancel(); return; }
@@ -150,6 +150,7 @@ export function initLibraryDrag(options: Options): void {
     if (id && target) changed = options.move(id, target.folder, target.before);
     let destination = originalCover;
     if (changed && target) {
+      document.querySelector('.home.screen-enter')?.classList.remove('screen-enter');
       destination = target.before === undefined
         ? Array.from(document.querySelectorAll<HTMLElement>('[data-library-folder]')).find(el => (el.dataset.libraryFolder || null) === target.folder) ?? null
         : Array.from(document.querySelectorAll<HTMLElement>('[data-library-doc]')).find(el => el.dataset.libraryDoc === id)?.querySelector<HTMLElement>('.cover') ?? null;
@@ -189,5 +190,6 @@ export function initLibraryDrag(options: Options): void {
   document.addEventListener('contextmenu', e => { if (source) e.preventDefault(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && source) { e.preventDefault(); e.stopImmediatePropagation(); cancel(true); } }, true);
   window.addEventListener('blur', () => cancel());
+  window.addEventListener('resize', () => cancel());
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancel(); });
 }

@@ -30,7 +30,7 @@ const url = process.env.LIBRARY_TEST_URL || 'http://127.0.0.1:5184';
   }
   async function clean() {
    await page.waitForTimeout(350);
-   assert.equal(await page.locator('.library-drag-preview, .library-drop-target, .library-drag-source').count(), 0);
+   assert.equal(await page.locator('.library-drag-preview, .library-drop-target, .library-drag-source, .library-reflow-item').count(), 0);
    assert.equal(await page.locator('body.library-dragging').count(), 0);
   }
   await begin();
@@ -41,16 +41,53 @@ const url = process.env.LIBRARY_TEST_URL || 'http://127.0.0.1:5184';
   assert.equal(await ghost.locator('[id], [data-action], .book-organize').count(), 0);
   assert.equal(await ghost.evaluate(el => el.inert), true);
   assert.equal(await ghost.locator('.cover').evaluate(el => getComputedStyle(el).backgroundColor), await source.evaluate(el => getComputedStyle(el).backgroundColor));
-  const target = page.locator('[data-library-doc="visual-2"]');
-  const bounds = await target.boundingBox(); await over(target, .05);
-  await page.evaluate(() => { window.savedInsertion = document.querySelector('.library-insertion'); });
-  assert.equal(await page.locator('.library-insertion').isVisible(), true);
-  await over(target, .08);
-  assert.equal(await page.evaluate(() => window.savedInsertion === document.querySelector('.library-insertion')), true);
-  const afterBounds = await target.boundingBox(); assert.deepEqual(afterBounds, bounds);
+  // Fixed original slots let us verify the preview independently of moving hit targets.
+  await page.keyboard.press('Escape'); await page.mouse.up(); await clean();
+  const slots = await page.locator('[data-library-doc]').evaluateAll(els => els.map(el => {
+   const r = el.getBoundingClientRect(); return { id: el.dataset.libraryDoc, x: r.x, y: r.y, width: r.width, height: r.height };
+  }));
+  const saved = await page.evaluate(() => JSON.stringify(localStorage));
+  const rects = () => page.locator('[data-library-doc]').evaluateAll(els => els.map(el => {
+   const r = el.getBoundingClientRect(); return { id: el.dataset.libraryDoc, x: r.x, y: r.y };
+  }));
+  function near(actual, expected) { assert(Math.abs(actual - expected) < 1, `${actual} differs from ${expected}`); }
+  function atSlot(actual, slot) { near(actual.x, slot.x); near(actual.y, slot.y); }
+  assert(slots[6].y > slots[0].y, 'fixture must cross rows');
+  await page.waitForTimeout(650); await begin();
+  await page.mouse.move(slots[6].x + slots[6].width / 2, slots[6].y + 50, { steps: 18 });
+  await page.waitForTimeout(300);
+  const moved = await rects();
+  for (let i = 1; i <= 6; i++) atSlot(moved[i], slots[i - 1]);
+  for (let i = 7; i < slots.length; i++) atSlot(moved[i], slots[i]);
+  assert.equal(await page.locator('.library-insertion').count(), 0);
+  assert.equal(await page.evaluate(() => JSON.stringify(localStorage)), saved, 'hover must not persist');
+  await page.waitForTimeout(400); assert.deepEqual(await rects(), moved, 'stationary pointer must not oscillate');
+  await page.keyboard.press('Escape'); await page.mouse.up(); await clean();
+  (await rects()).forEach((rect, i) => atSlot(rect, slots[i])); assert.deepEqual(await ids(), initial);
+  console.log('PASS real inert cover clone, full cross-row reflow, stable vacancy, deferred persistence and cancel restoration');
+  await page.waitForTimeout(650); await begin();
+  await page.mouse.move(slots[6].x + slots[6].width / 2, slots[6].y + 50, { steps: 18 });
+  await page.waitForTimeout(250); await page.mouse.up(); await clean();
+  const reordered = [...initial.slice(1, 7), initial[0], ...initial.slice(7)];
+  assert.deepEqual(await ids(), reordered);
+  await page.reload(); await page.locator('[data-library-doc]').first().waitFor(); await page.waitForTimeout(400);
+  assert.deepEqual(await ids(), reordered);
+  // Moving back across the row boundary uses the same full-slot preview.
+  const first = await page.locator('[data-library-doc]').first().boundingBox();
+  await begin(); await page.mouse.move(first.x + first.width / 2, first.y + 50, { steps: 18 });
+  await page.waitForTimeout(250); await page.mouse.up(); await clean(); assert.deepEqual(await ids(), initial);
+  console.log('PASS forward/backward cross-row drop and reload persistence');
+  await page.waitForTimeout(650); await page.emulateMedia({ reducedMotion: 'reduce' }); await begin();
+  await page.mouse.move(slots[6].x + slots[6].width / 2, slots[6].y + 50);
+  const reduced = await rects();
+  for (let i = 1; i <= 6; i++) atSlot(reduced[i], slots[i - 1]);
+  assert(await page.locator('.library-reflow-item').first().evaluate(el => parseFloat(getComputedStyle(el).transitionDuration) <= .00001));
+  await over(page.locator('[data-library-folder="folder"]'));
+  (await rects()).forEach((rect, i) => atSlot(rect, slots[i]));
+  await page.setViewportSize({ width: 1000, height: 1000 }); await page.mouse.up(); await clean();
   assert.deepEqual(await ids(), initial);
-  await page.keyboard.press('Escape'); await page.mouse.up(); await clean(); assert.deepEqual(await ids(), initial);
-  console.log('PASS real cover clone, inert accessible ghost, reused insertion marker, stable book geometry, cancel cleanup');
+  await page.setViewportSize({ width: 1100, height: 1000 }); await page.emulateMedia({ reducedMotion: 'no-preference' });
+  console.log('PASS reduced-motion reflow, folder-hover restoration and resize cancellation');
   await page.waitForTimeout(650); await begin(); await over(page.locator('[data-library-folder="folder"]'));
   assert.equal(await page.locator('.library-drop-target').count(), 1);
   assert.equal(await page.locator('.library-drop-target').evaluate(el => getComputedStyle(el).outlineStyle), 'none');
