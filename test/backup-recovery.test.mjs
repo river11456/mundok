@@ -364,3 +364,15 @@ test('actual export and import roundtrip preserves block layout, hyeonto and arc
   const after = await exported(t);
   assert.deepEqual(withoutExportTime(after), withoutExportTime(before));
 });
+
+test('library order survives export/import and older backups clear it', async t => {
+  const backup = fixture('v3');
+  backup.content.libraryOrder = ['sample', 'sample'];
+  await importUserData(file(backup));
+  assert.deepEqual(JSON.parse(localStorage.getItem('mundok-v3/library-order')), ['sample']);
+  const output = await exported(t);
+  assert.deepEqual(output.content.libraryOrder, ['sample']);
+  await assertRoundtrip(t, output);
+  await importUserData(file(fixture('v3')));
+  assert.equal(localStorage.getItem('mundok-v3/library-order'), null);
+});

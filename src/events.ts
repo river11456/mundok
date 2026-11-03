@@ -1,10 +1,13 @@
+import { deleteLibraryFolder } from './library-actions';
+import { storageErrorMessage } from './storage/recovery-ui';
+import { reorderLibraryDoc } from './library-ui';
 import { sessionCardIndex } from './session-position';
 import { S, DOCS, curDoc, resetGrammarView, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { folderPath, homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
 import { showShelfCreate, showShelfRename, showShelfPicker } from './shelf-ui';
-import { deleteShelf, loadCollections, saveCollections, moveDoc } from './collections';
+import { loadCollections, saveCollections, moveDoc } from './collections';
 import { store } from './storage';
 import { deleteUserDoc, loadUserDocs } from './user-docs';
 import { render } from './render';
@@ -174,6 +177,9 @@ export function setupClick(): void {
       case 'doc-manage': S.docOverlay = S.docId; render(); break;
       case 'document-review': startDocumentReview(); break;
       case 'overlay-ref':  openDoc(arg!);               break;
+      case 'library-earlier': if (arg) reorderLibraryDoc(arg, -1); break;
+      case 'library-later': if (arg) reorderLibraryDoc(arg, 1); break;
+      case 'library-move': if (arg) showShelfPicker(arg); break;
       case 'open-folder':  openFolder(arg ? arg : null); break;
       case 'library-add-toggle': {
         const opening = !S.libraryAddMenu;
@@ -190,7 +196,8 @@ export function setupClick(): void {
         if (!sh) break;
         if (!confirm(`'${sh.name}' 폴더를 삭제합니다.\n\n담긴 문헌과 하위 폴더는 상위 폴더로 이동합니다. 계속하시겠습니까?`)) break;
         const nextFolderId = sh.parentId ?? null;
-        saveCollections(deleteShelf(loadCollections(), sh.id));
+        try { deleteLibraryFolder(sh.id); }
+        catch (error) { alert(storageErrorMessage(error)); break; }
         const p = store().loadPrefs();   // 접힘 상태 잔재 청소
         store().savePrefs({ ...p, shelvesCollapsed: p.shelvesCollapsed.filter(x => x !== sh.id) });
         if (S.folderId === sh.id) S.folderId = nextFolderId;

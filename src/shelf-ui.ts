@@ -1,7 +1,8 @@
+import { moveLibraryDoc, createLibraryFolder } from './library-actions';
 import { render } from './render';
 import { esc } from './render-shared';
 import {
-  loadCollections, saveCollections, createShelf, renameShelf, moveDoc, shelfOf,
+  loadCollections, saveCollections, renameShelf, shelfOf,
   canCreateChildFolder, shelfPath,
 } from './collections';
 
@@ -39,11 +40,15 @@ function submitName(): void {
     input.focus();
     return;
   }
-  if (nameMode === 'rename') {
-    saveCollections(renameShelf(loadCollections(), renameId, name));
-  } else {
-    const created = createShelf(loadCollections(), name, createParentId);
-    saveCollections(moveDocId ? moveDoc(created.shelves, moveDocId, created.id) : created.shelves);
+  try {
+    if (nameMode === 'rename') {
+      saveCollections(renameShelf(loadCollections(), renameId, name));
+    } else {
+      createLibraryFolder(name, createParentId, moveDocId);
+    }
+  } catch (error) {
+    alert(error instanceof Error ? error.message : '저장에 실패했습니다.');
+    return;
   }
   hideNameModal();
   render();
@@ -162,7 +167,10 @@ function ensurePickOverlay(): HTMLElement {
     if (!btn) return;
     const target = btn.dataset.sp === '' ? null : btn.dataset.sp!;
     const curId  = shelfOf(loadCollections(), pickerDocId)?.id ?? null;
-    if (target !== curId) saveCollections(moveDoc(loadCollections(), pickerDocId, target));
+    if (target !== curId) {
+      try { moveLibraryDoc(pickerDocId, target); }
+      catch (error) { alert(error instanceof Error ? error.message : '문헌을 이동하지 못했습니다.'); return; }
+    }
     hidePicker();
     render();
   });
