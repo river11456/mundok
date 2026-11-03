@@ -1,5 +1,3 @@
-import { homeDocs } from './docs';
-import { S } from './state';
 import { render } from './render';
 import { moveLibraryDoc } from './library-actions';
 import { storageErrorMessage } from './storage/recovery-ui';
@@ -22,7 +20,7 @@ function announce(message: string): void {
   hideTimer = setTimeout(() => { if (status) status.hidden = true; }, 5000);
 }
 
-/** Shared completion for pointer and keyboard organization. Persist before rendering. */
+/** Complete drag organization after persistence succeeds. */
 export function applyLibraryMove(docId: string, folderId: string | null, beforeId?: string | null): boolean {
   try {
     if (!moveLibraryDoc(docId, folderId, beforeId)) return false;
@@ -38,12 +36,4 @@ export function applyLibraryMove(docId: string, folderId: string | null, beforeI
     announce(storageErrorMessage(error));
     return false;
   }
-}
-
-export function reorderLibraryDoc(docId: string, direction: -1 | 1): void {
-  const ids = homeDocs(S.folderId).map(doc => doc.id);
-  const index = ids.indexOf(docId);
-  const destination = index + direction;
-  if (index < 0 || destination < 0 || destination >= ids.length) return;
-  applyLibraryMove(docId, S.folderId, direction < 0 ? ids[destination] : ids[destination + 1] ?? null);
 }
