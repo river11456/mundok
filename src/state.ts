@@ -1,10 +1,9 @@
-import type { Doc, Level, Screen, LastSession, ReviewEvent } from './types';
+import type { Doc, Level, Screen, ReviewEvent } from './types';
 import { DOCS } from './docs';
 import { store } from './storage';
 import { lastTs } from './review-log';
 
 export { DOCS };
-export type { LastSession };
 
 export const S = {
   scr:        'home' as Screen,
@@ -78,30 +77,6 @@ export function getDocLastStudied(docId: string): string | null {
   }
   if (!ts) return null;
   return new Date(ts).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-}
-
-// ── 이어서 학습 — 마지막 학습 위치를 저장해 홈 히어로에서 원터치 복귀 ──
-
-export function saveLastSession(): void {
-  if (!S.docId || !S.lv || !S.mode) return;
-  const last: LastSession = {
-    docId: S.docId,
-    lvKey: S.lv.key,
-    cardId: S.lv.cards[S.seqIdx]?.id,
-    mode:  S.mode,
-    idx:   S.seqIdx,
-    total: S.lv.cards.length,
-    ts:    Date.now(),
-  };
-  const s = store().loadSession();
-  store().saveSession({ ...s, last });
-}
-
-export function getLastSession(): LastSession | null {
-  const d = store().loadSession().last;
-  if (d && typeof d.docId === 'string' && typeof d.lvKey === 'string'
-    && (d.mode === 'seq' || d.mode === 'anki') && typeof d.idx === 'number') return d;
-  return null;
 }
 
 // ── 선반(그룹) 접기 상태 ─────────────────────────────────

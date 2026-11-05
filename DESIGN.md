@@ -84,7 +84,7 @@
   - 한의학 한문 학습자 managing course texts, reference excerpts, and self-created notes
   - Sentence-level learners who study one phrase or sentence deeply before reviewing it later
 - User jobs:
-  - Quickly resume study from a document library.
+  - Start study from a selected document in the library.
   - Browse by class, topic, source text, or reference folder.
   - Select an unknown character in a sentence and confirm its sound/meaning without switching context.
   - Enter all sentence readings efficiently after character meanings are known.

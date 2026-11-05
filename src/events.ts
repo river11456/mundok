@@ -1,7 +1,6 @@
 import { deleteLibraryFolder } from './library-actions';
 import { storageErrorMessage } from './storage/recovery-ui';
-import { sessionCardIndex } from './session-position';
-import { S, DOCS, curDoc, resetGrammarView, pushNav, popNav, touchLastStudied, saveLastSession, getLastSession, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
+import { S, DOCS, curDoc, resetGrammarView, pushNav, popNav, touchLastStudied, deleteDocProgress, DRILL_NEXT, DRILL_LEVELS } from './state';
 import { folderPath, homeDocs, refsOf, syncUserDocs } from './docs';
 import { showDocCreate, showDocAppend, showDocEdit } from './doc-create';
 import { showCatalog } from './catalog';
@@ -102,30 +101,16 @@ function startStudy(lvIdx: number, seqStart = 0, revealed = false): void {
   S.seqIdx = Math.max(0, Math.min(seqStart, level.cards.length - 1));
   S.seqFlipped = revealed;
   S.scr = 'study';
-  saveLastSession();
   render();
   window.scrollTo({ top: 0 });
 }
 
-/** 홈 히어로 "이어하기" — 마지막 학습 위치로 복귀 (A3). */
-function resumeStudy(): void {
-  const last = getLastSession();
-  if (!last) return;
-  const doc = DOCS.find(d => d.id === last.docId);
-  const lvIdx = doc?.levels.findIndex(l => l.key === last.lvKey) ?? -1;
-  if (!doc) return;
-  S.docId = doc.id;
-  const index = lvIdx < 0 ? -1 : sessionCardIndex(last, doc.levels[lvIdx].cards);
-  if (index < 0) { openDoc(doc.id); return; }
-  startStudy(lvIdx, index);
-}
-
 function seqPrev(): void {
-  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
+  if (S.seqIdx > 0) { S.seqIdx--; S.seqFlipped = false; resetGrammarView(); render(); }
 }
 
 function seqNext(): void {
-  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; resetGrammarView(); saveLastSession(); render(); }
+  if (S.seqIdx < S.lv!.cards.length - 1) { S.seqIdx++; S.seqFlipped = false; resetGrammarView(); render(); }
 }
 
 /** Space·카드 탭·정답 보기의 공통 동작. */
@@ -201,7 +186,6 @@ export function setupClick(): void {
         break;
       }
       case 'doc-move-shelf': if (S.docOverlay) showShelfPicker(S.docOverlay); break;
-      case 'resume':      resumeStudy();                break;
       case 'draft-resume': if (arg) resumeCardDraft(arg); break;
       case 'draft-export': if (arg) exportHomeDraft(arg); break;
       case 'draft-discard':

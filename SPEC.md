@@ -32,7 +32,7 @@
 | **Card** | 학습 단위 — 원문·뜻·독음·문법·해석 순서·드릴 링크 | Content | Doc에 내장 |
 | **Collection** | 문헌을 담는 `parentId` 폴더 트리 + 순서 — 문헌 위치는 1곳 | Content(조직화) | 유저 (카탈로그 선반은 1회 시드) |
 | **ReviewLog** | 학습 이벤트 추가 기록(오래된 구간은 요약 압축 가능) | Progress | 유저 |
-| **Session** | 마지막 학습 위치·streak | Progress | 유저 |
+| **Session** | streak·구 마지막 학습 위치(호환용) | Progress | 유저 |
 | **Prefs** | 선반 접힘·온보딩 등 UI 상태 | Preference | 유저 |
 
 ### 2.2 id 체계
@@ -102,13 +102,14 @@
 
 ### 3.1 학습·복습
 
+홈의 이어서 학습 기능은 제거했다. 학습은 문헌에서 시작하며, 마지막 학습 위치를 새로 저장하거나 복원하지 않는다. 기존 Session.last는 구 백업 호환을 위해 보존한다. 작성 중 초안의 이어쓰기는 별도 기능으로 유지한다.
+
 | # | 기능 | 트리거 | 읽기 | 쓰기 |
 |---|---|---|---|---|
 | L1 | 서가 홈 | 홈 진입 | Doc*, Collection, Session, Prefs | — |
-| L2·L3 | 이어서 학습 | 히어로 | Session | Session |
 | L4 | 문헌 본문 | 표지 클릭/숫자키 | Doc | — |
-| L5·L6 | 문장 학습 / 순차 복습 | 문장 클릭 / 복습 | Card | Session, ReviewLog |
-| L7~L11 | 정답 보기·이전/다음 문장 | 학습 화면 버튼·단축키 | Card | ReviewLog, Session |
+| L5·L6 | 문장 학습 / 순차 복습 | 문장 클릭 / 복습 | Card | ReviewLog |
+| L7~L11 | 정답 보기·이전/다음 문장 | 학습 화면 버튼·단축키 | Card | ReviewLog |
 | L12 | 드릴다운 | 밑줄 클릭 | 하위 레벨 카드의 원문 매칭 → 대상 ID(6절) | — |
 | L13~L15 | 독음·문법·해석 순서 | 자동/`G`/▶ | `card.reading·grammar·interp` | — |
 | L16~L18 | 폴더 탐색·온보딩·도움말 | — | Collection, Prefs | Content, Prefs |

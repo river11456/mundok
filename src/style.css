@@ -527,34 +527,6 @@ button { touch-action: manipulation; }
   }
   .streak-pill b { font-size: 15px; color: var(--accent-deep); font-weight: 700; }
 
-  /* 이어서 학습 히어로 */
-  .hero {
-    display: flex; align-items: center; gap: 20px; padding: 18px 20px;
-    background: var(--surface); border: 1px solid var(--line-soft); border-radius: 20px;
-    box-shadow: var(--shadow);
-  }
-  .hero-cover {
-    width: 64px; aspect-ratio: 3 / 4.1; border-radius: 5px 9px 9px 5px; background: var(--cbg, #E3EDD9);
-    position: relative; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0, 0, 0, .10); overflow: hidden;
-  }
-  .hero-cover .slip {
-    position: absolute; top: 6px; left: 6px; writing-mode: vertical-rl; text-orientation: upright;
-    background: #FFFFFF; border: 1px solid rgba(0, 0, 0, .08); border-radius: 2px; padding: 4px 1.5px;
-    font-size: 8.5px; letter-spacing: .12em; color: var(--ink);
-  }
-  .hero-main { flex: 1; min-width: 0; }
-  .hero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--accent-deep); }
-  .hero-title { font-size: 19px; margin-top: 5px; color: var(--ink); }
-  .hero-title .lv { font-size: 13px; color: var(--sub); }
-  .hero-sub { font-size: 12.5px; color: var(--sub); margin-top: 5px; }
-  .hero-btn {
-    padding: 11px 20px; border-radius: 999px; background: var(--accent-deep); color: #fff;
-    font-size: 13.5px; font-weight: 700; flex-shrink: 0;
-    transition: transform .2s var(--spring), background .2s;
-    box-shadow: 0 3px 10px rgba(29, 102, 219, .35);
-  }
-  @media (hover: hover) { .hero-btn:hover { transform: translateY(-2px); background: var(--accent-deeper); } }
-
   /* 폴더 경로와 관리 */
   .library-bar {
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
@@ -928,8 +900,6 @@ button { touch-action: manipulation; }
     .library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
     .folder-tile { min-height: 126px; }
     .wordmark { font-size: clamp(40px, 11vw, 56px); }
-    .hero { flex-wrap: wrap; padding: 16px; gap: 12px 14px; }
-    .hero-btn { width: 100%; text-align: center; }
     .card-surface { border-radius: 18px; gap: 22px; }
     .stat { padding: 14px 10px 12px; }
     .stat b { font-size: 22px; }
