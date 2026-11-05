@@ -111,6 +111,7 @@ export type ReviewEvent =
   | { t: 'legacy'; card: string; lv: LevelKey; ts: number; fails: number }     // v1 fail_count 승계 (card '' = 시각만)
   | { t: 'reset';  lv: LevelKey; ts: number };                                 // 안키 기록 초기화 (Ctrl+Shift+R)
 
+/** Legacy session position retained only for stored-data and backup compatibility. */
 export interface LastSession {
   docId: string;
   cardId?: string; // stable resume position; absent in legacy backups

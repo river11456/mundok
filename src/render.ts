@@ -1,5 +1,4 @@
-import { sessionCardIndex } from './session-position';
-import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak, getLastSession } from './state';
+import { S, curDoc, DOCS, DRILL_LEVELS, getDocLastStudied, getStreak } from './state';
 import { homeDocs, shelvesForHome, refsOf, docColor, type HomeFolder } from './docs';
 import { resetCellSelect } from './cell-select';
 import { stopInterpPlay } from './interp-play';
@@ -281,38 +280,6 @@ function docTotalCards(d: Doc): number {
   return d.levels.reduce((s, l) => s + l.cards.length, 0);
 }
 
-function heroWhen(ts: number): string {
-  const key = (x: Date) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
-  const d = new Date(ts);
-  const yest = new Date(); yest.setDate(yest.getDate() - 1);
-  if (key(d) === key(new Date())) return '오늘';
-  if (key(d) === key(yest))       return '어제';
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
-
-/** 이어서 학습 히어로 — 기록이 없거나 문헌·레벨이 사라졌으면 빈 문자열. */
-function heroHtml(): string {
-  const last = getLastSession();
-  if (!last) return '';
-  const doc = DOCS.find(d => d.id === last.docId);
-  const lv  = doc?.levels.find(l => l.key === last.lvKey);
-  if (!doc) return '';
-  const index = sessionCardIndex(last, lv?.cards ?? []);
-  const progress = index >= 0 && lv
-    ? `<span class="num">${index + 1} / ${lv.cards.length}</span> 진행`
-    : '문헌에서 이어보기';
-  return `
-    <div class="hero">
-      <div class="hero-cover" style="--cbg:${docColor(doc)}"><span class="slip kai">${esc(doc.title)}</span></div>
-      <div class="hero-main">
-        <div class="hero-eyebrow">이어서 학습</div>
-        <div class="hero-title"><span class="kai hanja">${esc(doc.title)}</span> <span class="lv">· ${esc(lv?.label ?? '본문')}</span></div>
-        <div class="hero-sub">${heroWhen(last.ts)} 학습 · ${progress}</div>
-      </div>
-      <button data-action="resume" class="hero-btn">이어하기</button>
-    </div>`;
-}
-
 function coverHtml(d: Doc, key: number | undefined): string {
   const refs   = refsOf(d.id);
   const recent = getDocLastStudied(d.id);
@@ -471,7 +438,6 @@ function renderHome(): void {
         </div>
         ${streak.count > 0 ? `<div class="streak-pill">연속 학습 <b class="num">${streak.count}</b>일</div>` : ''}
       </div>
-      ${heroHtml()}
       ${draftListHtml()}
       <div class="library-bar">
         <nav class="breadcrumbs" aria-label="현재 폴더">${crumbs}</nav>

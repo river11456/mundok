@@ -1,6 +1,6 @@
 # 文讀 — 현재 인계
 
-> 확인 날짜: **2026-11-03**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
+> 확인 날짜: **2026-11-05**. 공식 작업 상태는 [GitHub Issues](https://github.com/river11456/mundok/issues), 출시 근거는 [GitHub Releases](https://github.com/river11456/mundok/releases)다. 이 문서는 다음 작업자를 위한 짧은 안내다.
 
 ## 운영 기준
 
@@ -10,6 +10,8 @@
 - 실제 기기에서의 업데이트·오프라인 재접속·사용자 백업 복원 검증은 별도 [#5](https://github.com/river11456/mundok/issues/5)에서 근거를 확보한다.
 
 ## 현재 우선순위와 남은 범위
+
+- [#39 이어서 학습 제거](https://github.com/river11456/mundok/issues/39): 홈 배너와 마지막 위치 기록·복원을 제거했다. 초안 이어쓰기와 기존 Session/백업 형식은 유지한다. 공개 기능 제거에 따라 5.0.0으로 준비하며, 병합·배포 전이다. 테스트 355개, lint·build, 1280/768/390px 브라우저 검사와 별도 코드 리뷰를 통과했다.
 
 - 현재 작업은 [#30 문장 블록·현토 실제 서비스 통합](https://github.com/river11456/mundok/issues/30)의 **4.0.0 출시 준비**다. [목업 #28](https://github.com/river11456/mundok/issues/28)의 본문 편집·문장 학습·현토 분리를 제품 코드에 연결하고 안키 실행·평가 UI를 제거한다. 기존 문헌·필기·단어/글자 드릴다운·구 백업/로그 읽기는 보존한다. 병합·배포·운영 확인·Release 연결의 최신 상태는 이슈를 따른다. 이 문서는 배포 완료를 뜻하지 않는다.
 - 문장 분할의 해석·메모는 첫 조각에 유지하며, 현토·범위 주석은 글자에 따라 이동한다. 카탈로그 업데이트는 사용자 문장 배열·삭제 표시를 유지한다. 문장 블록·현토의 선택적 메타데이터는 문헌/백업 v3에 포함한다. 앱 4.0.0은 안키 공개 동작 제거에 따른 버전이며 이전 앱의 새 데이터 편집 호환성을 보장하지 않는다.
