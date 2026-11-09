@@ -86,6 +86,26 @@ export function hyeontoSegments(card: CardJSON): { text: string; kind: 'original
   return segments;
 }
 
+/** Keep conjoining jamo together while retaining the composed text's codepoint offsets. */
+export function hyeontoDisplayCells(text: string, indices?: ReadonlySet<number>) {
+  const chars = [...text];
+  const cells: { text: string; start: number; last: number }[] = [];
+  const syllable = /^[\u1100-\u115f\ua960-\ua97c]+[\u1160-\u11a7\ud7b0-\ud7c6]+[\u11a8-\u11ff\ud7cb-\ud7fb]*/u;
+  for (let start = 0; start < chars.length;) {
+    const char = chars[start];
+    let cell = char;
+    if (indices?.has(start) && /^[\u1100-\u115f\ua960-\ua97c]$/u.test(char)) {
+      let end = start + 1;
+      while (end < chars.length && indices.has(end)) end++;
+      cell = syllable.exec(chars.slice(start, end).join(''))?.[0] ?? char;
+    }
+    const last = start + [...cell].length - 1;
+    cells.push({ text: cell, start, last });
+    start = last + 1;
+  }
+  return cells;
+}
+
 /** The optional baseline is the user-reviewed separation before editing its marks. */
 export function setHyeonto(card: CardJSON, input: HyeontoData, baseline?: HyeontoData): CardJSON {
   const checked = checkedHyeonto(input);

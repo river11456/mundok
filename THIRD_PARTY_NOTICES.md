@@ -38,3 +38,10 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 ```
+
+## Noto Sans CJK KR
+
+The Hangul jamo subset in `public/fonts/noto-kr-jamo.woff` is derived from
+[Noto Sans CJK KR Regular](https://github.com/notofonts/noto-cjk/tree/main/Sans/OTF/Korean).
+The subset retains the Hangul shaping features. Copyright 2014–2021 Adobe.
+The [SIL Open Font License 1.1](public/fonts/noto-kr-jamo-OFL.txt) accompanies the font.

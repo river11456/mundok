@@ -125,10 +125,11 @@ function apply(r: GestureResult): void {
       break;
     case 'select': {
       clearTimeout(holdTimer);
-      range = { start: r.start, end: r.end };
+      const last = document.querySelector<HTMLElement>(`#card-front .cc[data-i="${r.end}"]`);
+      range = { start: r.start, end: Number(last?.dataset.last ?? r.end) };
       markSuppress();
       paint(r.start, r.end);
-      showBubble(rangeRect(r.start, r.end));
+      showBubble(rangeRect(range.start, range.end));
       break;
     }
     case 'tap':

@@ -35,7 +35,11 @@ export function toggleInterpPlay(chunks: InterpChunk[] | undefined): void {
   if (!host) return;
 
   const cells = new Map<number, HTMLElement>();
-  host.querySelectorAll<HTMLElement>('.cc[data-i]').forEach(el => cells.set(parseInt(el.dataset.i!), el));
+  host.querySelectorAll<HTMLElement>('.cc[data-i]').forEach(el => {
+    const start = Number(el.dataset.i);
+    const last = Number(el.dataset.last ?? start);
+    for (let i = start; i <= last; i++) cells.set(i, el);
+  });
   if (cells.size === 0) return;
 
   _playing = true;
