@@ -56,6 +56,19 @@ const out = {
 };
 
 const { errors, warns } = lintDoc(out);
+if (!prev) {
+  for (const [level, cards] of Object.entries(levels)) {
+    for (const card of cards) {
+      for (const field of ['text', 'reading']) {
+        [...(card[field] ?? '')].forEach((char, index) => {
+          if (!/\p{General_Category=Private_Use}/u.test(char)) return;
+          const code = char.codePointAt(0).toString(16).toUpperCase();
+          errors.push(`${out.id}/${level} "${card.id}" ${field} 글자 ${index + 1}: PUA U+${code} — 원본을 대조해 표준 문자로 변환하세요.`);
+        });
+      }
+    }
+  }
+}
 if (errors.length) {
   console.error(`❌ lint ERROR ${errors.length}건 — 승격 중단:`);
   errors.forEach(e => console.error(`   ${e}`));

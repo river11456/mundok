@@ -7,6 +7,7 @@ import { findDrillSpans, spansByIndex, type DrillCandidate } from './drill-match
 import { alignReading } from './reading-align';
 import { $app, esc, backBtn, homeBtn } from './render-shared';
 import { documentEditorBeforeRender, renderDocumentEditor } from './document-editor';
+import { hyeontoDisplayCells } from './sentence-blocks';
 import { hyeontoIndices, renderHyeontoControls } from './hyeonto-editor';
 import { draftListHtml } from './draft-list';
 import type { Card, Doc, GrammarAnnotation } from './types';
@@ -71,6 +72,28 @@ function buildSlotMap(annotations: GrammarAnnotation[]): Map<number, SlotAnno> {
   return map;
 }
 
+/** A joined hyeonto syllable can contain a label or border at an interior offset. */
+function cellAnnotation(slots: Map<number, SlotAnno> | null, start: number, last: number): SlotAnno | undefined {
+  if (!slots || start === last) return slots?.get(start);
+  const combined: SlotAnno = {};
+  for (let i = start; i <= last; i++) {
+    const slot = slots.get(i);
+    if (!slot) continue;
+    if (slot.svoType && (!combined.svoType || slot.isFirstSvo)) {
+      combined.svoType = slot.svoType;
+      combined.svoBg = slot.svoBg;
+      combined.isFirstSvo = slot.isFirstSvo;
+    }
+    if (slot.phraseTop) {
+      combined.phraseTop = true;
+      combined.phraseColor ??= slot.phraseColor;
+      if (slot.phraseLeft) combined.phraseLeft = true;
+      if (slot.phraseRight) combined.phraseRight = true;
+    }
+  }
+  return combined;
+}
+
 /** 하위 레벨(char/word/sentence) 카드 중 text에 등장하는 것들을 드릴다운 매칭 후보로 모은다. */
 function drillCandidates(text: string): DrillCandidate[] {
   const nextKeys = S.lv ? DRILL_LEVELS[S.lv.key] : null;
@@ -109,7 +132,7 @@ function slotClasses(s: SlotAnno | undefined): string {
  * → 음 토글·드릴 밑줄·문법 표시가 서로/한자 배치에 간섭하지 않는다 (R1~R3·R8).
  */
 function renderFront(front: string, opts: FrontOpts): string {
-  const chars   = [...front];
+  const cells   = hyeontoDisplayCells(front, opts.hyeonto);
   const reads   = opts.showReading ? opts.reads : null;
   const slotMap = opts.annotations.length ? buildSlotMap(opts.annotations) : null;
   const svoFg: Record<string, string> = { S: 'svo-fg-S', V: 'svo-fg-V', O: 'svo-fg-O' };
@@ -124,9 +147,13 @@ function renderFront(front: string, opts: FrontOpts): string {
       });
     }
     const hasAnyLabel = opts.interpEdit ? ipMap.size > 0 : opts.annotations.some(a => a.type !== 'phrase');
-    const cells = chars.map((ch, i) => {
-      const s  = opts.interpEdit ? undefined : slotMap?.get(i);
-      const ip = ipMap.get(i);
+    const grid = cells.map(({ text: ch, start: i, last }) => {
+      const s = opts.interpEdit ? undefined : cellAnnotation(slotMap, i, last);
+      let ip = ipMap.get(i);
+      for (let offset = i + 1; offset <= last; offset++) {
+        const candidate = ipMap.get(offset);
+        if (candidate && (!ip || candidate.isStart)) ip = candidate;
+      }
       const badge = opts.interpEdit
         ? (ip?.isStart
             ? `<span class="text-[10px] font-bold leading-none select-none num text-[var(--accent-deep)]">${ip.num}</span>`
@@ -138,13 +165,13 @@ function renderFront(front: string, opts: FrontOpts): string {
         ? `<span class="cc-rd-e ${reads[i] ? '' : 'invisible'}">${esc(reads[i] ?? '·')}</span>`
         : '';
       const chunkBg = ip ? ' bg-[rgba(46,124,246,.10)] rounded-sm' : '';
-      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)}${chunkBg} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}">
+      return `<span class="ci inline-flex flex-col items-center leading-none pt-0.5 select-none${slotClasses(s)}${chunkBg} cursor-pointer hover:bg-[rgba(0,0,0,.05)]" data-char-idx="${i}"${last > i ? ` data-last="${last}"` : ''}>
         ${badge}
         <span class="hanja text-2xl leading-none pointer-events-none${opts.hyeonto?.has(i) ? ' hyeonto-token' : ''}">${esc(ch)}</span>
         ${rd}
       </span>`;
     }).join('');
-    return `<div class="grammar-edit-grid flex flex-wrap" style="gap:6px 2px">${cells}</div>`;
+    return `<div class="grammar-edit-grid flex flex-wrap" style="gap:6px 2px">${grid}</div>`;
   }
 
   // ── 표시: 드릴 스팬(inline) 안팎 모두 같은 글자 셀 ──
@@ -152,19 +179,19 @@ function renderFront(front: string, opts: FrontOpts): string {
 
   let html = '';
   let curDrill: string | null = null;
-  for (let i = 0; i < chars.length; i++) {
+  for (const { text, start: i, last } of cells) {
     const sp = drillMap.get(i) ?? null;
     if ((sp?.id ?? null) !== curDrill) {
       if (curDrill !== null) html += '</span>';
       curDrill = sp?.id ?? null;
       if (sp) html += `<span data-action="drill-down" data-arg="${esc(sp.id)}" title="${esc(sp.back)}" class="drill">`;
     }
-    const s = slotMap?.get(i);
+    const s = cellAnnotation(slotMap, i, last);
     const label = s?.svoType && s.isFirstSvo
       ? `<span class="cc-svo ${svoFg[s.svoType]}">${s.svoType}</span>`
       : '';
     const rd = reads?.[i] && !opts.hyeonto?.has(i) ? `<span class="cc-rd">${esc(reads[i]!)}</span>` : '';
-    html += `<span class="cc${slotClasses(s)}${opts.hyeonto?.has(i) ? ' hyeonto-token' : ''}" data-i="${i}">${esc(chars[i])}${label}${rd}</span>`;
+    html += `<span class="cc${slotClasses(s)}${opts.hyeonto?.has(i) ? ' hyeonto-token' : ''}" data-i="${i}"${last > i ? ` data-last="${last}"` : ''}>${esc(text)}${label}${rd}</span>`;
   }
   if (curDrill !== null) html += '</span>';
   return html;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { designateRange, insertBlock, mergeBlocks, moveBlock, composeHyeonto, getHyeonto, suggestHyeonto, setHyeonto, hyeontoSegments } from '../src/sentence-blocks.ts';
+import { designateRange, insertBlock, mergeBlocks, moveBlock, composeHyeonto, getHyeonto, suggestHyeonto, setHyeonto, hyeontoSegments, hyeontoDisplayCells } from '../src/sentence-blocks.ts';
 import { USER_DOCS_KEY, loadUserDocs, userEditCard, userSaveGrammar, userSaveInterp, replaceSentenceCards, mergeCatalogUpdate, installCatalogDoc } from '../src/user-docs.ts';
 import { alignReading } from '../src/reading-align.ts';
 
@@ -542,4 +542,23 @@ test('mixed candidate metadata survives split and JSON; explicit confirmation cl
   const confirmed = setHyeonto(loaded, getHyeonto(loaded));
   assert.ok(getHyeonto(confirmed).marks.every(mark => mark.unconfirmed === undefined));
   assert.equal(confirmed.text, loaded.text);
+});
+
+
+test('old Hangul hyeonto keeps joined syllables and their full codepoint ranges', () => {
+  const text = '此ᄂᆞᆫ 率ᄒᆞ고';
+  assert.deepEqual(hyeontoDisplayCells(text, new Set([1, 2, 3, 6, 7, 8])), [
+    { text: '此', start: 0, last: 0 },
+    { text: 'ᄂᆞᆫ', start: 1, last: 3 },
+    { text: ' ', start: 4, last: 4 },
+    { text: '率', start: 5, last: 5 },
+    { text: 'ᄒᆞ', start: 6, last: 7 },
+    { text: '고', start: 8, last: 8 },
+  ]);
+  assert.deepEqual(hyeontoDisplayCells('甲ᄒᆞᆫ乙', new Set([1, 2])).map(cell => cell.text),
+    ['甲', 'ᄒᆞ', 'ᆫ', '乙']);
+  const card = { id: 'old', text, reading: '차ᄂᆞᆫ 솔ᄒᆞ고', meaning: '', note: '' };
+  const marks = suggestHyeonto(card);
+  assert.deepEqual(marks.marks.map(mark => mark.text), ['ᄂᆞᆫ', 'ᄒᆞ고']);
+  assert.equal(composeHyeonto(getHyeonto(setHyeonto(card, marks))), text);
 });

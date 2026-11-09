@@ -186,7 +186,9 @@ export function initGrammarEdit(): void {
     if (dragEnd < 0) { hidePicker(); _dragStart = -1; return; }
 
     const start = Math.min(_dragStart, dragEnd);
-    const end   = Math.max(_dragStart, dragEnd) + 1;
+    const last = Math.max(_dragStart, dragEnd);
+    const cell = document.querySelector<HTMLElement>(`[data-char-idx="${last}"]`);
+    const end = Number(cell?.dataset.last ?? last) + 1;
     _dragStart  = -1;
     clearHighlight();
     if (S.interpEditMode) { applyInterpToggle(start, end); return; }   // 피커 없이 즉시 토글
