@@ -17,6 +17,8 @@ export function isProductPath(file) {
   if (/^(src|public|catalog)\//.test(path) || PRODUCT_SCRIPTS.has(path)) return true;
   // Standalone design references are neither Vite entrypoints nor public assets.
   if (/^design\/mockups\/[^/]+\.html$/.test(path)) return false;
+  // Reviewed local-only prototype; no production entry imports these files.
+  if (/^design\/prototypes\/sentence-blocks\/(index\.html|main\.ts|model\.ts|model\.test\.mjs|prototype\.css|tsconfig\.json)$/.test(path)) return false;
   if (TOOLING_SCRIPTS.has(path) || /^(test|tests|docs|\.github|\.omx|\.omc)\//.test(path)) return false;
   if (/\.md$/i.test(path) || ['.gitignore', '.gitattributes', '.editorconfig', 'LICENSE'].includes(path)) return false;
   return true;
